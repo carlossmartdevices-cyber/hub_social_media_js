@@ -89,8 +89,29 @@ class MultiAccountTwitterClient {
     const account = this.getAccount(accountName);
     
     try {
-      // Upload media first
-      const mediaId = await account.client.v1.uploadMedia(mediaPath);
+      // Read the file to upload
+      const fs = require('fs');
+      const fileBuffer = fs.readFileSync(mediaPath);
+      
+      // Determine media type from file extension
+      const ext = mediaPath.toLowerCase().split('.').pop();
+      let mediaType = 'image/jpeg';
+      
+      if (ext === 'mp4' || ext === 'mov') {
+        mediaType = 'video/mp4';
+      } else if (ext === 'jpg' || ext === 'jpeg') {
+        mediaType = 'image/jpeg';
+      } else if (ext === 'png') {
+        mediaType = 'image/png';
+      } else if (ext === 'gif') {
+        mediaType = 'image/gif';
+      }
+      
+      // Upload media with proper type specification
+      const mediaId = await account.client.v1.uploadMedia(fileBuffer, {
+        mimeType: mediaType,
+        type: 'media'
+      });
 
       // Tweet with media
       const result = await account.client.v2.tweet({
