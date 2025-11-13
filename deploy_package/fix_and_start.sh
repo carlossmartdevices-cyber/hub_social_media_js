@@ -1,0 +1,36 @@
+#!/bin/bash
+
+echo "========================================="
+echo "🔧 Fixing and Starting the Bot"
+echo "========================================="
+echo ""
+
+echo "Run these commands on your SERVER (copy-paste one by one):"
+echo ""
+echo "# 1. Go to the bot directory"
+echo "cd /var/www/hub_social_media_js"
+echo ""
+echo "# 2. Delete the stopped PM2 process"
+echo "pm2 delete social-hub"
+echo ""
+echo "# 3. Start the bot fresh"
+echo "pm2 start ecosystem.config.js"
+echo ""
+echo "# 4. Save PM2 configuration"
+echo "pm2 save"
+echo ""
+echo "# 5. Check status"
+echo "pm2 status"
+echo ""
+echo "# 6. View logs"
+echo "pm2 logs social-hub --lines 30"
+echo ""
+echo "========================================="
+echo ""
+echo "OR run this single command:"
+echo ""
+cat << 'SINGLECMD'
+ssh root@72.60.29.80 'cd /var/www/hub_social_media_js && pm2 delete social-hub; pm2 start ecosystem.config.js && pm2 save && pm2 status && echo "" && echo "=== Recent Logs ===" && pm2 logs social-hub --lines 20 --nostream'
+SINGLECMD
+echo ""
+echo "========================================="

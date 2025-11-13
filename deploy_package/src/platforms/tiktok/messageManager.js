@@ -1,0 +1,1 @@
+// Lógica para gestionar mensajes en TikTok

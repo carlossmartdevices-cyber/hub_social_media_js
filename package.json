@@ -1,0 +1,61 @@
+{
+  "name": "hub_social_media_js",
+  "version": "1.0.0",
+  "description": "Centralized hub for managing live streams, messaging and content distribution on Twitter, Telegram, Instagram and TikTok",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node src/main_interactive_enhanced.js",
+    "start:enhanced": "node src/main_interactive_enhanced.js enhanced",
+    "start:original": "node src/main_interactive.js",
+    "start:old": "node src/main.js",
+    "start:bot": "node src/main_interactive.js interactive",
+    "start:demo": "node src/main_interactive.js demo",
+    "start:test": "node src/main_interactive.js test",
+    "enhanced": "node src/main_interactive_enhanced.js",
+    "enhanced:test": "node src/main_interactive_enhanced.js test",
+    "fixed": "node src/fixed_language_bot.js",
+    "ultra": "node src/ultra_fixed_language_bot.js",
+    "test:lang": "node test_language_switching.js",
+    "dev": "NODE_ENV=development node src/main_interactive_enhanced.js",
+    "prod": "NODE_ENV=production node src/main_interactive_enhanced.js",
+    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:stop": "pm2 stop social-hub",
+    "pm2:restart": "pm2 restart social-hub",
+    "pm2:logs": "pm2 logs social-hub",
+    "pm2:monit": "pm2 monit",
+    "deploy": "npm install --production && pm2 restart social-hub",
+    "auth": "node src/auth/authServer.js",
+    "auth:dev": "nodemon src/auth/authServer.js",
+    "test": "node test_telegram.js",
+    "test:telegram": "node telegram_examples.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "twitter-api-v2": "^1.15.0",
+    "node-telegram-bot-api": "^0.61.0",
+    "instagram-private-api": "^1.45.3",
+    "node-schedule": "^2.1.0",
+    "sequelize": "^6.32.0",
+    "pg": "^8.11.0",
+    "pg-hstore": "^2.3.4",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "eslint": "^8.42.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "social-media",
+    "twitter",
+    "telegram",
+    "instagram",
+    "tiktok",
+    "scheduler",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT"
+}
