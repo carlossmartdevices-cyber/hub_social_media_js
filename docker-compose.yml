@@ -48,6 +48,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-change-this-secret}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-this-encryption-key}
     ports:
       - "${PORT:-3000}:3000"
@@ -59,6 +60,26 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./uploads:/app/uploads
+    restart: unless-stopped
+
+  # 🟢 MEDIUM: Automated database backups
+  postgres-backup:
+    image: prodrigestivill/postgres-backup-local
+    container_name: content-hub-backup
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${DB_NAME:-content_hub}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 6
+      HEALTHCHECK_PORT: 8080
+    volumes:
+      - ./backups:/backups
+    depends_on:
+      - postgres
     restart: unless-stopped
 
 volumes:
