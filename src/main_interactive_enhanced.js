@@ -424,6 +424,8 @@ class EnhancedBotManager {
         await this.handlePostAction(chatId, messageId, data);
       } else if (data.startsWith('schedule_platform_')) {
         await this.handleSchedulePlatformSelection(chatId, messageId, data);
+      } else if (data.startsWith('post_twitter_account_')) {
+        await this.handlePostTwitterAccountSelection(chatId, messageId, data);
       } else if (data.startsWith('schedule_twitter_account_')) {
         await this.handleTwitterAccountSelection(chatId, messageId, data);
       } else if (data.startsWith('schedule_')) {
@@ -649,7 +651,8 @@ class EnhancedBotManager {
 
   async handlePostAction(chatId, messageId, data) {
     const action = data.replace('post_', '');
-
+    const lang = LanguageManager.getUserLanguage(chatId);
+    
     if (action === 'all') {
       // Set state for multi-platform posting
       this.menuManager.setUserState(chatId, 'awaiting_content', { 
@@ -657,7 +660,6 @@ class EnhancedBotManager {
         platforms: ['twitter', 'telegram', 'instagram', 'tiktok']
       });
       
-      const lang = LanguageManager.getUserLanguage(chatId);
       const message = lang === 'es' ? 
         '📝 Envía el contenido que quieres publicar en todas las plataformas:' :
         '📝 Send the content you want to post to all platforms:';
@@ -672,16 +674,59 @@ class EnhancedBotManager {
           ]
         }
       });
+    } else if (action === 'twitter') {
+      // Show Twitter account selection for immediate posting
+      const accounts = this.twitterAccountSelector.getAvailableAccounts();
+      
+      if (accounts.length === 0) {
+        const noAccountsMessage = lang === 'es' ?
+          `❌ <b>No hay cuentas de Twitter configuradas</b>\n\nPara publicar en Twitter, primero debes configurar al menos una cuenta.\n\n📧 Visita https://pnptv.app para configurar cuentas de Twitter.` :
+          `❌ <b>No Twitter accounts configured</b>\n\nTo post to Twitter, you need to configure at least one account first.\n\n📧 Visit https://pnptv.app to set up Twitter accounts.`;
+
+        await this.bot.editMessageText(noAccountsMessage, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: lang === 'es' ? '🔙 Volver' : '🔙 Back', callback_data: 'menu_post' }]
+            ]
+          }
+        });
+        return;
+      }
+
+      // Show Twitter account selection
+      const accountMessage = lang === 'es' ?
+        `🐦 <b>Selecciona Cuenta de Twitter</b>\n\n👇 Elige la cuenta de Twitter para publicar:` :
+        `🐦 <b>Select Twitter Account</b>\n\n👇 Choose the Twitter account to post to:`;
+
+      const keyboard = [];
+      accounts.forEach(account => {
+        keyboard.push([{
+          text: `@${account.username} (${account.displayName})`,
+          callback_data: `post_twitter_account_${account.accountName}`
+        }]);
+      });
+      keyboard.push([{
+        text: lang === 'es' ? '🔙 Volver' : '🔙 Back',
+        callback_data: 'menu_post'
+      }]);
+      
+      await this.bot.editMessageText(accountMessage, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: keyboard }
+      });
     } else {
-      // Single platform posting
+      // Single platform posting (non-Twitter)
       this.menuManager.setUserState(chatId, 'awaiting_content', { 
         action: `post_${action}`,
         platform: action
       });
       
-      const lang = LanguageManager.getUserLanguage(chatId);
       const platformNames = {
-        twitter: 'Twitter/X',
         telegram: 'Telegram',
         instagram: 'Instagram',
         tiktok: 'TikTok'
@@ -702,6 +747,33 @@ class EnhancedBotManager {
         }
       });
     }
+  }  async handlePostTwitterAccountSelection(chatId, messageId, data) {
+    const lang = LanguageManager.getUserLanguage(chatId);
+    const accountName = data.replace('post_twitter_account_', '');
+    
+    console.log(`[DEBUG] handlePostTwitterAccountSelection: selected account ${accountName} for immediate posting`);
+    
+    // Set user state to await content for immediate posting with Twitter account info
+    this.menuManager.setUserState(chatId, 'awaiting_content', {
+      action: 'post_twitter',
+      platform: 'twitter',
+      accountName // Add the selected Twitter account
+    });
+    
+    const message = lang === 'es' ?
+      `📝 <b>Publicar en Twitter</b>\n\nCuenta: <b>@${accountName}</b>\n\n💬 Envía el contenido que quieres publicar:` :
+      `📝 <b>Post to Twitter</b>\n\nAccount: <b>@${accountName}</b>\n\n💬 Send the content you want to post:`;
+    
+    await this.bot.editMessageText(message, {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: lang === 'es' ? '❌ Cancelar' : '❌ Cancel', callback_data: 'menu_post' }]
+        ]
+      }
+    });
   }
 
   async handleScheduleAction(chatId, messageId, data) {
