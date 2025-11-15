@@ -67,9 +67,7 @@ class EnhancedBotManager {
     // Lista de administradores autorizados (user IDs de Telegram)
     this.adminUsers = [
       8365312597, // Usuario principal existente
-      7246621722, // Usuario administrador
-      1388340149, // Nuevo usuario administrador
-      1020488212  // Nuevo usuario administrador
+      7246621722  // Usuario administrador
     ];
   }
 
@@ -402,6 +400,10 @@ class EnhancedBotManager {
         await this.handleMenuNavigation(chatId, messageId, data);
       } else if (data.startsWith('lang_')) {
         await this.handleLanguageChange(chatId, messageId, data);
+      } else if (data.startsWith('post_now_twitter_account_')) {
+        await this.handlePostNowTwitterAccountSelection(chatId, messageId, data);
+      } else if (data.startsWith('post_now_')) {
+        await this.handlePostNowAction(chatId, messageId, data);
       } else if (data.startsWith('post_')) {
         await this.handlePostAction(chatId, messageId, data);
       } else if (data.startsWith('schedule_platform_')) {
@@ -498,9 +500,140 @@ class EnhancedBotManager {
     logger.info(`Language changed to ${newLang} for chat ${chatId}`);
   }
 
+  async handlePostNowAction(chatId, messageId, data) {
+    const action = data.replace('post_now_', '');
+    const lang = LanguageManager.getUserLanguage(chatId);
+
+    console.log(`[DEBUG] handlePostNowAction called with action: ${action}`);
+
+    // For immediate posting, we use the same flow as regular posting
+    // but we emphasize it's immediate
+    if (action === 'all') {
+      // Set state for multi-platform immediate posting
+      this.menuManager.setUserState(chatId, 'awaiting_content', {
+        action: 'post_all',
+        platforms: ['twitter', 'telegram', 'instagram', 'tiktok'],
+        immediate: true
+      });
+
+      const message = lang === 'es' ?
+        '⚡ <b>Publicación Inmediata</b>\n\n📝 Envía el contenido que quieres publicar <b>inmediatamente</b> en todas las plataformas:' :
+        '⚡ <b>Immediate Posting</b>\n\n📝 Send the content you want to post <b>immediately</b> to all platforms:';
+
+      await this.bot.editMessageText(message, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: lang === 'es' ? '❌ Cancelar' : '❌ Cancel', callback_data: 'menu_main' }]
+          ]
+        }
+      });
+    } else if (action === 'twitter') {
+      // For Twitter, show account selection
+      const accounts = this.twitterAccountSelector.getAvailableAccounts();
+
+      if (accounts.length === 0) {
+        const noAccountsMessage = lang === 'es' ?
+          `❌ <b>No hay cuentas de Twitter configuradas</b>\n\nPara usar Twitter, primero debes configurar al menos una cuenta.\n\n📧 Contacta al administrador para configurar cuentas de Twitter.` :
+          `❌ <b>No Twitter accounts configured</b>\n\nTo use Twitter, you need to configure at least one account first.\n\n📧 Contact the administrator to set up Twitter accounts.`;
+
+        await this.bot.editMessageText(noAccountsMessage, {
+          chat_id: chatId,
+          message_id: messageId,
+          parse_mode: 'HTML',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: lang === 'es' ? '🔙 Volver' : '🔙 Back', callback_data: 'menu_schedule' }]
+            ]
+          }
+        });
+        return;
+      }
+
+      // Show Twitter account selection for immediate posting
+      const accountMessage = lang === 'es' ?
+        `⚡ <b>Publicación Inmediata en Twitter</b>\n\n👇 Elige la cuenta de Twitter para publicar <b>inmediatamente</b>:` :
+        `⚡ <b>Immediate Twitter Posting</b>\n\n👇 Choose the Twitter account to post <b>immediately</b>:`;
+
+      const keyboard = this.twitterAccountSelector.generateAccountSelectionKeyboard('twitter', 'now', lang, 'post_now');
+
+      await this.bot.editMessageText(accountMessage, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: keyboard
+      });
+    } else {
+      // Single platform immediate posting
+      this.menuManager.setUserState(chatId, 'awaiting_content', {
+        action: `post_${action}`,
+        platform: action,
+        immediate: true
+      });
+
+      const platformNames = {
+        telegram: 'Telegram',
+        instagram: 'Instagram',
+        tiktok: 'TikTok'
+      };
+
+      const message = lang === 'es' ?
+        `⚡ <b>Publicación Inmediata</b>\n\n📝 Envía el contenido que quieres publicar <b>inmediatamente</b> en ${platformNames[action]}:` :
+        `⚡ <b>Immediate Posting</b>\n\n📝 Send the content you want to post <b>immediately</b> to ${platformNames[action]}:`;
+
+      await this.bot.editMessageText(message, {
+        chat_id: chatId,
+        message_id: messageId,
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: lang === 'es' ? '❌ Cancelar' : '❌ Cancel', callback_data: 'menu_main' }]
+          ]
+        }
+      });
+    }
+  }
+
+  async handlePostNowTwitterAccountSelection(chatId, messageId, data) {
+    const lang = LanguageManager.getUserLanguage(chatId);
+    console.log(`[DEBUG] handlePostNowTwitterAccountSelection called with data: ${data}`);
+
+    // Parse: post_now_twitter_account_<accountName>_<platform>_<timestamp>
+    const parts = data.replace('post_now_twitter_account_', '').split('_');
+    const accountName = parts[0];
+    const platform = parts[1];
+
+    console.log(`[DEBUG] Selected Twitter account for immediate posting: ${accountName}`);
+
+    // Set state for immediate Twitter posting with specific account
+    this.menuManager.setUserState(chatId, 'awaiting_content', {
+      action: 'post_twitter',
+      platform: 'twitter',
+      immediate: true,
+      accountName: accountName
+    });
+
+    const contentMessage = lang === 'es' ?
+      `⚡ <b>Publicación Inmediata en Twitter</b>\n\nCuenta: <b>@${accountName}</b>\n\n💬 Envía el contenido que quieres publicar <b>inmediatamente</b> (texto o multimedia):` :
+      `⚡ <b>Immediate Twitter Posting</b>\n\nAccount: <b>@${accountName}</b>\n\n💬 Send the content you want to post <b>immediately</b> (text or media):`;
+
+    await this.bot.editMessageText(contentMessage, {
+      chat_id: chatId,
+      message_id: messageId,
+      parse_mode: 'HTML',
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: lang === 'es' ? '❌ Cancelar' : '❌ Cancel', callback_data: 'menu_main' }]
+        ]
+      }
+    });
+  }
+
   async handlePostAction(chatId, messageId, data) {
     const action = data.replace('post_', '');
-    
+
     if (action === 'all') {
       // Set state for multi-platform posting
       this.menuManager.setUserState(chatId, 'awaiting_content', { 
@@ -721,6 +854,42 @@ class EnhancedBotManager {
 
     // Calculate scheduled time based on selection (using Colombian time)
     switch (timeOption) {
+      case 'now':
+        // Immediate posting - show platform selection for immediate posting
+        const nowMessage = lang === 'es' ?
+          `⚡ <b>Publicar Inmediatamente</b>\n\n¿En qué plataforma quieres publicar ahora?` :
+          `⚡ <b>Post Immediately</b>\n\nWhich platform do you want to post to now?`;
+
+        try {
+          await this.bot.editMessageText(nowMessage, {
+            chat_id: chatId,
+            message_id: messageId,
+            parse_mode: 'HTML',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🐦 Twitter/X', callback_data: `post_now_twitter` },
+                  { text: '📱 Telegram', callback_data: `post_now_telegram` }
+                ],
+                [
+                  { text: '📸 Instagram', callback_data: `post_now_instagram` },
+                  { text: '🎵 TikTok', callback_data: `post_now_tiktok` }
+                ],
+                [
+                  { text: '🌐 ' + (lang === 'es' ? 'Todas las Plataformas' : 'All Platforms'), callback_data: `post_now_all` }
+                ],
+                [
+                  { text: lang === 'es' ? '🔙 Volver' : '🔙 Back', callback_data: 'menu_schedule' }
+                ]
+              ]
+            }
+          });
+          console.log(`[DEBUG] Immediate posting platform selection shown`);
+        } catch (error) {
+          console.log(`[DEBUG] Error showing immediate posting options:`, error.message);
+          await this.showMainMenu(chatId);
+        }
+        return;
       case '5min':
         scheduledTime = new Date(Date.now() + 5 * 60 * 1000);
         timeDescription = lang === 'es' ? 'en 5 minutos' : 'in 5 minutes';
@@ -860,10 +1029,9 @@ class EnhancedBotManager {
     // Show platform selection for scheduling
     console.log(`[DEBUG] Showing platform selection for timeOption: ${timeOption}, scheduledTime: ${scheduledTime}`);
     
-    const colombianTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const platformMessage = lang === 'es' ?
-      `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n(${colombianTime})\n\n¿En qué plataforma quieres programar?` :
-      `⏰ <b>Schedule Post</b>\n\nScheduled time: <b>${timeDescription}</b>\n(${colombianTime})\n\nWhich platform do you want to schedule for?`;
+      `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n(${scheduledTime.toLocaleString()})\n\n¿En qué plataforma quieres programar?` :
+      `⏰ <b>Schedule Post</b>\n\nScheduled time: <b>${timeDescription}</b>\n(${scheduledTime.toLocaleString()})\n\nWhich platform do you want to schedule for?`;
 
     try {
       await this.bot.editMessageText(platformMessage, {
@@ -931,10 +1099,9 @@ class EnhancedBotManager {
       }
 
       // Show Twitter account selection
-      const colombianAccountTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
       const accountMessage = lang === 'es' ?
-        `🐦 <b>Selecciona Cuenta de Twitter</b>\n\nHora programada: <b>${colombianAccountTime}</b>\n\n👇 Elige la cuenta de Twitter para publicar:` :
-        `🐦 <b>Select Twitter Account</b>\n\nScheduled time: <b>${colombianAccountTime}</b>\n\n👇 Choose the Twitter account to post to:`;
+        `🐦 <b>Selecciona Cuenta de Twitter</b>\n\nHora programada: <b>${scheduledTime.toLocaleString()}</b>\n\n👇 Elige la cuenta de Twitter para publicar:` :
+        `🐦 <b>Select Twitter Account</b>\n\nScheduled time: <b>${scheduledTime.toLocaleString()}</b>\n\n👇 Choose the Twitter account to post to:`;
 
       const keyboard = this.twitterAccountSelector.generateAccountSelectionKeyboard(platform, timestamp, lang);
       
@@ -948,10 +1115,9 @@ class EnhancedBotManager {
     }
 
     // For other platforms, proceed as usual
-    const colombianContentTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const contentMessage = lang === 'es' ?
-      `📝 <b>Contenido para Programar</b>\n\nPlataforma: <b>${platform === 'all' ? 'Todas' : platform}</b>\nHora: <b>${colombianContentTime}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
-      `📝 <b>Content to Schedule</b>\n\nPlatform: <b>${platform === 'all' ? 'All' : platform}</b>\nTime: <b>${colombianContentTime}</b>\n\n💬 Send the content you want to schedule (text or media):`;
+      `📝 <b>Contenido para Programar</b>\n\nPlataforma: <b>${platform === 'all' ? 'Todas' : platform}</b>\nHora: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
+      `📝 <b>Content to Schedule</b>\n\nPlatform: <b>${platform === 'all' ? 'All' : platform}</b>\nTime: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Send the content you want to schedule (text or media):`;
 
     await this.bot.editMessageText(contentMessage, {
       chat_id: chatId,
@@ -986,10 +1152,9 @@ class EnhancedBotManager {
     console.log(`[DEBUG] Selected Twitter account: ${accountName}, platform: ${platform}, scheduledTime: ${scheduledTime}`);
 
     // Ask user for content to schedule
-    const colombianTwitterTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const contentMessage = lang === 'es' ?
-      `📝 <b>Contenido para Twitter</b>\n\nCuenta: <b>@${accountName}</b>\nHora: <b>${colombianTwitterTime}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
-      `📝 <b>Content for Twitter</b>\n\nAccount: <b>@${accountName}</b>\nTime: <b>${colombianTwitterTime}</b>\n\n💬 Send the content you want to schedule (text or media):`;
+      `📝 <b>Contenido para Twitter</b>\n\nCuenta: <b>@${accountName}</b>\nHora: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
+      `📝 <b>Content for Twitter</b>\n\nAccount: <b>@${accountName}</b>\nTime: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Send the content you want to schedule (text or media):`;
 
     await this.bot.editMessageText(contentMessage, {
       chat_id: chatId,
@@ -1214,8 +1379,8 @@ class EnhancedBotManager {
       
       // Show platform selection for the custom time
       const timeDescription = lang === 'es' ? 
-        `el ${scheduledTime.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })} a las ${scheduledTime.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}` :
-        `on ${scheduledTime.toLocaleDateString('en-US', { timeZone: 'America/Bogota' })} at ${scheduledTime.toLocaleTimeString('en-US', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}`;
+        `el ${scheduledTime.toLocaleDateString('es-ES')} a las ${scheduledTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` :
+        `on ${scheduledTime.toLocaleDateString('en-US')} at ${scheduledTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
       
       const platformMessage = lang === 'es' ?
         `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n\n¿En qué plataforma quieres programar?` :
@@ -1663,9 +1828,21 @@ class EnhancedBotManager {
           console.log(`[DEBUG] About to call sendMessageWithMedia:`, {
             caption: JSON.stringify(caption),
             captionLength: caption ? caption.length : 0,
-            tempFilePath
+            tempFilePath,
+            accountName: actionData.accountName || 'default'
           });
-          await this.twitterClient.sendMessageWithMedia(caption, tempFilePath);
+          
+          // Check if a specific account was selected
+          if (actionData.accountName) {
+            // Use MultiAccountTwitterClient for specific account
+            const MultiAccountTwitterClient = require('./auth/multiAccountTwitterClient');
+            const multiClient = new MultiAccountTwitterClient();
+            await multiClient.sendMessageWithMedia(actionData.accountName, caption, tempFilePath);
+          } else {
+            // Use default Twitter client
+            await this.twitterClient.sendMessageWithMedia(caption, tempFilePath);
+          }
+          
           result = lang === 'es' ?
             '✅ Publicado exitosamente en Twitter con contenido multimedia!' :
             '✅ Successfully posted to Twitter with media!';
@@ -1800,14 +1977,28 @@ class EnhancedBotManager {
             console.log(`[DEBUG] Attempting to send to Twitter:`, {
               platform,
               contentLength: content.length,
-              contentPreview: `"${content.substring(0, 100)}..."`
+              contentPreview: `"${content.substring(0, 100)}..."`,
+              accountName: actionData.accountName || 'default'
             });
-            const tweetResult = await this.twitterClient.sendMessage(content);
-            result = lang === 'es' ? 
-              '✅ Publicado exitosamente en Twitter!' :
-              '✅ Successfully posted to Twitter!';
+
+            // Check if a specific account was selected
+            if (actionData.accountName) {
+              // Use MultiAccountTwitterClient for specific account
+              const MultiAccountTwitterClient = require('./auth/multiAccountTwitterClient');
+              const multiClient = new MultiAccountTwitterClient();
+              const tweetResult = await multiClient.sendMessage(actionData.accountName, content);
+              result = lang === 'es' ?
+                `✅ Publicado exitosamente en Twitter (@${actionData.accountName})!` :
+                `✅ Successfully posted to Twitter (@${actionData.accountName})!`;
+            } else {
+              // Use default Twitter client
+              const tweetResult = await this.twitterClient.sendMessage(content);
+              result = lang === 'es' ?
+                '✅ Publicado exitosamente en Twitter!' :
+                '✅ Successfully posted to Twitter!';
+            }
           } catch (error) {
-            result = lang === 'es' ? 
+            result = lang === 'es' ?
               `❌ Error al publicar en Twitter: ${error.message}` :
               `❌ Failed to post to Twitter: ${error.message}`;
           }
@@ -1912,7 +2103,7 @@ class EnhancedBotManager {
         '📅 <b>Scheduled Content:</b>\n\n';
       
       pendingPosts.forEach((post, index) => {
-        const date = new Date(post.scheduledTime).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+        const date = new Date(post.scheduledTime).toLocaleString();
         const platform = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
         const preview = post.message.substring(0, 60);
         message += `${index + 1}. 🌐 <b>${platform}</b>\n`;
@@ -2008,7 +2199,7 @@ class EnhancedBotManager {
       
       const keyboard = [];
       pendingPosts.forEach((post, index) => {
-        const date = new Date(post.scheduledTime).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+        const date = new Date(post.scheduledTime).toLocaleString();
         const platform = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
         const preview = post.message.substring(0, 40);
         message += `${index + 1}. 🌐 <b>${platform}</b> - ${date}\n`;

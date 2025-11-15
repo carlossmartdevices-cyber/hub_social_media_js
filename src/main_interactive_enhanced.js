@@ -67,9 +67,7 @@ class EnhancedBotManager {
     // Lista de administradores autorizados (user IDs de Telegram)
     this.adminUsers = [
       8365312597, // Usuario principal existente
-      7246621722, // Usuario administrador
-      1388340149, // Nuevo usuario administrador
-      1020488212  // Nuevo usuario administrador
+      7246621722  // Usuario administrador
     ];
   }
 
@@ -118,16 +116,27 @@ class EnhancedBotManager {
 
       // Initialize Telegram components if token is available
       if (process.env.TELEGRAM_BOT_TOKEN) {
-        this.telegramClient = new TelegramAPIClient();
-        this.telegramMessageManager = new TelegramMessageManager();
-        this.telegramLiveManager = new TelegramLiveManager();
-        
-        // Initialize bot with polling
-        this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
-        
-        // Test Telegram connection
-        const botInfo = await this.telegramClient.getBotInfo();
-        logger.info(`Telegram Bot initialized: @${botInfo.username} - ${botInfo.first_name}`);
+        try {
+          this.telegramClient = new TelegramAPIClient();
+          this.telegramMessageManager = new TelegramMessageManager();
+          this.telegramLiveManager = new TelegramLiveManager();
+          
+          // Test Telegram connection first before starting polling
+          const botInfo = await this.telegramClient.getBotInfo();
+          
+          // Only initialize bot with polling if connection is successful
+          this.bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: true });
+          
+          logger.info(`Telegram Bot initialized: @${botInfo.username} - ${botInfo.first_name}`);
+        } catch (telegramError) {
+          logger.error('Failed to initialize Telegram bot. Telegram functionality disabled.', telegramError);
+          logger.warn('Bot will continue to run without Telegram. Please check your TELEGRAM_BOT_TOKEN.');
+          // Reset Telegram components to null
+          this.telegramClient = null;
+          this.telegramMessageManager = null;
+          this.telegramLiveManager = null;
+          this.bot = null;
+        }
       } else {
         logger.warn('Telegram Bot Token not found. Telegram functionality disabled.');
       }
@@ -173,6 +182,11 @@ class EnhancedBotManager {
   }
 
   setupEventHandlers() {
+    if (!this.bot) {
+      logger.warn('Telegram bot not initialized. Skipping event handler setup.');
+      return;
+    }
+    
     // Handle /start command - Show main menu
     this.bot.onText(/\/start/, async (msg) => {
       if (!(await this.checkAdminAccess(msg))) return;
@@ -1031,10 +1045,9 @@ class EnhancedBotManager {
     // Show platform selection for scheduling
     console.log(`[DEBUG] Showing platform selection for timeOption: ${timeOption}, scheduledTime: ${scheduledTime}`);
     
-    const colombianTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const platformMessage = lang === 'es' ?
-      `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n(${colombianTime})\n\n¿En qué plataforma quieres programar?` :
-      `⏰ <b>Schedule Post</b>\n\nScheduled time: <b>${timeDescription}</b>\n(${colombianTime})\n\nWhich platform do you want to schedule for?`;
+      `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n(${scheduledTime.toLocaleString()})\n\n¿En qué plataforma quieres programar?` :
+      `⏰ <b>Schedule Post</b>\n\nScheduled time: <b>${timeDescription}</b>\n(${scheduledTime.toLocaleString()})\n\nWhich platform do you want to schedule for?`;
 
     try {
       await this.bot.editMessageText(platformMessage, {
@@ -1102,10 +1115,9 @@ class EnhancedBotManager {
       }
 
       // Show Twitter account selection
-      const colombianAccountTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
       const accountMessage = lang === 'es' ?
-        `🐦 <b>Selecciona Cuenta de Twitter</b>\n\nHora programada: <b>${colombianAccountTime}</b>\n\n👇 Elige la cuenta de Twitter para publicar:` :
-        `🐦 <b>Select Twitter Account</b>\n\nScheduled time: <b>${colombianAccountTime}</b>\n\n👇 Choose the Twitter account to post to:`;
+        `🐦 <b>Selecciona Cuenta de Twitter</b>\n\nHora programada: <b>${scheduledTime.toLocaleString()}</b>\n\n👇 Elige la cuenta de Twitter para publicar:` :
+        `🐦 <b>Select Twitter Account</b>\n\nScheduled time: <b>${scheduledTime.toLocaleString()}</b>\n\n👇 Choose the Twitter account to post to:`;
 
       const keyboard = this.twitterAccountSelector.generateAccountSelectionKeyboard(platform, timestamp, lang);
       
@@ -1119,10 +1131,9 @@ class EnhancedBotManager {
     }
 
     // For other platforms, proceed as usual
-    const colombianContentTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const contentMessage = lang === 'es' ?
-      `📝 <b>Contenido para Programar</b>\n\nPlataforma: <b>${platform === 'all' ? 'Todas' : platform}</b>\nHora: <b>${colombianContentTime}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
-      `📝 <b>Content to Schedule</b>\n\nPlatform: <b>${platform === 'all' ? 'All' : platform}</b>\nTime: <b>${colombianContentTime}</b>\n\n💬 Send the content you want to schedule (text or media):`;
+      `📝 <b>Contenido para Programar</b>\n\nPlataforma: <b>${platform === 'all' ? 'Todas' : platform}</b>\nHora: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
+      `📝 <b>Content to Schedule</b>\n\nPlatform: <b>${platform === 'all' ? 'All' : platform}</b>\nTime: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Send the content you want to schedule (text or media):`;
 
     await this.bot.editMessageText(contentMessage, {
       chat_id: chatId,
@@ -1157,10 +1168,9 @@ class EnhancedBotManager {
     console.log(`[DEBUG] Selected Twitter account: ${accountName}, platform: ${platform}, scheduledTime: ${scheduledTime}`);
 
     // Ask user for content to schedule
-    const colombianTwitterTime = scheduledTime.toLocaleString('es-CO', { timeZone: 'America/Bogota' });
     const contentMessage = lang === 'es' ?
-      `📝 <b>Contenido para Twitter</b>\n\nCuenta: <b>@${accountName}</b>\nHora: <b>${colombianTwitterTime}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
-      `📝 <b>Content for Twitter</b>\n\nAccount: <b>@${accountName}</b>\nTime: <b>${colombianTwitterTime}</b>\n\n💬 Send the content you want to schedule (text or media):`;
+      `📝 <b>Contenido para Twitter</b>\n\nCuenta: <b>@${accountName}</b>\nHora: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Envía el contenido que quieres programar (texto o multimedia):` :
+      `📝 <b>Content for Twitter</b>\n\nAccount: <b>@${accountName}</b>\nTime: <b>${scheduledTime.toLocaleString()}</b>\n\n💬 Send the content you want to schedule (text or media):`;
 
     await this.bot.editMessageText(contentMessage, {
       chat_id: chatId,
@@ -1385,8 +1395,8 @@ class EnhancedBotManager {
       
       // Show platform selection for the custom time
       const timeDescription = lang === 'es' ? 
-        `el ${scheduledTime.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' })} a las ${scheduledTime.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}` :
-        `on ${scheduledTime.toLocaleDateString('en-US', { timeZone: 'America/Bogota' })} at ${scheduledTime.toLocaleTimeString('en-US', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' })}`;
+        `el ${scheduledTime.toLocaleDateString('es-ES')} a las ${scheduledTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}` :
+        `on ${scheduledTime.toLocaleDateString('en-US')} at ${scheduledTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
       
       const platformMessage = lang === 'es' ?
         `⏰ <b>Programar Post</b>\n\nHora programada: <b>${timeDescription}</b>\n\n¿En qué plataforma quieres programar?` :
@@ -2109,7 +2119,7 @@ class EnhancedBotManager {
         '📅 <b>Scheduled Content:</b>\n\n';
       
       pendingPosts.forEach((post, index) => {
-        const date = new Date(post.scheduledTime).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+        const date = new Date(post.scheduledTime).toLocaleString();
         const platform = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
         const preview = post.message.substring(0, 60);
         message += `${index + 1}. 🌐 <b>${platform}</b>\n`;
@@ -2205,7 +2215,7 @@ class EnhancedBotManager {
       
       const keyboard = [];
       pendingPosts.forEach((post, index) => {
-        const date = new Date(post.scheduledTime).toLocaleString('es-CO', { timeZone: 'America/Bogota' });
+        const date = new Date(post.scheduledTime).toLocaleString();
         const platform = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
         const preview = post.message.substring(0, 40);
         message += `${index + 1}. 🌐 <b>${platform}</b> - ${date}\n`;

@@ -24,6 +24,8 @@
     "pm2:logs": "pm2 logs social-hub",
     "pm2:monit": "pm2 monit",
     "deploy": "npm install --production && pm2 restart social-hub",
+    "auth": "node src/auth/authServer.js",
+    "auth:dev": "nodemon src/auth/authServer.js",
     "test": "node test_telegram.js",
     "test:telegram": "node telegram_examples.js"
   },
@@ -35,7 +37,8 @@
     "node-schedule": "^2.1.0",
     "sequelize": "^6.32.0",
     "pg": "^8.11.0",
-    "pg-hstore": "^2.3.4"
+    "pg-hstore": "^2.3.4",
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "jest": "^29.5.0",

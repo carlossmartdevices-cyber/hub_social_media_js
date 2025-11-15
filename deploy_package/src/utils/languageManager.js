@@ -209,7 +209,7 @@ const userLanguages = new Map(); // chatId -> language
 
 class LanguageManager {
   static getUserLanguage(chatId) {
-    return userLanguages.get(chatId) || 'en'; // Default to English
+    return userLanguages.get(chatId) || 'es'; // Default to Spanish
   }
 
   static setUserLanguage(chatId, language) {

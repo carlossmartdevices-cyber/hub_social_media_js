@@ -37,23 +37,23 @@ Welcome! Choose an option from the menu below:`,
       es: {
         text: `🤖 <b>Bot de Hub Social Media</b>
 
-¡Bienvenido! Elige una opción del menú a continuación:`,
+¡Bienvenido! / Welcome! Elige una opción del menú:`,
         keyboard: [
           [
-            { text: '📝 Publicar Contenido', callback_data: 'menu_post' },
-            { text: '⏰ Programar Posts', callback_data: 'menu_schedule' }
+            { text: '📝 Publicar / Post Content', callback_data: 'menu_post' },
+            { text: '⏰ Programar / Schedule', callback_data: 'menu_schedule' }
           ],
           [
-            { text: '🔴 Transmisión en Vivo', callback_data: 'menu_live' },
-            { text: '📊 Ver Estado', callback_data: 'menu_status' }
+            { text: '🔴 En Vivo / Live Stream', callback_data: 'menu_live' },
+            { text: '📊 Estado / Status', callback_data: 'menu_status' }
           ],
           [
-            { text: '📋 Gestionar Contenido', callback_data: 'menu_manage' },
-            { text: '⚙️ Configuración', callback_data: 'menu_settings' }
+            { text: '📋 Gestionar / Manage', callback_data: 'menu_manage' },
+            { text: '⚙️ Configuración / Settings', callback_data: 'menu_settings' }
           ],
           [
-            { text: '❓ Ayuda e Info', callback_data: 'menu_help' },
-            { text: '🌍 Idioma', callback_data: 'menu_language' }
+            { text: '❓ Ayuda / Help', callback_data: 'menu_help' },
+            { text: '🌍 Idioma / Language', callback_data: 'menu_language' }
           ]
         ]
       }
@@ -441,17 +441,38 @@ Elige plataforma para ${actions.es[action]}:`,
 
 When would you like to post?`,
         keyboard: [
+          // Immediate posting option
           [
-            { text: '⏱️ In 1 Hour', callback_data: 'time_1hour' },
-            { text: '🕐 In 3 Hours', callback_data: 'time_3hours' }
+            { text: '⚡ Post Immediately / Now', callback_data: 'time_now' }
+          ],
+          // Test option
+          [
+            { text: '🧪 5 Minutes (Test)', callback_data: 'time_5min' }
+          ],
+          // Quick options (1-4 hours)
+          [
+            { text: '⏱️ 1 Hour', callback_data: 'time_1hour' },
+            { text: '🕐 2 Hours', callback_data: 'time_2hours' },
+            { text: '🕒 3 Hours', callback_data: 'time_3hours' }
           ],
           [
-            { text: '📅 Tomorrow 9 AM', callback_data: 'time_tomorrow' },
-            { text: '📆 Custom Time', callback_data: 'time_custom' }
+            { text: '� 4 Hours', callback_data: 'time_4hours' },
+            { text: '� 6 Hours', callback_data: 'time_6hours' },
+            { text: '🕗 8 Hours', callback_data: 'time_8hours' }
           ],
+          // Half-day and full-day options  
           [
-            { text: '🔄 Daily Repeat', callback_data: 'time_daily' },
-            { text: '📅 Weekly Repeat', callback_data: 'time_weekly' }
+            { text: '� 12 Hours', callback_data: 'time_12hours' },
+            { text: '📅 24 Hours', callback_data: 'time_24hours' }
+          ],
+          // Special times
+          [
+            { text: '🌅 Tomorrow 9 AM', callback_data: 'time_tomorrow' },
+            { text: '� Custom Time', callback_data: 'time_custom' }
+          ],
+          // More time options
+          [
+            { text: '⏳ More Times...', callback_data: 'time_more' }
           ],
           [
             { text: '🔙 Back', callback_data: 'menu_schedule' }
@@ -463,20 +484,109 @@ When would you like to post?`,
 
 ¿Cuándo te gustaría publicar?`,
         keyboard: [
+          // Opción de publicación inmediata
           [
-            { text: '⏱️ En 1 Hora', callback_data: 'time_1hour' },
-            { text: '🕐 En 3 Horas', callback_data: 'time_3hours' }
+            { text: '⚡ Publicar Inmediatamente / Ahora', callback_data: 'time_now' }
+          ],
+          // Opción de prueba
+          [
+            { text: '🧪 5 Minutos (Prueba)', callback_data: 'time_5min' }
+          ],
+          // Opciones rápidas (1-4 horas)
+          [
+            { text: '⏱️ 1 Hora', callback_data: 'time_1hour' },
+            { text: '🕐 2 Horas', callback_data: 'time_2hours' },
+            { text: '🕒 3 Horas', callback_data: 'time_3hours' }
           ],
           [
-            { text: '📅 Mañana 9 AM', callback_data: 'time_tomorrow' },
+            { text: '🕓 4 Horas', callback_data: 'time_4hours' },
+            { text: '🕕 6 Horas', callback_data: 'time_6hours' },
+            { text: '🕗 8 Horas', callback_data: 'time_8hours' }
+          ],
+          // Opciones de medio día y día completo
+          [
+            { text: '🕛 12 Horas', callback_data: 'time_12hours' },
+            { text: '📅 24 Horas', callback_data: 'time_24hours' }
+          ],
+          // Horarios especiales
+          [
+            { text: '🌅 Mañana 9 AM', callback_data: 'time_tomorrow' },
             { text: '📆 Hora Personalizada', callback_data: 'time_custom' }
           ],
+          // Más opciones de tiempo
           [
-            { text: '🔄 Repetir Diariamente', callback_data: 'time_daily' },
-            { text: '📅 Repetir Semanalmente', callback_data: 'time_weekly' }
+            { text: '⏳ Más Horarios...', callback_data: 'time_more' }
           ],
           [
-            { text: '🔙 Atrás', callback_data: 'menu_schedule' }
+            { text: '� Atrás', callback_data: 'menu_schedule' }
+          ]
+        ]
+      }
+    };
+
+    return menus[lang];
+  }
+
+  // Extended time menu for more hourly options
+  getExtendedTimeMenu(chatId) {
+    const lang = LanguageManager.getUserLanguage(chatId);
+    
+    const menus = {
+      en: {
+        text: `⏰ <b>More Time Options</b>
+
+Choose from extended scheduling times:`,
+        keyboard: [
+          [
+            { text: '🕐 5 Hours', callback_data: 'time_5hours' },
+            { text: '🕒 7 Hours', callback_data: 'time_7hours' },
+            { text: '🕘 9 Hours', callback_data: 'time_9hours' }
+          ],
+          [
+            { text: '🕙 10 Hours', callback_data: 'time_10hours' },
+            { text: '🕚 11 Hours', callback_data: 'time_11hours' },
+            { text: '🕕 15 Hours', callback_data: 'time_15hours' }
+          ],
+          [
+            { text: '🕖 16 Hours', callback_data: 'time_16hours' },
+            { text: '🕗 18 Hours', callback_data: 'time_18hours' },
+            { text: '🕘 20 Hours', callback_data: 'time_20hours' }
+          ],
+          [
+            { text: '📅 2 Days', callback_data: 'time_48hours' },
+            { text: '� 3 Days', callback_data: 'time_72hours' }
+          ],
+          [
+            { text: '🔙 Back to Time Menu', callback_data: 'time_main' }
+          ]
+        ]
+      },
+      es: {
+        text: `⏰ <b>Más Opciones de Tiempo</b>
+
+Elige entre horarios de programación extendidos:`,
+        keyboard: [
+          [
+            { text: '🕐 5 Horas', callback_data: 'time_5hours' },
+            { text: '🕒 7 Horas', callback_data: 'time_7hours' },
+            { text: '🕘 9 Horas', callback_data: 'time_9hours' }
+          ],
+          [
+            { text: '🕙 10 Horas', callback_data: 'time_10hours' },
+            { text: '🕚 11 Horas', callback_data: 'time_11hours' },
+            { text: '🕕 15 Horas', callback_data: 'time_15hours' }
+          ],
+          [
+            { text: '� 16 Horas', callback_data: 'time_16hours' },
+            { text: '🕗 18 Horas', callback_data: 'time_18hours' },
+            { text: '🕘 20 Horas', callback_data: 'time_20hours' }
+          ],
+          [
+            { text: '📅 2 Días', callback_data: 'time_48hours' },
+            { text: '📆 3 Días', callback_data: 'time_72hours' }
+          ],
+          [
+            { text: '🔙 Volver al Menú de Tiempo', callback_data: 'time_main' }
           ]
         ]
       }
@@ -570,6 +680,42 @@ ${details}
     return menus[lang];
   }
 
+  // Status menu
+  getStatusMenu(chatId) {
+    const lang = LanguageManager.getUserLanguage(chatId);
+    
+    const menus = {
+      en: {
+        text: `📊 <b>Status</b>
+
+Bot status information:`,
+        keyboard: [
+          [
+            { text: '✅ Online', callback_data: 'status_online' }
+          ],
+          [
+            { text: '🔙 Back to Main Menu', callback_data: 'menu_main' }
+          ]
+        ]
+      },
+      es: {
+        text: `📊 <b>Estado</b>
+
+Información del estado del bot:`,
+        keyboard: [
+          [
+            { text: '✅ En línea', callback_data: 'status_online' }
+          ],
+          [
+            { text: '🔙 Volver al Menú Principal', callback_data: 'menu_main' }
+          ]
+        ]
+      }
+    };
+
+    return menus[lang];
+  }
+
   // Get menu by callback data
   getMenuByCallback(chatId, callbackData) {
     switch (callbackData) {
@@ -581,6 +727,8 @@ ${details}
         return this.getScheduleMenu(chatId);
       case 'menu_live':
         return this.getLiveMenu(chatId);
+      case 'menu_status':
+        return this.getStatusMenu(chatId);
       case 'menu_settings':
         return this.getSettingsMenu(chatId);
       case 'menu_manage':
@@ -589,6 +737,10 @@ ${details}
         return LanguageManager.getHelpMessage(chatId);
       case 'menu_language':
         return this.getLanguageMenu(chatId);
+      case 'time_more':
+        return this.getExtendedTimeMenu(chatId);
+      case 'time_main':
+        return this.getTimeMenu(chatId);
       default:
         return this.getMainMenu(chatId);
     }

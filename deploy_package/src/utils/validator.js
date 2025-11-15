@@ -21,6 +21,20 @@ class Validator {
     return message.trim();
   }
 
+  static validateTwitterMessage(message) {
+    // First validate as a regular message
+    const validatedMessage = this.validateMessage(message);
+
+    // Twitter character limit (280 for standard accounts)
+    const TWITTER_CHAR_LIMIT = 280;
+
+    if (validatedMessage.length > TWITTER_CHAR_LIMIT) {
+      throw new Error(`Tweet is too long (${validatedMessage.length} characters). Maximum is ${TWITTER_CHAR_LIMIT} characters.`);
+    }
+
+    return validatedMessage;
+  }
+
   static validateScheduledTime(scheduledTime) {
     const date = new Date(scheduledTime);
     if (isNaN(date.getTime())) {
