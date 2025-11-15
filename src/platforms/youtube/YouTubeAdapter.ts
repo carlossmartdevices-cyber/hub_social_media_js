@@ -19,11 +19,23 @@ export class YouTubeAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const clientId = credentials.clientId || '';
+    const clientSecret = credentials.clientSecret || '';
+    const apiKey = credentials.apiKey || '';
+    const refreshToken = credentials.refreshToken || '';
+
+    // Check if any credentials are missing
+    if (!clientId.trim() || !clientSecret.trim() || !apiKey.trim() || !refreshToken.trim()) {
+      logger.warn('YouTube API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      return;
+    }
+
     this.credentials = {
-      clientId: credentials.clientId,
-      clientSecret: credentials.clientSecret,
-      apiKey: credentials.apiKey,
-      refreshToken: credentials.refreshToken,
+      clientId,
+      clientSecret,
+      apiKey,
+      refreshToken,
     };
 
     logger.info('YouTube adapter initialized');

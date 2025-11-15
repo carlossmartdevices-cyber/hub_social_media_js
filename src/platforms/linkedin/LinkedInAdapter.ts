@@ -18,10 +18,21 @@ export class LinkedInAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const clientId = credentials.clientId || '';
+    const clientSecret = credentials.clientSecret || '';
+    const accessToken = credentials.accessToken || '';
+
+    // Check if any credentials are missing
+    if (!clientId.trim() || !clientSecret.trim() || !accessToken.trim()) {
+      logger.warn('LinkedIn API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      return;
+    }
+
     this.credentials = {
-      clientId: credentials.clientId,
-      clientSecret: credentials.clientSecret,
-      accessToken: credentials.accessToken,
+      clientId,
+      clientSecret,
+      accessToken,
     };
 
     logger.info('LinkedIn adapter initialized');

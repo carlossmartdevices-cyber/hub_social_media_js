@@ -19,8 +19,9 @@ export class TelegramAdapter extends PlatformAdapter {
     const botToken = credentials.botToken;
     this.chatId = credentials.chatId;
 
-    if (!botToken) {
-      throw new Error('Telegram bot token is required');
+    if (!botToken || botToken.trim() === '') {
+      logger.warn('Telegram bot token is not configured - adapter will not be functional');
+      return;
     }
 
     this.bot = new Telegraf(botToken);
