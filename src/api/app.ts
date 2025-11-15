@@ -6,6 +6,7 @@ import config from '../config';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from '../utils/logger';
+import metricsService from '../services/MetricsService';
 
 export function createApp(): Application {
   const app = express();
@@ -61,9 +62,54 @@ export function createApp(): Application {
   app.use(express.json({ limit: '500kb' }));
   app.use(express.urlencoded({ extended: true, limit: '500kb' }));
 
+  // 🟢 MEDIUM: Metrics middleware for Prometheus
+  app.use((req, res, next) => {
+    const start = Date.now();
+
+    res.on('finish', () => {
+      const duration = (Date.now() - start) / 1000;
+      const route = req.route?.path || req.path;
+      const statusCode = res.statusCode.toString();
+
+      metricsService.httpRequestDuration.observe(
+        { method: req.method, route, status_code: statusCode },
+        duration
+      );
+
+      metricsService.httpRequestTotal.inc({
+        method: req.method,
+        route,
+        status_code: statusCode,
+      });
+
+      // Track errors (5xx responses)
+      if (res.statusCode >= 500) {
+        metricsService.httpRequestErrors.inc({
+          method: req.method,
+          route,
+          error_type: 'server_error',
+        });
+      }
+    });
+
+    next();
+  });
+
   // Health check
-  app.get('/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Metrics endpoint for Prometheus
+  app.get('/metrics', async (_req, res) => {
+    try {
+      res.set('Content-Type', metricsService.getContentType());
+      const metrics = await metricsService.getMetrics();
+      res.send(metrics);
+    } catch (error) {
+      logger.error('Error collecting metrics:', error);
+      res.status(500).send('Error collecting metrics');
+    }
   });
 
   // API routes

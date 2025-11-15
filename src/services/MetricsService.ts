@@ -32,6 +32,11 @@ export class MetricsService {
   public cacheHits: promClient.Counter;
   public cacheMisses: promClient.Counter;
 
+  // BullMQ/Queue metrics
+  public bullmqQueueWaiting: promClient.Gauge;
+  public bullmqJobFailed: promClient.Counter;
+  public bullmqJobCompleted: promClient.Counter;
+
   // Business metrics
   public activeUsers: promClient.Gauge;
   public totalPosts: promClient.Counter;
@@ -183,6 +188,30 @@ export class MetricsService {
     this.scheduledPosts = new promClient.Gauge({
       name: 'scheduled_posts',
       help: 'Number of scheduled posts',
+      registers: [this.register],
+    });
+
+    // BullMQ Queue Waiting
+    this.bullmqQueueWaiting = new promClient.Gauge({
+      name: 'bullmq_queue_waiting_total',
+      help: 'Number of jobs waiting in queue',
+      labelNames: ['queue'],
+      registers: [this.register],
+    });
+
+    // BullMQ Job Failed
+    this.bullmqJobFailed = new promClient.Counter({
+      name: 'bullmq_job_failed_total',
+      help: 'Total number of failed jobs',
+      labelNames: ['queue', 'job_type'],
+      registers: [this.register],
+    });
+
+    // BullMQ Job Completed
+    this.bullmqJobCompleted = new promClient.Counter({
+      name: 'bullmq_job_completed_total',
+      help: 'Total number of completed jobs',
+      labelNames: ['queue', 'job_type'],
       registers: [this.register],
     });
   }
