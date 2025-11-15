@@ -63,22 +63,22 @@
       },
       {
         "id": 4,
-        "title": "Active Database Connections",
+        "title": "Database Connection Pool",
         "type": "graph",
         "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
         "targets": [
           {
-            "expr": "db_pool_active_connections",
+            "expr": "db_connection_pool_size{state=\"active\"}",
             "legendFormat": "Active",
             "refId": "A"
           },
           {
-            "expr": "db_pool_idle_connections",
+            "expr": "db_connection_pool_size{state=\"idle\"}",
             "legendFormat": "Idle",
             "refId": "B"
           },
           {
-            "expr": "db_pool_total_connections",
+            "expr": "db_connection_pool_size{state=\"total\"}",
             "legendFormat": "Total",
             "refId": "C"
           }
