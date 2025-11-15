@@ -5,6 +5,7 @@ import database from './database/connection';
 import { PostWorker } from './jobs/workers/PostWorker';
 import { MetricsWorker } from './jobs/workers/MetricsWorker';
 import { closeQueues } from './jobs/queue';
+import { logPlatformStatus } from './utils/platformConfig';
 
 async function startServer() {
   try {
@@ -14,6 +15,9 @@ async function startServer() {
     // Test database connection
     await database.query('SELECT NOW()');
     logger.info('Database connection established');
+
+    // Log platform configuration status
+    logPlatformStatus();
 
     // Initialize workers
     const postWorker = new PostWorker();

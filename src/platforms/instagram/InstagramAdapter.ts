@@ -19,11 +19,23 @@ export class InstagramAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const username = credentials.username || '';
+    const password = credentials.password || '';
+    const appId = credentials.appId || '';
+    const appSecret = credentials.appSecret || '';
+
+    // Check if any credentials are missing
+    if (!username.trim() || !password.trim() || !appId.trim() || !appSecret.trim()) {
+      logger.warn('Instagram API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      return;
+    }
+
     this.credentials = {
-      username: credentials.username,
-      password: credentials.password,
-      appId: credentials.appId,
-      appSecret: credentials.appSecret,
+      username,
+      password,
+      appId,
+      appSecret,
     };
 
     logger.info('Instagram adapter initialized');

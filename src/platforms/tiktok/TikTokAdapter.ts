@@ -18,10 +18,21 @@ export class TikTokAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const clientKey = credentials.clientKey || '';
+    const clientSecret = credentials.clientSecret || '';
+    const accessToken = credentials.accessToken || '';
+
+    // Check if any credentials are missing
+    if (!clientKey.trim() || !clientSecret.trim() || !accessToken.trim()) {
+      logger.warn('TikTok API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      return;
+    }
+
     this.credentials = {
-      clientKey: credentials.clientKey,
-      clientSecret: credentials.clientSecret,
-      accessToken: credentials.accessToken,
+      clientKey,
+      clientSecret,
+      accessToken,
     };
 
     logger.info('TikTok adapter initialized');
