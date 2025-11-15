@@ -1,0 +1,33 @@
+{
+  "welcome": "¡Bienvenido al Hub de Contenido de Redes Sociales!",
+  "commands": {
+    "help": "Mostrar comandos disponibles",
+    "status": "Ver estado del bot",
+    "schedule": "Programar una nueva publicación",
+    "list": "Listar publicaciones programadas",
+    "cancel": "Cancelar una publicación programada",
+    "stats": "Ver estadísticas"
+  },
+  "messages": {
+    "post_scheduled": "Publicación programada exitosamente para el {{date}}",
+    "post_cancelled": "Publicación cancelada exitosamente",
+    "error_occurred": "Ocurrió un error. Por favor intenta de nuevo.",
+    "unauthorized": "No tienes autorización para realizar esta acción",
+    "not_found": "Recurso no encontrado"
+  },
+  "validation": {
+    "required_field": "{{field}} es requerido",
+    "invalid_email": "Formato de email inválido",
+    "password_too_short": "La contraseña debe tener al menos {{min}} caracteres",
+    "invalid_url": "Formato de URL inválido"
+  },
+  "platforms": {
+    "twitter": "Twitter",
+    "telegram": "Telegram",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "tiktok": "TikTok"
+  }
+}

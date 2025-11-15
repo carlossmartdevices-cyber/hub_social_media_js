@@ -7,19 +7,30 @@ export class Database {
   private pool: Pool;
 
   private constructor() {
+    // 🟡 HIGH: Increased connection timeout from 2s to 10s
     this.pool = new Pool({
       host: config.database.host,
       port: config.database.port,
       database: config.database.name,
       user: config.database.user,
       password: config.database.password,
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      max: 20, // Maximum pool size
+      idleTimeoutMillis: 30000, // 30 seconds
+      connectionTimeoutMillis: 10000, // 10 seconds (was 2s)
+      query_timeout: 30000, // 30 seconds for query execution
+      statement_timeout: 30000, // 30 seconds for statement execution
     });
 
     this.pool.on('error', (err) => {
       logger.error('Unexpected database error:', err);
+    });
+
+    this.pool.on('connect', () => {
+      logger.debug('New database connection established');
+    });
+
+    this.pool.on('remove', () => {
+      logger.debug('Database connection removed from pool');
     });
   }
 
