@@ -21,11 +21,24 @@ export class TwitterAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const apiKey = credentials.apiKey || '';
+    const apiSecret = credentials.apiSecret || '';
+    const accessToken = credentials.accessToken || '';
+    const accessSecret = credentials.accessSecret || '';
+
+    // Check if any credentials are missing
+    if (!apiKey.trim() || !apiSecret.trim() || !accessToken.trim() || !accessSecret.trim()) {
+      logger.warn('Twitter API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      this.client = undefined;
+      return;
+    }
+
     this.credentials = {
-      apiKey: credentials.apiKey,
-      apiSecret: credentials.apiSecret,
-      accessToken: credentials.accessToken,
-      accessSecret: credentials.accessSecret,
+      apiKey,
+      apiSecret,
+      accessToken,
+      accessSecret,
     };
 
     this.client = new TwitterApi({

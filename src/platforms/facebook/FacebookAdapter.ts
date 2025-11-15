@@ -19,11 +19,23 @@ export class FacebookAdapter extends PlatformAdapter {
   }
 
   async initialize(credentials: Record<string, string>): Promise<void> {
+    const appId = credentials.appId || '';
+    const appSecret = credentials.appSecret || '';
+    const accessToken = credentials.accessToken || '';
+    const pageId = credentials.pageId || '';
+
+    // Check if any credentials are missing
+    if (!appId.trim() || !appSecret.trim() || !accessToken.trim() || !pageId.trim()) {
+      logger.warn('Facebook API credentials are not fully configured - adapter will not be functional');
+      this.credentials = undefined;
+      return;
+    }
+
     this.credentials = {
-      appId: credentials.appId,
-      appSecret: credentials.appSecret,
-      accessToken: credentials.accessToken,
-      pageId: credentials.pageId,
+      appId,
+      appSecret,
+      accessToken,
+      pageId,
     };
 
     logger.info('Facebook adapter initialized');
