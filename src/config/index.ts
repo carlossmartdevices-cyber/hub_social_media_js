@@ -1,5 +1,4 @@
 import dotenv from 'dotenv';
-import path from 'path';
 
 dotenv.config();
 
@@ -24,7 +23,10 @@ export const config = {
 
   jwt: {
     secret: process.env.JWT_SECRET || 'change-this-secret',
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret',
+    accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
+    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d', // Mantener para compatibilidad
   },
 
   platforms: {
@@ -89,5 +91,38 @@ export const config = {
     key: process.env.ENCRYPTION_KEY || 'change-this-encryption-key',
   },
 };
+
+// 🔴 CRITICAL: Validate secrets in production
+if (config.env === 'production') {
+  const errors: string[] = [];
+
+  // Validate JWT secrets
+  if (!process.env.JWT_SECRET || config.jwt.secret === 'change-this-secret') {
+    errors.push('JWT_SECRET must be set to a strong secret in production');
+  }
+  if (!process.env.JWT_REFRESH_SECRET || config.jwt.refreshSecret === 'change-this-refresh-secret') {
+    errors.push('JWT_REFRESH_SECRET must be set to a strong secret in production');
+  }
+
+  // Validate encryption key
+  if (!process.env.ENCRYPTION_KEY || config.encryption.key === 'change-this-encryption-key') {
+    errors.push('ENCRYPTION_KEY must be set in production');
+  }
+  if (config.encryption.key.length < 32) {
+    errors.push('ENCRYPTION_KEY must be at least 32 characters long');
+  }
+
+  // Validate database password
+  if (config.database.password === 'postgres') {
+    errors.push('DB_PASSWORD should not use default value in production');
+  }
+
+  if (errors.length > 0) {
+    console.error('\n❌ PRODUCTION CONFIGURATION ERRORS:');
+    errors.forEach(error => console.error(`  - ${error}`));
+    console.error('\nPlease set the required environment variables before starting in production.\n');
+    process.exit(1);
+  }
+}
 
 export default config;

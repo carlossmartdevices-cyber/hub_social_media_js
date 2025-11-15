@@ -1,0 +1,33 @@
+{
+  "welcome": "Welcome to Social Media Content Hub!",
+  "commands": {
+    "help": "Show available commands",
+    "status": "Check bot status",
+    "schedule": "Schedule a new post",
+    "list": "List scheduled posts",
+    "cancel": "Cancel a scheduled post",
+    "stats": "View statistics"
+  },
+  "messages": {
+    "post_scheduled": "Post scheduled successfully for {{date}}",
+    "post_cancelled": "Post cancelled successfully",
+    "error_occurred": "An error occurred. Please try again.",
+    "unauthorized": "You are not authorized to perform this action",
+    "not_found": "Resource not found"
+  },
+  "validation": {
+    "required_field": "{{field}} is required",
+    "invalid_email": "Invalid email format",
+    "password_too_short": "Password must be at least {{min}} characters",
+    "invalid_url": "Invalid URL format"
+  },
+  "platforms": {
+    "twitter": "Twitter",
+    "telegram": "Telegram",
+    "instagram": "Instagram",
+    "facebook": "Facebook",
+    "linkedin": "LinkedIn",
+    "youtube": "YouTube",
+    "tiktok": "TikTok"
+  }
+}

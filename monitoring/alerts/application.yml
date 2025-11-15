@@ -1,0 +1,213 @@
+# Application Alert Rules for Content Hub
+
+groups:
+  - name: application_alerts
+    interval: 30s
+    rules:
+      # High error rate
+      - alert: HighErrorRate
+        expr: |
+          rate(http_request_duration_seconds_count{status_code=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }} for {{ $labels.instance }}"
+
+      # Slow response time
+      - alert: SlowResponseTime
+        expr: |
+          histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Slow API response time"
+          description: "95th percentile response time is {{ $value }}s on {{ $labels.instance }}"
+
+      # High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / node_memory_MemTotal_bytes) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Application down
+      - alert: ApplicationDown
+        expr: up{job="content-hub-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "Application is down"
+          description: "Content Hub API is not responding on {{ $labels.instance }}"
+
+      # High job queue size
+      - alert: HighJobQueueSize
+        expr: bullmq_queue_waiting_total > 100
+        for: 10m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "High job queue size"
+          description: "Queue {{ $labels.queue }} has {{ $value }} waiting jobs"
+
+      # Job processing failures
+      - alert: HighJobFailureRate
+        expr: |
+          rate(bullmq_job_failed_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "High job failure rate"
+          description: "Job failure rate is {{ $value | humanizePercentage }} for queue {{ $labels.queue }}"
+
+      # Platform publish failures
+      - alert: PlatformPublishFailures
+        expr: |
+          rate(platform_publish_total{status="failed"}[10m]) > 0.2
+        for: 10m
+        labels:
+          severity: warning
+          component: platform
+        annotations:
+          summary: "High platform publish failure rate"
+          description: "Platform {{ $labels.platform }} has {{ $value | humanizePercentage }} failure rate"
+
+  - name: database_alerts
+    interval: 30s
+    rules:
+      # Database down
+      - alert: DatabaseDown
+        expr: up{job="postgres"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database is down"
+          description: "PostgreSQL database is not responding"
+
+      # High database connections
+      - alert: HighDatabaseConnections
+        expr: |
+          (pg_stat_database_numbackends / pg_settings_max_connections) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database connections"
+          description: "Database connections at {{ $value | humanize }}% of maximum"
+
+      # Slow queries
+      - alert: SlowDatabaseQueries
+        expr: db_query_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries detected"
+          description: "95th percentile query time is {{ $value }}s"
+
+      # High query error rate
+      - alert: HighQueryErrorRate
+        expr: |
+          rate(db_query_errors_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "High database query error rate"
+          description: "Query error rate is {{ $value | humanizePercentage }}"
+
+  - name: cache_alerts
+    interval: 30s
+    rules:
+      # Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: cache
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is not responding"
+
+      # Low cache hit rate
+      - alert: LowCacheHitRate
+        expr: |
+          (rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m]))) < 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "Low cache hit rate"
+          description: "Cache hit rate is {{ $value | humanizePercentage }}"
+
+      # High Redis memory usage
+      - alert: HighRedisMemory
+        expr: |
+          (redis_memory_used_bytes / redis_memory_max_bytes) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          component: cache
+        annotations:
+          summary: "High Redis memory usage"
+          description: "Redis memory usage is {{ $value | humanize }}%"
+
+  - name: infrastructure_alerts
+    interval: 30s
+    rules:
+      # High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value | humanize }}% on {{ $labels.instance }}"
+
+      # Low disk space
+      - alert: LowDiskSpace
+        expr: |
+          (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ $value | humanize }}% disk space remaining on {{ $labels.instance }}"
+
+      # High disk I/O
+      - alert: HighDiskIO
+        expr: |
+          rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High disk I/O"
+          description: "Disk I/O utilization is {{ $value | humanizePercentage }} on {{ $labels.instance }}"
