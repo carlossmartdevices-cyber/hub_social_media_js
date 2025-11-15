@@ -1,0 +1,199 @@
+{
+  "dashboard": {
+    "title": "Content Hub - Overview",
+    "tags": ["content-hub", "overview"],
+    "timezone": "browser",
+    "editable": true,
+    "graphTooltip": 1,
+    "time": {
+      "from": "now-6h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "API Request Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(http_request_duration_seconds_count[5m])",
+            "legendFormat": "{{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Requests/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 2,
+        "title": "API Response Time (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{method}} {{path}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Response Time"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Error Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(http_request_duration_seconds_count{status_code=~\"5..\"}[5m])",
+            "legendFormat": "{{status_code}} errors",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "reqps", "label": "Errors/sec"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Active Database Connections",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "db_pool_active_connections",
+            "legendFormat": "Active",
+            "refId": "A"
+          },
+          {
+            "expr": "db_pool_idle_connections",
+            "legendFormat": "Idle",
+            "refId": "B"
+          },
+          {
+            "expr": "db_pool_total_connections",
+            "legendFormat": "Total",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Connections"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Cache Hit Rate",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(cache_hits_total[5m]) / (rate(cache_hits_total[5m]) + rate(cache_misses_total[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "thresholds": "50,80",
+        "colors": ["red", "yellow", "green"]
+      },
+      {
+        "id": 6,
+        "title": "Job Queue Size",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(bullmq_queue_waiting_total)",
+            "refId": "A"
+          }
+        ],
+        "format": "short",
+        "valueName": "current",
+        "thresholds": "50,100",
+        "colors": ["green", "yellow", "red"]
+      },
+      {
+        "id": 7,
+        "title": "CPU Usage",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "thresholds": "70,90",
+        "colors": ["green", "yellow", "red"]
+      },
+      {
+        "id": 8,
+        "title": "Memory Usage",
+        "type": "singlestat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16},
+        "targets": [
+          {
+            "expr": "(process_resident_memory_bytes / node_memory_MemTotal_bytes) * 100",
+            "refId": "A"
+          }
+        ],
+        "format": "percent",
+        "valueName": "current",
+        "thresholds": "70,90",
+        "colors": ["green", "yellow", "red"]
+      },
+      {
+        "id": 9,
+        "title": "Platform Publish Success Rate",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "rate(platform_publish_total{status=\"success\"}[5m]) / rate(platform_publish_total[5m]) * 100",
+            "legendFormat": "{{platform}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "Success Rate"},
+          {"format": "short"}
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Job Processing Duration",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(job_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{queue}} p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.50, rate(job_processing_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{queue}} p50",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Duration"},
+          {"format": "short"}
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}

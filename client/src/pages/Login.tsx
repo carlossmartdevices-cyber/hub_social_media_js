@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import axios from 'axios';
+import api from '../lib/api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,8 +18,9 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await axios.post('/api/auth/login', { email, password });
-      setAuth(response.data.user, response.data.token);
+      const response = await api.post('/auth/login', { email, password });
+      const { user, accessToken, refreshToken } = response.data;
+      setAuth(user, accessToken, refreshToken);
       navigate('/');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Login failed');
