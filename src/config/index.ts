@@ -1,0 +1,93 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+dotenv.config();
+
+export const config = {
+  env: process.env.NODE_ENV || 'development',
+  port: parseInt(process.env.PORT || '3000', 10),
+  apiUrl: process.env.API_URL || 'http://localhost:3000',
+
+  database: {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '5432', 10),
+    name: process.env.DB_NAME || 'content_hub',
+    user: process.env.DB_USER || 'postgres',
+    password: process.env.DB_PASSWORD || 'postgres',
+  },
+
+  redis: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    password: process.env.REDIS_PASSWORD || '',
+  },
+
+  jwt: {
+    secret: process.env.JWT_SECRET || 'change-this-secret',
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  },
+
+  platforms: {
+    twitter: {
+      apiKey: process.env.TWITTER_API_KEY || '',
+      apiSecret: process.env.TWITTER_API_SECRET || '',
+      accessToken: process.env.TWITTER_ACCESS_TOKEN || '',
+      accessSecret: process.env.TWITTER_ACCESS_SECRET || '',
+      bearerToken: process.env.TWITTER_BEARER_TOKEN || '',
+    },
+    telegram: {
+      botToken: process.env.TELEGRAM_BOT_TOKEN || '',
+      chatId: process.env.TELEGRAM_CHAT_ID || '',
+    },
+    instagram: {
+      username: process.env.INSTAGRAM_USERNAME || '',
+      password: process.env.INSTAGRAM_PASSWORD || '',
+      appId: process.env.INSTAGRAM_APP_ID || '',
+      appSecret: process.env.INSTAGRAM_APP_SECRET || '',
+    },
+    facebook: {
+      appId: process.env.FACEBOOK_APP_ID || '',
+      appSecret: process.env.FACEBOOK_APP_SECRET || '',
+      accessToken: process.env.FACEBOOK_ACCESS_TOKEN || '',
+      pageId: process.env.FACEBOOK_PAGE_ID || '',
+    },
+    linkedin: {
+      clientId: process.env.LINKEDIN_CLIENT_ID || '',
+      clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
+      accessToken: process.env.LINKEDIN_ACCESS_TOKEN || '',
+    },
+    youtube: {
+      clientId: process.env.YOUTUBE_CLIENT_ID || '',
+      clientSecret: process.env.YOUTUBE_CLIENT_SECRET || '',
+      apiKey: process.env.YOUTUBE_API_KEY || '',
+      refreshToken: process.env.YOUTUBE_REFRESH_TOKEN || '',
+    },
+    tiktok: {
+      clientKey: process.env.TIKTOK_CLIENT_KEY || '',
+      clientSecret: process.env.TIKTOK_CLIENT_SECRET || '',
+      accessToken: process.env.TIKTOK_ACCESS_TOKEN || '',
+    },
+  },
+
+  media: {
+    maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10),
+    maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '104857600', 10),
+    storagePath: process.env.MEDIA_STORAGE_PATH || './uploads',
+  },
+
+  rateLimit: {
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000', 10),
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100', 10),
+  },
+
+  monitoring: {
+    sentryDsn: process.env.SENTRY_DSN || '',
+    logLevel: process.env.LOG_LEVEL || 'info',
+  },
+
+  encryption: {
+    key: process.env.ENCRYPTION_KEY || 'change-this-encryption-key',
+  },
+};
+
+export default config;
