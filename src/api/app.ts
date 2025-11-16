@@ -16,8 +16,8 @@ export function createApp(): Application {
 
   // 🟡 HIGH: Restrictive CORS configuration
   const allowedOrigins = config.env === 'production'
-    ? [config.apiUrl]
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
+    ? [config.apiUrl, 'https://easybots.store']
+    : ['http://localhost:3010', 'https://easybots.store'];
 
   app.use(cors({
     origin: (origin, callback) => {
