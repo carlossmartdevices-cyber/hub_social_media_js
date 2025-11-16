@@ -45,7 +45,7 @@ services:
     container_name: content-hub-app
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3000}
+      PORT: ${PORT:-8080}
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-content_hub}
@@ -56,8 +56,15 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-this-encryption-key}
+      # xAI Grok API Configuration
+      XAI_API_KEY: ${XAI_API_KEY}
+      XAI_BASE_URL: ${XAI_BASE_URL:-https://api.x.ai/v1}
+      XAI_MODEL: ${XAI_MODEL:-grok-beta}
+      XAI_TEMPERATURE: ${XAI_TEMPERATURE:-0.7}
+      XAI_MAX_TOKENS: ${XAI_MAX_TOKENS:-4000}
+      XAI_ENABLED: ${XAI_ENABLED:-true}
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-8080}:8080"
     depends_on:
       postgres:
         condition: service_healthy

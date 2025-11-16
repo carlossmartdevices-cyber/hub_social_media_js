@@ -19,10 +19,12 @@ spec:
       - name: app
         image: content-hub:latest
         ports:
-        - containerPort: 3000
+        - containerPort: 8080
         env:
         - name: NODE_ENV
           value: production
+        - name: PORT
+          value: "8080"
         - name: DB_HOST
           valueFrom:
             configMapKeyRef:
@@ -68,10 +70,26 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: encryption-key
+        # xAI Grok API Configuration
+        - name: XAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: xai-api-key
+        - name: XAI_BASE_URL
+          value: "https://api.x.ai/v1"
+        - name: XAI_MODEL
+          value: "grok-beta"
+        - name: XAI_TEMPERATURE
+          value: "0.7"
+        - name: XAI_MAX_TOKENS
+          value: "4000"
+        - name: XAI_ENABLED
+          value: "true"
         livenessProbe:
           httpGet:
             path: /health
-            port: 3000
+            port: 8080
           initialDelaySeconds: 30
           periodSeconds: 10
           timeoutSeconds: 5
@@ -79,7 +97,7 @@ spec:
         readinessProbe:
           httpGet:
             path: /health
-            port: 3000
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 5
           timeoutSeconds: 3
@@ -111,7 +129,7 @@ spec:
   type: LoadBalancer
   ports:
   - port: 80
-    targetPort: 3000
+    targetPort: 8080
     protocol: TCP
   selector:
     app: content-hub
