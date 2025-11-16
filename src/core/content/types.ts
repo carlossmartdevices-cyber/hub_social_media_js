@@ -93,3 +93,31 @@ export interface JobMetrics {
   error?: string;
   timestamp: Date;
 }
+
+export enum Language {
+  ENGLISH = 'en',
+  SPANISH = 'es',
+}
+
+export interface AIGeneratedPost {
+  text: string;
+  hashtags: string[];
+  links: string[];
+}
+
+export interface AIGeneratedContent {
+  english: AIGeneratedPost[];
+  spanish: AIGeneratedPost[];
+  metadata: {
+    generatedAt: Date;
+    model: string;
+    totalOptions: number;
+  };
+}
+
+export interface AIContentRequest {
+  language?: Language;
+  platform?: Platform;
+  optionsCount?: number;
+  customInstructions?: string;
+}
