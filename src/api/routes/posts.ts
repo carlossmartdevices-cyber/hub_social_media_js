@@ -26,4 +26,29 @@ router.delete('/:id/cancel', authMiddleware, PostController.cancelPost);
 
 router.get('/:id/metrics', authMiddleware, PostController.getMetrics);
 
+// AI Content Generation Routes
+router.post(
+  '/ai/generate',
+  authMiddleware,
+  [
+    body('optionsCount').optional().isInt({ min: 1, max: 24 }).withMessage('Options count must be between 1 and 24'),
+    body('language').optional().isIn(['en', 'es']).withMessage('Language must be "en" or "es"'),
+    body('platform').optional().isString().withMessage('Platform must be a string'),
+    body('customInstructions').optional().isString().withMessage('Custom instructions must be a string'),
+    validate,
+  ],
+  PostController.generateAIContent
+);
+
+router.post(
+  '/ai/generate-single',
+  authMiddleware,
+  [
+    body('platform').notEmpty().withMessage('Platform is required'),
+    body('language').optional().isIn(['en', 'es']).withMessage('Language must be "en" or "es"'),
+    validate,
+  ],
+  PostController.generateSingleAIPost
+);
+
 export default router;
