@@ -2,10 +2,11 @@ import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthRequest } from '../middlewares/auth';
 import { HubManager } from '../../core/hub/HubManager';
-import { Post, PostStatus, Platform } from '../../core/content/types';
+import { Post, PostStatus, Platform, Language } from '../../core/content/types';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 import database from '../../database/connection';
+import { aiContentService } from '../../services/AIContentService';
 
 const hubManager = new HubManager();
 
@@ -182,6 +183,140 @@ export class PostController {
     } catch (error) {
       logger.error('Get metrics error:', error);
       res.status(500).json({ error: 'Failed to get metrics' });
+    }
+  }
+
+  /**
+   * Generate AI-powered social media posts using Grok
+   *
+   * POST /api/posts/ai/generate
+   *
+   * Request body:
+   * {
+   *   "optionsCount": 12,  // Number of posts per language (default: 12)
+   *   "language": "en",     // Optional: "en" or "es" (default: both)
+   *   "platform": "twitter", // Optional: target platform
+   *   "customInstructions": "Additional context or requirements"
+   * }
+   */
+  async generateAIContent(req: AuthRequest, res: Response) {
+    try {
+      // Check if AI service is available
+      if (!aiContentService.isAvailable()) {
+        return res.status(503).json({
+          error: 'AI content generation is not available',
+          message: 'Please configure XAI_API_KEY in environment variables',
+        });
+      }
+
+      const {
+        optionsCount = 12,
+        language,
+        platform,
+        customInstructions,
+      } = req.body;
+
+      logger.info('Generating AI content', {
+        userId: req.user!.id,
+        optionsCount,
+        language,
+        platform,
+      });
+
+      // Validate platform if provided
+      if (platform && !ValidationService.isValidPlatform(platform)) {
+        return res.status(400).json({ error: `Invalid platform: ${platform}` });
+      }
+
+      // Generate content
+      const content = await aiContentService.generatePosts({
+        optionsCount,
+        language: language as Language,
+        platform: platform as Platform,
+        customInstructions,
+      });
+
+      logger.info('AI content generated successfully', {
+        userId: req.user!.id,
+        englishPosts: content.english.length,
+        spanishPosts: content.spanish.length,
+      });
+
+      res.json({
+        message: 'AI content generated successfully',
+        content,
+      });
+    } catch (error: any) {
+      logger.error('AI content generation error:', error);
+      res.status(500).json({
+        error: 'Failed to generate AI content',
+        message: error.message,
+      });
+    }
+  }
+
+  /**
+   * Generate a single AI post for a specific platform and language
+   *
+   * POST /api/posts/ai/generate-single
+   *
+   * Request body:
+   * {
+   *   "platform": "twitter",  // Required
+   *   "language": "en"        // Required: "en" or "es"
+   * }
+   */
+  async generateSingleAIPost(req: AuthRequest, res: Response) {
+    try {
+      // Check if AI service is available
+      if (!aiContentService.isAvailable()) {
+        return res.status(503).json({
+          error: 'AI content generation is not available',
+          message: 'Please configure XAI_API_KEY in environment variables',
+        });
+      }
+
+      const { platform, language = Language.ENGLISH } = req.body;
+
+      if (!platform) {
+        return res.status(400).json({ error: 'Platform is required' });
+      }
+
+      // Validate platform
+      if (!ValidationService.isValidPlatform(platform)) {
+        return res.status(400).json({ error: `Invalid platform: ${platform}` });
+      }
+
+      logger.info('Generating single AI post', {
+        userId: req.user!.id,
+        platform,
+        language,
+      });
+
+      // Generate single post
+      const postContent = await aiContentService.generateSinglePost(
+        platform as Platform,
+        language as Language
+      );
+
+      logger.info('Single AI post generated successfully', {
+        userId: req.user!.id,
+        platform,
+        language,
+      });
+
+      res.json({
+        message: 'AI post generated successfully',
+        content: postContent,
+        platform,
+        language,
+      });
+    } catch (error: any) {
+      logger.error('Single AI post generation error:', error);
+      res.status(500).json({
+        error: 'Failed to generate AI post',
+        message: error.message,
+      });
     }
   }
 }
