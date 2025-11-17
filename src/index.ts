@@ -27,8 +27,30 @@ async function startServer() {
       try {
         const bot = new Telegraf(config.platforms.telegram.botToken);
         telegramBot = new TelegramBotCommands(bot);
-        await telegramBot.startPolling();
-        logger.info('Telegram bot initialized and started');
+
+        // Use webhook in production, polling in development
+        if (config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
+          // Setup webhook
+          const webhookUrl = `${config.platforms.telegram.webhookUrl}${config.platforms.telegram.webhookPath}`;
+          await telegramBot.setupWebhook(
+            webhookUrl,
+            config.platforms.telegram.webhookSecret || undefined
+          );
+
+          // Add webhook endpoint to Express app
+          app.use(
+            config.platforms.telegram.webhookPath,
+            telegramBot.getBot().webhookCallback(config.platforms.telegram.webhookPath, {
+              secretToken: config.platforms.telegram.webhookSecret || undefined,
+            })
+          );
+
+          logger.info('Telegram bot initialized with webhook');
+        } else {
+          // Use polling mode
+          await telegramBot.startPolling();
+          logger.info('Telegram bot initialized with polling');
+        }
       } catch (error) {
         logger.error('Failed to start Telegram bot:', error);
         logger.warn('Application will continue without Telegram bot');
