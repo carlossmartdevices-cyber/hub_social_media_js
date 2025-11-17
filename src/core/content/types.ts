@@ -105,9 +105,21 @@ export interface AIGeneratedPost {
   links: string[];
 }
 
+export interface EnglishLesson {
+  title: string;
+  explanation: string;
+  examples: string[];
+  slangTerms: {
+    term: string;
+    meaning: string;
+    usage: string;
+  }[];
+}
+
 export interface AIGeneratedContent {
   english: AIGeneratedPost[];
   spanish: AIGeneratedPost[];
+  englishLesson?: EnglishLesson;
   metadata: {
     generatedAt: Date;
     model: string;
