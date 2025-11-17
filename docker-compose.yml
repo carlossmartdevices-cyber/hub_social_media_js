@@ -43,7 +43,7 @@ services:
     container_name: content-hub-app
     environment:
       NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3000}
+      PORT: 3000
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: ${DB_NAME:-content_hub}
