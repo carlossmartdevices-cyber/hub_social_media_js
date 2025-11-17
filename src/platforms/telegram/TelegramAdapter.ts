@@ -18,6 +18,7 @@ export class TelegramAdapter extends PlatformAdapter {
   /**
    * 🔴 CRITICAL FIX: Validate chat ID format
    * 🟡 HIGH: Added bot verification
+   * ✅ IMPROVED: Tolerant with partial/empty credentials for startup
    */
   async initialize(credentials: Record<string, string>): Promise<void> {
     const botToken = credentials.botToken;
@@ -25,11 +26,13 @@ export class TelegramAdapter extends PlatformAdapter {
 
     if (!botToken || botToken.trim() === '') {
       logger.warn('Telegram bot token is not configured - adapter will not be functional');
+      this.bot = undefined;
+      this.chatId = undefined;
       return;
     }
 
-    // Validate chat ID format
-    if (this.chatId && !this.isValidChatId(this.chatId)) {
+    // Validate chat ID format only if provided
+    if (this.chatId && this.chatId.trim() !== '' && !this.isValidChatId(this.chatId)) {
       throw new Error(
         `Invalid Telegram chat ID format: "${this.chatId}". ` +
         `Expected formats: @username, -100123456789 (supergroups), or 123456789 (users)`
@@ -43,7 +46,7 @@ export class TelegramAdapter extends PlatformAdapter {
       const botInfo = await this.bot.telegram.getMe();
       logger.info(`Telegram bot initialized: @${botInfo.username}`);
 
-      if (this.chatId) {
+      if (this.chatId && this.chatId.trim() !== '') {
         try {
           await this.bot.telegram.getChat(this.chatId);
           logger.info(`Telegram bot has access to chat: ${this.chatId}`);
@@ -53,9 +56,14 @@ export class TelegramAdapter extends PlatformAdapter {
             `Bot cannot access chat ${this.chatId}. Make sure the bot is added to the chat.`
           );
         }
+      } else {
+        logger.warn('Telegram chat ID is not configured - bot initialized but cannot publish');
       }
     } catch (error: any) {
       logger.error('Telegram bot initialization failed:', error);
+      // Clear bot instance on failure
+      this.bot = undefined;
+      this.chatId = undefined;
       throw new Error(`Telegram bot validation failed: ${error.message}`);
     }
   }
