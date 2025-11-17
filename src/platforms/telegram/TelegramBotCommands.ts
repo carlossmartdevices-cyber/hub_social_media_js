@@ -628,6 +628,29 @@ export class TelegramBotCommands {
   }
 
   /**
+   * Setup webhook for production
+   */
+  async setupWebhook(webhookUrl: string, secretToken?: string) {
+    try {
+      await this.bot.telegram.setWebhook(webhookUrl, {
+        secret_token: secretToken,
+        drop_pending_updates: false,
+      });
+      logger.info(`Telegram bot webhook configured: ${webhookUrl}`);
+    } catch (error) {
+      logger.error('Failed to setup Telegram webhook:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get the bot instance (for webhook middleware)
+   */
+  getBot() {
+    return this.bot;
+  }
+
+  /**
    * Stop the bot gracefully
    */
   async stop() {
