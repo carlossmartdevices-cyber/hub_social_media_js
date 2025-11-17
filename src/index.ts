@@ -6,6 +6,8 @@ import { PostWorker } from './jobs/workers/PostWorker';
 import { MetricsWorker } from './jobs/workers/MetricsWorker';
 import { closeQueues } from './jobs/queue';
 import { logPlatformStatus } from './utils/platformConfig';
+import { Telegraf } from 'telegraf';
+import { TelegramBotCommands } from './platforms/telegram/TelegramBotCommands';
 
 async function startServer() {
   try {
@@ -18,6 +20,22 @@ async function startServer() {
 
     // Log platform configuration status
     logPlatformStatus();
+
+    // Initialize Telegram bot if token is configured
+    let telegramBot: TelegramBotCommands | null = null;
+    if (config.platforms.telegram.botToken) {
+      try {
+        const bot = new Telegraf(config.platforms.telegram.botToken);
+        telegramBot = new TelegramBotCommands(bot);
+        await telegramBot.startPolling();
+        logger.info('Telegram bot initialized and started');
+      } catch (error) {
+        logger.error('Failed to start Telegram bot:', error);
+        logger.warn('Application will continue without Telegram bot');
+      }
+    } else {
+      logger.warn('Telegram bot token not configured - bot will not start');
+    }
 
     // Initialize workers
     const postWorker = new PostWorker();
@@ -37,6 +55,16 @@ async function startServer() {
       server.close(() => {
         logger.info('HTTP server closed');
       });
+
+      // Stop Telegram bot if running
+      if (telegramBot) {
+        try {
+          await telegramBot.stop();
+          logger.info('Telegram bot stopped');
+        } catch (error) {
+          logger.error('Error stopping Telegram bot:', error);
+        }
+      }
 
       await postWorker.close();
       await metricsWorker.close();
