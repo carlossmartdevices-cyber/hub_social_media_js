@@ -40,6 +40,10 @@ export const config = {
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN || '',
       chatId: process.env.TELEGRAM_CHAT_ID || '',
+      webhookUrl: process.env.TELEGRAM_WEBHOOK_URL || '',
+      webhookPath: process.env.TELEGRAM_WEBHOOK_PATH || '/webhook/telegram',
+      webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || '',
+      useWebhook: process.env.TELEGRAM_USE_WEBHOOK === 'true',
     },
     instagram: {
       username: process.env.INSTAGRAM_USERNAME || '',
