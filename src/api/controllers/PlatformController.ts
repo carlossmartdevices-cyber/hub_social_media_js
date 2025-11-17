@@ -9,7 +9,7 @@ import { logger } from '../../utils/logger';
 import database from '../../database/connection';
 
 export class PlatformController {
-  async addCredentials(req: AuthRequest, res: Response) {
+  async addCredentials(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { platform, credentials } = req.body;
       const userId = req.user!.id;
@@ -41,17 +41,17 @@ export class PlatformController {
 
       logger.info(`Credentials added for ${platform} by user ${userId}`);
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'Credentials added successfully',
         platform,
       });
     } catch (error) {
       logger.error('Add credentials error:', error);
-      res.status(500).json({ error: 'Failed to add credentials' });
+      return res.status(500).json({ error: 'Failed to add credentials' });
     }
   }
 
-  async listCredentials(req: AuthRequest, res: Response) {
+  async listCredentials(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const userId = req.user!.id;
 
@@ -62,14 +62,14 @@ export class PlatformController {
         [userId]
       );
 
-      res.json({ credentials: result.rows });
+      return res.json({ credentials: result.rows });
     } catch (error) {
       logger.error('List credentials error:', error);
-      res.status(500).json({ error: 'Failed to list credentials' });
+      return res.status(500).json({ error: 'Failed to list credentials' });
     }
   }
 
-  async removeCredentials(req: AuthRequest, res: Response) {
+  async removeCredentials(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { platform } = req.params;
       const userId = req.user!.id;
@@ -81,20 +81,20 @@ export class PlatformController {
 
       logger.info(`Credentials removed for ${platform} by user ${userId}`);
 
-      res.json({ message: 'Credentials removed successfully' });
+      return res.json({ message: 'Credentials removed successfully' });
     } catch (error) {
       logger.error('Remove credentials error:', error);
-      res.status(500).json({ error: 'Failed to remove credentials' });
+      return res.status(500).json({ error: 'Failed to remove credentials' });
     }
   }
 
-  async getSupportedPlatforms(req: AuthRequest, res: Response) {
+  async getSupportedPlatforms(_req: AuthRequest, res: Response): Promise<Response> {
     try {
       const platforms = PlatformFactory.getSupportedPlatforms();
-      res.json({ platforms });
+      return res.json({ platforms });
     } catch (error) {
       logger.error('Get supported platforms error:', error);
-      res.status(500).json({ error: 'Failed to get supported platforms' });
+      return res.status(500).json({ error: 'Failed to get supported platforms' });
     }
   }
 }

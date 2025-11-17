@@ -1,4 +1,4 @@
-import { PostContent, MediaFile, Platform, PlatformMetrics } from '../../core/content/types';
+import { PostContent, Platform, PlatformMetrics } from '../../core/content/types';
 
 export interface PlatformRequirements {
   maxTextLength: number;

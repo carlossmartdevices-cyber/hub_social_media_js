@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, query } from 'express-validator';
+import { body } from 'express-validator';
 import PostController from '../controllers/PostController';
 import { authMiddleware } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';

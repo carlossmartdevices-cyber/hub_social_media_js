@@ -1,8 +1,9 @@
 import { Worker, Job } from 'bullmq';
-import { Post, Platform } from '../../core/content/types';
+import { Platform, PostContent } from '../../core/content/types';
 import { PlatformFactory } from '../../platforms';
 import { ContentAdapter } from '../../core/content/ContentAdapter';
 import { MediaProcessor } from '../../core/content/MediaProcessor';
+import { PublishResult } from '../../platforms/base/PlatformAdapter';
 import { logger } from '../../utils/logger';
 import config from '../../config';
 import database from '../../database/connection';
@@ -16,7 +17,7 @@ const connection = {
 interface PostJobData {
   postId: string;
   platform: Platform;
-  content: any;
+  content: PostContent;
   credentials: Record<string, string>;
 }
 
@@ -72,9 +73,10 @@ export class PostWorker {
       await this.recordJobMetrics(job.id || '', platform, 'success', duration);
 
       return result;
-    } catch (error: any) {
+    } catch (error) {
       const duration = Date.now() - startTime;
-      await this.recordJobMetrics(job.id || '', platform, 'failure', duration, error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      await this.recordJobMetrics(job.id || '', platform, 'failure', duration, errorMessage);
       throw error;
     }
   }
@@ -82,7 +84,7 @@ export class PostWorker {
   private async recordPublishResult(
     postId: string,
     platform: Platform,
-    result: any
+    result: PublishResult
   ): Promise<void> {
     try {
       await database.query(

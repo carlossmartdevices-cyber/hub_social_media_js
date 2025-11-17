@@ -1,5 +1,5 @@
-import { DatabaseConnection } from '../database/connection';
-import { Encryption } from '../utils/encryption';
+import database from '../database/connection';
+import { EncryptionService } from '../utils/encryption';
 import { logger } from '../utils/logger';
 
 export interface PlatformAccount {
@@ -23,11 +23,6 @@ export interface PlatformAccountWithCredentials extends PlatformAccount {
  * Service for managing multiple platform accounts per user
  */
 export class PlatformAccountService {
-  private db: DatabaseConnection;
-
-  constructor() {
-    this.db = DatabaseConnection.getInstance();
-  }
 
   /**
    * Get all accounts for a user on a specific platform
@@ -45,9 +40,9 @@ export class PlatformAccountService {
       ORDER BY is_default DESC, account_name ASC
     `;
 
-    const result = await this.db.query(query, [userId, platform]);
+    const result = await database.query(query, [userId, platform]);
 
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       platform: row.platform,
@@ -74,9 +69,9 @@ export class PlatformAccountService {
       ORDER BY platform ASC, is_default DESC, account_name ASC
     `;
 
-    const result = await this.db.query(query, [userId]);
+    const result = await database.query(query, [userId]);
 
-    return result.rows.map((row) => ({
+    return result.rows.map((row: any) => ({
       id: row.id,
       userId: row.user_id,
       platform: row.platform,
@@ -106,7 +101,7 @@ export class PlatformAccountService {
       WHERE id = $1 AND user_id = $2
     `;
 
-    const result = await this.db.query(query, [accountId, userId]);
+    const result = await database.query(query, [accountId, userId]);
 
     if (result.rows.length === 0) {
       return null;
@@ -114,7 +109,7 @@ export class PlatformAccountService {
 
     const row = result.rows[0];
     const decryptedCredentials = JSON.parse(
-      Encryption.decrypt(row.credentials)
+      EncryptionService.decrypt(row.credentials)
     );
 
     return {
@@ -149,7 +144,7 @@ export class PlatformAccountService {
       LIMIT 1
     `;
 
-    const result = await this.db.query(query, [userId, platform]);
+    const result = await database.query(query, [userId, platform]);
 
     if (result.rows.length === 0) {
       // If no default, get the first active account
@@ -158,7 +153,7 @@ export class PlatformAccountService {
 
     const row = result.rows[0];
     const decryptedCredentials = JSON.parse(
-      Encryption.decrypt(row.credentials)
+      EncryptionService.decrypt(row.credentials)
     );
 
     return {
@@ -194,7 +189,7 @@ export class PlatformAccountService {
       LIMIT 1
     `;
 
-    const result = await this.db.query(query, [userId, platform]);
+    const result = await database.query(query, [userId, platform]);
 
     if (result.rows.length === 0) {
       return null;
@@ -202,7 +197,7 @@ export class PlatformAccountService {
 
     const row = result.rows[0];
     const decryptedCredentials = JSON.parse(
-      Encryption.decrypt(row.credentials)
+      EncryptionService.decrypt(row.credentials)
     );
 
     return {
@@ -236,7 +231,7 @@ export class PlatformAccountService {
       await this.unsetDefaultAccounts(userId, platform);
     }
 
-    const encryptedCredentials = Encryption.encrypt(JSON.stringify(credentials));
+    const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(credentials));
 
     const query = `
       INSERT INTO platform_credentials
@@ -247,7 +242,7 @@ export class PlatformAccountService {
         is_default, is_active, last_validated, created_at, updated_at
     `;
 
-    const result = await this.db.query(query, [
+    const result = await database.query(query, [
       userId,
       platform,
       accountName,
@@ -292,7 +287,7 @@ export class PlatformAccountService {
   ): Promise<PlatformAccount> {
     // Build the update query dynamically
     const setClauses: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
     let paramCount = 1;
 
     if (updates.accountName !== undefined) {
@@ -306,7 +301,7 @@ export class PlatformAccountService {
     }
 
     if (updates.credentials !== undefined) {
-      const encryptedCredentials = Encryption.encrypt(
+      const encryptedCredentials = EncryptionService.encrypt(
         JSON.stringify(updates.credentials)
       );
       setClauses.push(`credentials = $${paramCount++}`);
@@ -317,7 +312,7 @@ export class PlatformAccountService {
       // If setting as default, unset other defaults first
       if (updates.isDefault) {
         const platformQuery = `SELECT platform FROM platform_credentials WHERE id = $1`;
-        const platformResult = await this.db.query(platformQuery, [accountId]);
+        const platformResult = await database.query(platformQuery, [accountId]);
         if (platformResult.rows.length > 0) {
           await this.unsetDefaultAccounts(userId, platformResult.rows[0].platform);
         }
@@ -347,7 +342,7 @@ export class PlatformAccountService {
         is_default, is_active, last_validated, created_at, updated_at
     `;
 
-    const result = await this.db.query(query, values);
+    const result = await database.query(query, values);
 
     if (result.rows.length === 0) {
       throw new Error('Account not found or unauthorized');
@@ -381,7 +376,7 @@ export class PlatformAccountService {
       RETURNING id
     `;
 
-    const result = await this.db.query(query, [accountId, userId]);
+    const result = await database.query(query, [accountId, userId]);
 
     if (result.rows.length > 0) {
       logger.info(`Deleted account ${accountId} for user ${userId}`);
@@ -400,7 +395,7 @@ export class PlatformAccountService {
       SELECT platform FROM platform_credentials
       WHERE id = $1 AND user_id = $2
     `;
-    const platformResult = await this.db.query(platformQuery, [
+    const platformResult = await database.query(platformQuery, [
       accountId,
       userId,
     ]);
@@ -421,13 +416,13 @@ export class PlatformAccountService {
       WHERE id = $1 AND user_id = $2
     `;
 
-    const result = await this.db.query(updateQuery, [accountId, userId]);
+    const result = await database.query(updateQuery, [accountId, userId]);
 
     logger.info(
       `Set account ${accountId} as default ${platform} account for user ${userId}`
     );
 
-    return result.rowCount > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   /**
@@ -443,7 +438,7 @@ export class PlatformAccountService {
       WHERE user_id = $1 AND platform = $2 AND is_default = true
     `;
 
-    await this.db.query(query, [userId, platform]);
+    await database.query(query, [userId, platform]);
   }
 
   /**
@@ -457,7 +452,7 @@ export class PlatformAccountService {
       GROUP BY platform
     `;
 
-    const result = await this.db.query(query, [userId]);
+    const result = await database.query(query, [userId]);
 
     const counts: Record<string, number> = {};
     for (const row of result.rows) {

@@ -11,7 +11,7 @@ import { aiContentService } from '../../services/AIContentService';
 const hubManager = new HubManager();
 
 export class PostController {
-  async createPost(req: AuthRequest, res: Response) {
+  async createPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { platforms, content, scheduledAt, recurrence } = req.body;
       const userId = req.user!.id;
@@ -47,17 +47,17 @@ export class PostController {
 
       logger.info(`Post created and scheduled: ${postId}`);
 
-      res.status(201).json({
+      return res.status(201).json({
         message: 'Post scheduled successfully',
         postId,
       });
     } catch (error) {
       logger.error('Create post error:', error);
-      res.status(500).json({ error: 'Failed to create post' });
+      return res.status(500).json({ error: 'Failed to create post' });
     }
   }
 
-  async getPost(req: AuthRequest, res: Response) {
+  async getPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
       const userId = req.user!.id;
@@ -87,14 +87,14 @@ export class PostController {
         return res.status(404).json({ error: 'Post not found' });
       }
 
-      res.json({ post: result.rows[0] });
+      return res.json({ post: result.rows[0] });
     } catch (error) {
       logger.error('Get post error:', error);
-      res.status(500).json({ error: 'Failed to get post' });
+      return res.status(500).json({ error: 'Failed to get post' });
     }
   }
 
-  async listPosts(req: AuthRequest, res: Response) {
+  async listPosts(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const userId = req.user!.id;
       const { status, platform, limit = 50, offset = 0 } = req.query;
@@ -120,17 +120,17 @@ export class PostController {
 
       const result = await database.query(query, params);
 
-      res.json({
+      return res.json({
         posts: result.rows,
         total: result.rowCount,
       });
     } catch (error) {
       logger.error('List posts error:', error);
-      res.status(500).json({ error: 'Failed to list posts' });
+      return res.status(500).json({ error: 'Failed to list posts' });
     }
   }
 
-  async cancelPost(req: AuthRequest, res: Response) {
+  async cancelPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
       const userId = req.user!.id;
@@ -147,14 +147,14 @@ export class PostController {
 
       await hubManager.cancelPost(id);
 
-      res.json({ message: 'Post cancelled successfully' });
+      return res.json({ message: 'Post cancelled successfully' });
     } catch (error) {
       logger.error('Cancel post error:', error);
-      res.status(500).json({ error: 'Failed to cancel post' });
+      return res.status(500).json({ error: 'Failed to cancel post' });
     }
   }
 
-  async getMetrics(req: AuthRequest, res: Response) {
+  async getMetrics(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
       const userId = req.user!.id;
@@ -179,10 +179,10 @@ export class PostController {
         [id]
       );
 
-      res.json({ metrics: metricsResult.rows });
+      return res.json({ metrics: metricsResult.rows });
     } catch (error) {
       logger.error('Get metrics error:', error);
-      res.status(500).json({ error: 'Failed to get metrics' });
+      return res.status(500).json({ error: 'Failed to get metrics' });
     }
   }
 
@@ -199,7 +199,7 @@ export class PostController {
    *   "customInstructions": "Additional context or requirements"
    * }
    */
-  async generateAIContent(req: AuthRequest, res: Response) {
+  async generateAIContent(req: AuthRequest, res: Response): Promise<Response> {
     try {
       // Check if AI service is available
       if (!aiContentService.isAvailable()) {
@@ -242,15 +242,16 @@ export class PostController {
         spanishPosts: content.spanish.length,
       });
 
-      res.json({
+      return res.json({
         message: 'AI content generated successfully',
         content,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('AI content generation error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate AI content',
-        message: error.message,
+        message: errorMessage,
       });
     }
   }
@@ -266,7 +267,7 @@ export class PostController {
    *   "language": "en"        // Required: "en" or "es"
    * }
    */
-  async generateSingleAIPost(req: AuthRequest, res: Response) {
+  async generateSingleAIPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       // Check if AI service is available
       if (!aiContentService.isAvailable()) {
@@ -305,17 +306,18 @@ export class PostController {
         language,
       });
 
-      res.json({
+      return res.json({
         message: 'AI post generated successfully',
         content: postContent,
         platform,
         language,
       });
-    } catch (error: any) {
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Single AI post generation error:', error);
-      res.status(500).json({
+      return res.status(500).json({
         error: 'Failed to generate AI post',
-        message: error.message,
+        message: errorMessage,
       });
     }
   }
