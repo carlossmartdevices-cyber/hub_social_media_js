@@ -3,7 +3,6 @@ import { postQueue, metricsQueue } from '../../jobs/queue';
 import { logger } from '../../utils/logger';
 import database from '../../database/connection';
 import { EncryptionService } from '../../utils/encryption';
-import { DateTime } from 'luxon';
 
 export class HubManager {
   /**
@@ -37,7 +36,7 @@ export class HubManager {
         [userId]
       );
 
-      const credentialsMap = new Map();
+      const credentialsMap = new Map<string, Record<string, string>>();
       for (const row of credentialsResult.rows) {
         const decrypted = EncryptionService.decrypt(row.credentials);
         credentialsMap.set(row.platform, JSON.parse(decrypted));

@@ -1,4 +1,4 @@
-import { Telegraf, Context } from 'telegraf';
+import { Telegraf } from 'telegraf';
 import { logger } from '../../utils/logger';
 import platformAccountService from '../../services/PlatformAccountService';
 

@@ -2,7 +2,6 @@ import sharp from 'sharp';
 import { MediaFile, MediaType, Platform } from './types';
 import { PlatformFactory } from '../../platforms';
 import { logger } from '../../utils/logger';
-import config from '../../config';
 
 export class MediaProcessor {
   /**
@@ -99,7 +98,7 @@ export class MediaProcessor {
   /**
    * Creates thumbnail from video (placeholder)
    */
-  static async createVideoThumbnail(videoBuffer: Buffer): Promise<Buffer> {
+  static async createVideoThumbnail(_videoBuffer: Buffer): Promise<Buffer> {
     // This would use ffmpeg to extract a frame
     // For now, return a placeholder
     logger.warn('Video thumbnail generation not implemented');

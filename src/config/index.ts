@@ -4,12 +4,12 @@ dotenv.config();
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: parseInt(process.env.PORT || '33010', 10),
   apiUrl: process.env.API_URL || 'https://easybots.store',
 
   database: {
     host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '5432', 10),
+    port: parseInt(process.env.DB_PORT || '55432', 10),
     name: process.env.DB_NAME || 'content_hub',
     user: process.env.DB_USER || 'postgres',
     password: process.env.DB_PASSWORD || 'postgres',
@@ -17,16 +17,16 @@ export const config = {
 
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    port: parseInt(process.env.REDIS_PORT || '16379', 10),
     password: process.env.REDIS_PASSWORD || '',
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET || 'change-this-secret',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret',
-    accessTokenExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '15m',
-    refreshTokenExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d', // Mantener para compatibilidad
+    secret: (process.env.JWT_SECRET || 'change-this-secret') as string,
+    refreshSecret: (process.env.JWT_REFRESH_SECRET || 'change-this-refresh-secret') as string,
+    accessTokenExpiresIn: (process.env.JWT_ACCESS_EXPIRES_IN || '15m') as string,
+    refreshTokenExpiresIn: (process.env.JWT_REFRESH_EXPIRES_IN || '7d') as string,
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as string, // Mantener para compatibilidad
   },
 
   platforms: {
