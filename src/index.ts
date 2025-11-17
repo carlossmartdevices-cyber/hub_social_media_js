@@ -6,6 +6,8 @@ import { PostWorker } from './jobs/workers/PostWorker';
 import { MetricsWorker } from './jobs/workers/MetricsWorker';
 import { closeQueues } from './jobs/queue';
 import { logPlatformStatus } from './utils/platformConfig';
+import { Telegraf } from 'telegraf';
+import { TelegramBotCommands } from './platforms/telegram/TelegramBotCommands';
 
 async function startServer() {
   try {
@@ -22,6 +24,35 @@ async function startServer() {
       logger.info('Telegram webhook configured at /webhook/telegram');
     } else {
       logger.warn('TELEGRAM_BOT_TOKEN not set, Telegram webhook not configured');
+    // Initialize Telegram bot BEFORE starting server (webhook needs to be registered before server starts)
+    let telegramBot: TelegramBotCommands | null = null;
+    if (config.platforms.telegram.botToken) {
+      try {
+        const bot = new Telegraf(config.platforms.telegram.botToken);
+        telegramBot = new TelegramBotCommands(bot);
+
+        // Use webhook in production, polling in development
+        if (config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
+          // Add webhook endpoint to Express app BEFORE setting webhook
+          app.use(
+            config.platforms.telegram.webhookPath,
+            telegramBot.getBot().webhookCallback(config.platforms.telegram.webhookPath, {
+              secretToken: config.platforms.telegram.webhookSecret || undefined,
+            })
+          );
+
+          logger.info(`Telegram webhook endpoint registered: ${config.platforms.telegram.webhookPath}`);
+        } else {
+          // Use polling mode
+          await telegramBot.startPolling();
+          logger.info('Telegram bot initialized with polling');
+        }
+      } catch (error) {
+        logger.error('Failed to start Telegram bot:', error);
+        logger.warn('Application will continue without Telegram bot');
+      }
+    } else {
+      logger.warn('Telegram bot token not configured - bot will not start');
     }
 
     // Test database connection
@@ -37,9 +68,24 @@ async function startServer() {
     logger.info('Workers initialized');
 
     // Start server
-    const server = app.listen(config.port, () => {
+    const server = app.listen(config.port, async () => {
       logger.info(`Server running on port ${config.port} in ${config.env} mode`);
       logger.info(`API available at ${config.apiUrl}/api`);
+
+      // Setup Telegram webhook AFTER server is listening
+      if (telegramBot && config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
+        try {
+          const webhookUrl = `${config.platforms.telegram.webhookUrl}${config.platforms.telegram.webhookPath}`;
+          await telegramBot.setupWebhook(
+            webhookUrl,
+            config.platforms.telegram.webhookSecret || undefined
+          );
+          logger.info('Telegram bot webhook configured successfully');
+        } catch (error) {
+          logger.error('Failed to setup Telegram webhook:', error);
+          logger.warn('Bot will not receive updates via webhook');
+        }
+      }
     });
 
     // Graceful shutdown
@@ -49,6 +95,16 @@ async function startServer() {
       server.close(() => {
         logger.info('HTTP server closed');
       });
+
+      // Stop Telegram bot if running
+      if (telegramBot) {
+        try {
+          await telegramBot.stop();
+          logger.info('Telegram bot stopped');
+        } catch (error) {
+          logger.error('Error stopping Telegram bot:', error);
+        }
+      }
 
       await postWorker.close();
       await metricsWorker.close();
