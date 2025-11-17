@@ -654,6 +654,15 @@ export class TelegramBotCommands {
    * Stop the bot gracefully
    */
   async stop() {
+    try {
+      // Try to delete webhook if it was set
+      await this.bot.telegram.deleteWebhook({ drop_pending_updates: false });
+      logger.info('Telegram webhook deleted');
+    } catch (error) {
+      // Ignore errors if webhook wasn't set
+      logger.debug('No webhook to delete or error deleting webhook');
+    }
+
     this.bot.stop('SIGINT');
     logger.info('Telegram bot stopped');
   }
