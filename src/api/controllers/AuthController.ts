@@ -37,19 +37,17 @@ export class AuthController {
 
       const user = result.rows[0];
 
-      // 🟡 HIGH: Generate access and refresh tokens
-      // @ts-ignore - TypeScript incorrectly infers expiresIn type
+      // Generate access and refresh tokens
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.jwt.secret,
-        { expiresIn: config.jwt.accessTokenExpiresIn }
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
       );
 
-      // @ts-ignore - TypeScript incorrectly infers expiresIn type
       const refreshToken = jwt.sign(
         { id: user.id, type: 'refresh' },
         config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshTokenExpiresIn }
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
       );
 
       logger.info(`User registered: ${email}`);
@@ -98,19 +96,17 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // 🟡 HIGH: Generate access and refresh tokens
-      // @ts-ignore - TypeScript incorrectly infers expiresIn type
+      // Generate access and refresh tokens
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.jwt.secret,
-        { expiresIn: config.jwt.accessTokenExpiresIn }
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
       );
 
-      // @ts-ignore - TypeScript incorrectly infers expiresIn type
       const refreshToken = jwt.sign(
         { id: user.id, type: 'refresh' },
         config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshTokenExpiresIn }
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
       );
 
       logger.info(`User logged in: ${email}`);
@@ -188,11 +184,10 @@ export class AuthController {
         const user = result.rows[0];
 
         // Generate new access token
-        // @ts-ignore - TypeScript incorrectly infers expiresIn type
         const newAccessToken = jwt.sign(
           { id: user.id, email: user.email, role: user.role },
           config.jwt.secret,
-          { expiresIn: config.jwt.accessTokenExpiresIn }
+          { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
         );
 
         return res.json({
