@@ -14,6 +14,7 @@ async function startServer() {
     // Create Express app
     const app = createApp();
 
+<<<<<<< HEAD
     // --- Telegram Webhook Setup ---
     const { Telegraf } = require('telegraf');
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
@@ -25,6 +26,8 @@ async function startServer() {
     } else {
       logger.warn('TELEGRAM_BOT_TOKEN not set, Telegram webhook not configured');
     }
+=======
+>>>>>>> f036afd5b2d4361ce25fcf43a9ae6935cd8eaff3
     // Initialize Telegram bot BEFORE starting server (webhook needs to be registered before server starts)
     let telegramBot: TelegramBotCommands | null = null;
     if (config.platforms.telegram.botToken) {
