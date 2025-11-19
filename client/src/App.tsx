@@ -8,6 +8,7 @@ import CreatePost from './pages/CreatePost';
 import Settings from './pages/Settings';
 import Calendar from './pages/Calendar';
 import Analytics from './pages/Analytics';
+import VideoUpload from './pages/VideoUpload';
 import Layout from './components/Layout';
 
 function App() {
@@ -23,6 +24,7 @@ function App() {
           <Route index element={<Dashboard />} />
           <Route path="posts" element={<Posts />} />
           <Route path="posts/create" element={<CreatePost />} />
+          <Route path="videos/upload" element={<VideoUpload />} />
           <Route path="calendar" element={<Calendar />} />
           <Route path="analytics" element={<Analytics />} />
           <Route path="settings" element={<Settings />} />
