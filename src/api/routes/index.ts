@@ -6,6 +6,8 @@ import aiRoutes from './ai';
 import platformAccountRoutes from './platformAccounts';
 import oauthRoutes from './oauth';
 import videoRoutes from './video';
+import englishLearningRoutes from './englishLearning';
+import telegramRoutes from './telegram';
 
 const router = Router();
 
@@ -16,5 +18,7 @@ router.use('/ai', aiRoutes);
 router.use('/platform-accounts', platformAccountRoutes);
 router.use('/oauth', oauthRoutes);
 router.use('/video', videoRoutes);
+router.use('/english-learning', englishLearningRoutes);
+router.use('/telegram', telegramRoutes);
 
 export default router;
