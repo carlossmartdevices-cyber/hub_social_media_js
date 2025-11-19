@@ -9,14 +9,14 @@ import Settings from './pages/Settings';
 import Layout from './components/Layout';
 
 function App() {
-  const { token } = useAuthStore();
+  const { accessToken } = useAuthStore();
 
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {token ? (
+      {accessToken ? (
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="posts" element={<Posts />} />
