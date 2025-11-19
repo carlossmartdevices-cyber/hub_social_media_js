@@ -10,9 +10,20 @@ interface VideoData {
   uploadProgress: number;
   explanation: string;
   metadata: {
+    // Basic metadata
     title: string;
     description: string;
     suggestedHashtags: string[];
+
+    // SEO optimization fields
+    seoTitle: string;
+    seoDescription: string;
+    keywords: string[];
+    tags: string[];
+    searchTerms: string[];
+    voiceSearchQueries: string[];
+    category: string;
+    targetKeyword: string;
   } | null;
   userGoal: string;
   postVariants: {
