@@ -4,9 +4,20 @@ import api from '../lib/api';
 type Step = 'upload' | 'explanation' | 'metadata-review' | 'goal' | 'post-selection' | 'publish';
 
 interface VideoMetadata {
+  // Basic metadata
   title: string;
   description: string;
   suggestedHashtags: string[];
+
+  // SEO optimization fields
+  seoTitle: string;
+  seoDescription: string;
+  keywords: string[];
+  tags: string[];
+  searchTerms: string[];
+  voiceSearchQueries: string[];
+  category: string;
+  targetKeyword: string;
 }
 
 interface PostVariant {
@@ -386,39 +397,140 @@ export function VideoUploader() {
         </div>
       )}
 
-      {/* Step 3: Review Metadata */}
+      {/* Step 3: Review SEO-Optimized Metadata */}
       {currentStep === 'metadata-review' && generatedMetadata && (
         <div className="space-y-4">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Step 3: Review Generated Metadata
+            Step 3: Review SEO-Optimized Metadata
           </h2>
           <p className="text-gray-600 dark:text-gray-400">
-            Grok AI has generated a title and description for your video. Accept it or generate a new one.
+            Grok AI has generated comprehensive SEO-optimized metadata for maximum discoverability.
           </p>
 
-          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
-              Title:
+          {/* Social Media Content */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+            <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-300 mb-3 flex items-center gap-2">
+              <span className="text-2xl">📱</span> Social Media Content
             </h3>
-            <p className="text-gray-700 dark:text-gray-300">{generatedMetadata.title}</p>
 
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mt-4 mb-2">
-              Description:
-            </h3>
-            <p className="text-gray-700 dark:text-gray-300">{generatedMetadata.description}</p>
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Title:</p>
+                <p className="text-gray-900 dark:text-white font-medium">{generatedMetadata.title}</p>
+              </div>
 
-            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mt-4 mb-2">
-              Suggested Hashtags:
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description:</p>
+                <p className="text-gray-800 dark:text-gray-200">{generatedMetadata.description}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Hashtags:</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {generatedMetadata.suggestedHashtags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SEO Optimization */}
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
+            <h3 className="font-semibold text-lg text-green-900 dark:text-green-300 mb-3 flex items-center gap-2">
+              <span className="text-2xl">🔍</span> SEO Optimization
             </h3>
-            <div className="flex flex-wrap gap-2">
-              {generatedMetadata.suggestedHashtags.map((tag, idx) => (
-                <span
-                  key={idx}
-                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
-                >
-                  #{tag}
-                </span>
-              ))}
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  SEO Title ({generatedMetadata.seoTitle.length} chars):
+                </p>
+                <p className="text-gray-900 dark:text-white font-medium">{generatedMetadata.seoTitle}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Meta Description ({generatedMetadata.seoDescription.length} chars):
+                </p>
+                <p className="text-gray-800 dark:text-gray-200">{generatedMetadata.seoDescription}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Target Keyword:</p>
+                  <p className="text-green-700 dark:text-green-300 font-semibold">{generatedMetadata.targetKeyword}</p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Category:</p>
+                  <p className="text-gray-800 dark:text-gray-200">{generatedMetadata.category}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Keywords:</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {generatedMetadata.keywords.map((keyword, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded text-sm"
+                    >
+                      {keyword}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Tags:</p>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {generatedMetadata.tags.map((tag, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200 px-2 py-1 rounded text-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Search Discovery */}
+          <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-800">
+            <h3 className="font-semibold text-lg text-purple-900 dark:text-purple-300 mb-3 flex items-center gap-2">
+              <span className="text-2xl">🎯</span> Search Discovery
+            </h3>
+
+            <div className="space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Long-Tail Search Terms:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  {generatedMetadata.searchTerms.map((term, idx) => (
+                    <li key={idx} className="text-gray-800 dark:text-gray-200 text-sm">
+                      "{term}"
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div>
+                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Voice Search Queries:</p>
+                <ul className="list-disc list-inside mt-1 space-y-1">
+                  {generatedMetadata.voiceSearchQueries.map((query, idx) => (
+                    <li key={idx} className="text-gray-800 dark:text-gray-200 text-sm">
+                      "{query}"
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           </div>
 
