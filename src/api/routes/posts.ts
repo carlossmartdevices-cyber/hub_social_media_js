@@ -18,6 +18,19 @@ router.post(
   PostController.createPost
 );
 
+// Publish Now - Immediate publishing without scheduling
+router.post(
+  '/publish-now',
+  authMiddleware,
+  [
+    body('platforms').isArray({ min: 1 }).withMessage('At least one platform is required'),
+    body('content').isObject().withMessage('Content is required'),
+    body('content.text').notEmpty().withMessage('Content text is required'),
+    validate,
+  ],
+  PostController.publishNow
+);
+
 router.get('/', authMiddleware, PostController.listPosts);
 
 router.get('/:id', authMiddleware, PostController.getPost);
