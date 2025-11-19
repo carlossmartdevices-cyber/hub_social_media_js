@@ -12,6 +12,7 @@ import VideoUpload from './pages/VideoUpload';
 import BulkVideoUpload from './pages/BulkVideoUpload';
 import EnglishLearning from './pages/EnglishLearning';
 import TelegramBroadcast from './pages/TelegramBroadcast';
+import MultiPlatformPublish from './pages/MultiPlatformPublish';
 import Layout from './components/Layout';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="analytics" element={<Analytics />} />
           <Route path="english-learning" element={<EnglishLearning />} />
           <Route path="telegram-broadcast" element={<TelegramBroadcast />} />
+          <Route path="multi-platform-publish" element={<MultiPlatformPublish />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       ) : (
