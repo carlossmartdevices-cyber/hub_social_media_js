@@ -37,7 +37,20 @@ router.get('/:id', authMiddleware, PostController.getPost);
 
 router.delete('/:id/cancel', authMiddleware, PostController.cancelPost);
 
+router.patch(
+  '/:id/reschedule',
+  authMiddleware,
+  [
+    body('scheduledAt').notEmpty().withMessage('scheduledAt is required'),
+    validate,
+  ],
+  PostController.reschedulePost
+);
+
 router.get('/:id/metrics', authMiddleware, PostController.getMetrics);
+
+// Analytics Routes
+router.get('/analytics/metrics', authMiddleware, PostController.getAnalyticsMetrics);
 
 // AI Content Generation Routes
 router.post(
