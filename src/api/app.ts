@@ -16,8 +16,8 @@ export function createApp(): Application {
 
   // 🟡 HIGH: Restrictive CORS configuration
   const allowedOrigins = config.env === 'production'
-    ? [config.apiUrl, 'https://easybots.store']
-    : ['http://localhost:3010', 'https://easybots.store'];
+    ? [config.apiUrl, 'https://pnptv.app']
+    : ['http://localhost:3010', 'https://pnptv.app'];
 
   app.use(cors({
     origin: (origin, callback) => {

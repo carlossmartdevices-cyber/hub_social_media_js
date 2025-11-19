@@ -31,16 +31,33 @@ export class PlatformAccountService {
     userId: string,
     platform: string
   ): Promise<PlatformAccount[]> {
-    const query = `
-      SELECT
-        id, user_id, platform, account_name, account_identifier,
-        is_default, is_active, last_validated, created_at, updated_at
-      FROM platform_credentials
-      WHERE user_id = $1 AND platform = $2
-      ORDER BY is_default DESC, account_name ASC
-    `;
+    // Si el userId no es UUID, no filtrar por UUID
+    const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(userId);
+    let query;
+    let params;
+    if (isUUID) {
+      query = `
+        SELECT
+          id, user_id, platform, account_name, account_identifier,
+          is_default, is_active, last_validated, created_at, updated_at
+        FROM platform_credentials
+        WHERE user_id = $1 AND platform = $2
+        ORDER BY is_default DESC, account_name ASC
+      `;
+      params = [userId, platform];
+    } else {
+      query = `
+        SELECT
+          id, user_id, platform, account_name, account_identifier,
+          is_default, is_active, last_validated, created_at, updated_at
+        FROM platform_credentials
+        WHERE account_identifier = $1 AND platform = $2
+        ORDER BY is_default DESC, account_name ASC
+      `;
+      params = [userId, platform];
+    }
 
-    const result = await database.query(query, [userId, platform]);
+    const result = await database.query(query, params);
 
     return result.rows.map((row: any) => ({
       id: row.id,
