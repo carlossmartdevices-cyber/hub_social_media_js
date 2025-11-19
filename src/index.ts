@@ -14,22 +14,21 @@ async function startServer() {
     // Create Express app
     const app = createApp();
 
-<<<<<<< HEAD
-    // --- Telegram Webhook Setup ---
-    const { Telegraf } = require('telegraf');
-    const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (botToken) {
-      const bot = new Telegraf(botToken);
-      await bot.telegram.setWebhook('https://easybots.store/webhook/telegram');
-      app.use(bot.webhookCallback('/webhook/telegram'));
-      logger.info('Telegram webhook configured at /webhook/telegram');
-    } else {
-      logger.warn('TELEGRAM_BOT_TOKEN not set, Telegram webhook not configured');
-    }
-=======
->>>>>>> f036afd5b2d4361ce25fcf43a9ae6935cd8eaff3
-    // Initialize Telegram bot BEFORE starting server (webhook needs to be registered before server starts)
+    // Referencia global para el bot de Telegram
     let telegramBot: TelegramBotCommands | null = null;
+
+    // Endpoint para el webhook de Telegram
+    app.post('/webhook/telegram', (req, res) => {
+      if (telegramBot) {
+        telegramBot.getBot().handleUpdate(req.body);
+        res.status(200).send('OK');
+      } else {
+        res.status(503).send('Telegram bot not initialized');
+      }
+    });
+
+    // ...existing code...
+    // Initialize Telegram bot BEFORE starting server (webhook needs to be registered before server starts)
     if (config.platforms.telegram.botToken) {
       try {
         const bot = new Telegraf(config.platforms.telegram.botToken);
