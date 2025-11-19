@@ -54,6 +54,10 @@ export function createApp(): Application {
   app.use('/api/posts', express.json({ limit: '1mb' }));
   app.use('/api/posts', express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // AI routes - moderate payload for AI requests
+  app.use('/api/ai', express.json({ limit: '500kb' }));
+  app.use('/api/ai', express.urlencoded({ extended: true, limit: '500kb' }));
+
   // Media/upload routes - larger payload
   app.use('/api/media', express.json({ limit: '10mb' }));
   app.use('/api/media', express.urlencoded({ extended: true, limit: '10mb' }));
