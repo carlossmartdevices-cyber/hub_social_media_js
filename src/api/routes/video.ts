@@ -110,4 +110,100 @@ router.get(
   videoPostController.getGeoSuggestions.bind(videoPostController)
 );
 
+/**
+ * POST /api/video/generate-metadata
+ * Generate video title and description using Grok AI
+ *
+ * Body:
+ * {
+ *   "userExplanation": "This video is about...",
+ *   "videoFileName": "my-video.mp4"
+ * }
+ */
+router.post(
+  '/generate-metadata',
+  [
+    body('userExplanation').notEmpty().withMessage('User explanation is required'),
+    body('videoFileName').optional().isString(),
+    validate,
+  ],
+  videoPostController.generateMetadata.bind(videoPostController)
+);
+
+/**
+ * POST /api/video/generate-posts
+ * Generate post variants in English and Spanish using Grok AI
+ *
+ * Body:
+ * {
+ *   "videoTitle": "Amazing Video",
+ *   "videoDescription": "This video shows...",
+ *   "userGoal": "Increase sales in Asia",
+ *   "targetAudience": "Asian tech enthusiasts (optional)"
+ * }
+ */
+router.post(
+  '/generate-posts',
+  [
+    body('videoTitle').notEmpty().withMessage('Video title is required'),
+    body('videoDescription').notEmpty().withMessage('Video description is required'),
+    body('userGoal').notEmpty().withMessage('User goal is required'),
+    body('targetAudience').optional().isString(),
+    validate,
+  ],
+  videoPostController.generatePosts.bind(videoPostController)
+);
+
+/**
+ * POST /api/video/regenerate-posts
+ * Regenerate post variants with different approach
+ *
+ * Body:
+ * {
+ *   "videoTitle": "Amazing Video",
+ *   "videoDescription": "This video shows...",
+ *   "userGoal": "Increase sales in Asia",
+ *   "previousAttempts": [...]
+ * }
+ */
+router.post(
+  '/regenerate-posts',
+  [
+    body('videoTitle').notEmpty().withMessage('Video title is required'),
+    body('videoDescription').notEmpty().withMessage('Video description is required'),
+    body('userGoal').notEmpty().withMessage('User goal is required'),
+    body('previousAttempts').optional().isArray(),
+    validate,
+  ],
+  videoPostController.regeneratePosts.bind(videoPostController)
+);
+
+/**
+ * POST /api/video/generate-bulk-posts
+ * Generate post variants for multiple videos (max 6)
+ *
+ * Body:
+ * {
+ *   "videos": [
+ *     {
+ *       "title": "Video 1",
+ *       "description": "Description 1",
+ *       "userGoal": "Goal 1"
+ *     },
+ *     ...
+ *   ]
+ * }
+ */
+router.post(
+  '/generate-bulk-posts',
+  [
+    body('videos').isArray({ min: 1, max: 6 }).withMessage('Videos array is required (max 6)'),
+    body('videos.*.title').notEmpty().withMessage('Each video must have a title'),
+    body('videos.*.description').notEmpty().withMessage('Each video must have a description'),
+    body('videos.*.userGoal').notEmpty().withMessage('Each video must have a user goal'),
+    validate,
+  ],
+  videoPostController.generateBulkPosts.bind(videoPostController)
+);
+
 export default router;

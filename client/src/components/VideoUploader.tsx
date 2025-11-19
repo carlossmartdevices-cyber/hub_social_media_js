@@ -1,439 +1,659 @@
 import { useState, useRef } from 'react';
-import { CloudArrowUpIcon, PlayIcon, GlobeAltIcon } from '@heroicons/react/24/outline';
 import api from '../lib/api';
+
+type Step = 'upload' | 'explanation' | 'metadata-review' | 'goal' | 'post-selection' | 'publish';
 
 interface VideoMetadata {
   title: string;
   description: string;
-  hashtags: string[];
-  cta: string;
-  alt_text: string;
+  suggestedHashtags: string[];
 }
 
-interface GeoRestrictions {
-  type: 'whitelist' | 'blacklist';
-  countries: string[];
-  message: string;
+interface PostVariant {
+  language: 'en' | 'es';
+  content: string;
+  hashtags: string[];
+  cta?: string;
+}
+
+interface PostVariants {
+  english: PostVariant;
+  spanish: PostVariant;
 }
 
 export function VideoUploader() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [processing, setProcessing] = useState(false);
-  const [uploadedVideo, setUploadedVideo] = useState<any>(null);
+  const [currentStep, setCurrentStep] = useState<Step>('upload');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreview, setVideoPreview] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [postId, setPostId] = useState<string>('');
 
-  // Metadata
-  const [metadata, setMetadata] = useState<VideoMetadata>({
-    title: '',
-    description: '',
-    hashtags: [],
-    cta: '',
-    alt_text: '',
-  });
+  // Step 2: User explanation
+  const [userExplanation, setUserExplanation] = useState('');
 
-  // Geo restrictions
-  const [geoEnabled, setGeoEnabled] = useState(false);
-  const [geoRestrictions, setGeoRestrictions] = useState<GeoRestrictions>({
-    type: 'whitelist',
-    countries: [],
-    message: 'This content is not available in your region',
-  });
+  // Step 3: Generated metadata
+  const [generatedMetadata, setGeneratedMetadata] = useState<VideoMetadata | null>(null);
+  const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
 
-  const [hashtagInput, setHashtagInput] = useState('');
-  const [countryInput, setCountryInput] = useState('');
+  // Step 4: User goal
+  const [userGoal, setUserGoal] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+
+  // Step 5: Post variants
+  const [postVariants, setPostVariants] = useState<PostVariants | null>(null);
+  const [previousAttempts, setPreviousAttempts] = useState<PostVariants[]>([]);
+  const [isGeneratingPosts, setIsGeneratingPosts] = useState(false);
+  const [selectedLanguage, setSelectedLanguage] = useState<'en' | 'es' | null>(null);
+
+  // Step 6: Publishing
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Step 1: Handle video file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (selectedFile) {
-      setFile(selectedFile);
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      // Create video preview
-      const videoUrl = URL.createObjectURL(selectedFile);
-      setPreview(videoUrl);
+    setVideoFile(file);
+    setVideoPreview(URL.createObjectURL(file));
+  };
+
+  // Step 1: Upload video
+  const handleUpload = async () => {
+    if (!videoFile) return;
+
+    try {
+      const formData = new FormData();
+      formData.append('video', videoFile);
+      formData.append('title', 'Processing...');
+      formData.append('description', '');
+
+      const response = await api.post('/video/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round(
+            (progressEvent.loaded * 100) / (progressEvent.total || 100)
+          );
+          setUploadProgress(percentCompleted);
+        },
+      });
+
+      if (response.data.success) {
+        setPostId(response.data.post.id);
+        setCurrentStep('explanation');
+      }
+    } catch (error: any) {
+      alert('Error uploading video: ' + (error.response?.data?.error || error.message));
     }
   };
 
-  const handleUpload = async () => {
-    if (!file || !metadata.title) {
-      alert('Please select a video and provide a title');
+  // Step 2: Generate metadata with Grok
+  const handleGenerateMetadata = async () => {
+    if (!userExplanation.trim()) {
+      alert('Please provide an explanation of what the video is about');
       return;
     }
 
+    setIsGeneratingMetadata(true);
     try {
-      setUploading(true);
-
-      const formData = new FormData();
-      formData.append('video', file);
-      formData.append('title', metadata.title);
-      formData.append('description', metadata.description);
-      formData.append('quality', 'medium');
-
-      const response = await api.post('/video/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        onUploadProgress: (progressEvent) => {
-          if (progressEvent.total) {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log(`Upload progress: ${percentCompleted}%`);
-          }
-        },
+      const response = await api.post('/video/generate-metadata', {
+        userExplanation,
+        videoFileName: videoFile?.name || 'video.mp4',
       });
 
-      setUploadedVideo(response.data.post);
-      setProcessing(true);
-
-      // Update metadata
-      await handleUpdateMetadata(response.data.post.id);
-
-      setProcessing(false);
-      alert('Video uploaded and processed successfully!');
+      if (response.data.success) {
+        setGeneratedMetadata(response.data.metadata);
+        setCurrentStep('metadata-review');
+      }
     } catch (error: any) {
-      console.error('Upload error:', error);
-      alert(error.response?.data?.error || 'Failed to upload video');
+      alert('Error generating metadata: ' + (error.response?.data?.error || error.message));
     } finally {
-      setUploading(false);
+      setIsGeneratingMetadata(false);
     }
   };
 
-  const handleUpdateMetadata = async (videoId?: string) => {
-    const postId = videoId || uploadedVideo?.id;
-    if (!postId) return;
+  // Step 3: Regenerate metadata (if user doesn't like it)
+  const handleRegenerateMetadata = async () => {
+    await handleGenerateMetadata();
+  };
+
+  // Step 3: Accept metadata and move to goal step
+  const handleAcceptMetadata = async () => {
+    if (!generatedMetadata || !postId) return;
 
     try {
+      // Update post with generated metadata
       await api.put(`/video/${postId}/metadata`, {
-        ...metadata,
-        geo_restrictions: geoEnabled ? geoRestrictions : null,
+        title: generatedMetadata.title,
+        description: generatedMetadata.description,
+        hashtags: generatedMetadata.suggestedHashtags,
       });
 
-      alert('Metadata updated successfully!');
+      setCurrentStep('goal');
     } catch (error: any) {
-      console.error('Metadata update error:', error);
-      alert(error.response?.data?.error || 'Failed to update metadata');
+      alert('Error updating metadata: ' + (error.response?.data?.error || error.message));
     }
   };
 
-  const handlePublish = async () => {
-    if (!uploadedVideo) return;
+  // Step 4: Generate post variants
+  const handleGeneratePosts = async () => {
+    if (!userGoal.trim() || !generatedMetadata) {
+      alert('Please describe your goal for this post');
+      return;
+    }
 
+    setIsGeneratingPosts(true);
     try {
-      const platforms = ['twitter'];
-      const response = await api.post(`/video/${uploadedVideo.id}/publish`, {
-        platforms,
-        accountIds: {}, // Let user select account in production
+      const response = await api.post('/video/generate-posts', {
+        videoTitle: generatedMetadata.title,
+        videoDescription: generatedMetadata.description,
+        userGoal,
+        targetAudience: targetAudience || undefined,
       });
 
-      alert('Video published successfully!');
-      console.log('Publish result:', response.data);
+      if (response.data.success) {
+        setPostVariants(response.data.variants);
+        setCurrentStep('post-selection');
+      }
     } catch (error: any) {
-      console.error('Publish error:', error);
-      alert(error.response?.data?.error || 'Failed to publish video');
+      alert('Error generating posts: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsGeneratingPosts(false);
     }
   };
 
-  const addHashtag = () => {
-    if (hashtagInput && !metadata.hashtags.includes(hashtagInput)) {
-      setMetadata({
-        ...metadata,
-        hashtags: [...metadata.hashtags, hashtagInput.startsWith('#') ? hashtagInput : `#${hashtagInput}`],
+  // Step 5: Regenerate posts if user doesn't like them
+  const handleRegeneratePosts = async () => {
+    if (!generatedMetadata) return;
+
+    if (postVariants) {
+      setPreviousAttempts([...previousAttempts, postVariants]);
+    }
+
+    setIsGeneratingPosts(true);
+    try {
+      const response = await api.post('/video/regenerate-posts', {
+        videoTitle: generatedMetadata.title,
+        videoDescription: generatedMetadata.description,
+        userGoal,
+        previousAttempts: [...previousAttempts, postVariants].filter(Boolean),
       });
-      setHashtagInput('');
+
+      if (response.data.success) {
+        setPostVariants(response.data.variants);
+      }
+    } catch (error: any) {
+      alert('Error regenerating posts: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsGeneratingPosts(false);
     }
   };
 
-  const removeHashtag = (tag: string) => {
-    setMetadata({
-      ...metadata,
-      hashtags: metadata.hashtags.filter(t => t !== tag),
-    });
-  };
+  // Step 6: Publish selected post
+  const handlePublish = async (scheduled: boolean = false) => {
+    if (!selectedLanguage || !postVariants || !postId) {
+      alert('Please select a language variant first');
+      return;
+    }
 
-  const addCountry = () => {
-    if (countryInput && !geoRestrictions.countries.includes(countryInput.toUpperCase())) {
-      setGeoRestrictions({
-        ...geoRestrictions,
-        countries: [...geoRestrictions.countries, countryInput.toUpperCase()],
+    setIsPublishing(true);
+    try {
+      const selectedPost = postVariants[selectedLanguage];
+
+      // Update post with final content
+      await api.put(`/video/${postId}/metadata`, {
+        title: generatedMetadata?.title,
+        description: generatedMetadata?.description,
+        hashtags: selectedPost.hashtags,
+        cta: selectedPost.cta,
+        language: selectedLanguage,
       });
-      setCountryInput('');
+
+      // Publish or schedule
+      const publishData: any = {
+        platforms: ['twitter'],
+        accountIds: {}, // User should select account
+      };
+
+      if (scheduled) {
+        // You can add a date picker for this
+        publishData.scheduledAt = new Date(Date.now() + 3600000).toISOString();
+      }
+
+      await api.post(`/video/${postId}/publish`, publishData);
+
+      setPublishSuccess(true);
+      setCurrentStep('publish');
+    } catch (error: any) {
+      alert('Error publishing post: ' + (error.response?.data?.error || error.message));
+    } finally {
+      setIsPublishing(false);
     }
   };
 
-  const removeCountry = (country: string) => {
-    setGeoRestrictions({
-      ...geoRestrictions,
-      countries: geoRestrictions.countries.filter(c => c !== country),
-    });
+  // Reset to upload a new video
+  const handleReset = () => {
+    setCurrentStep('upload');
+    setVideoFile(null);
+    setVideoPreview('');
+    setUploadProgress(0);
+    setPostId('');
+    setUserExplanation('');
+    setGeneratedMetadata(null);
+    setUserGoal('');
+    setTargetAudience('');
+    setPostVariants(null);
+    setPreviousAttempts([]);
+    setSelectedLanguage(null);
+    setPublishSuccess(false);
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Upload Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">
-          Upload Video
-        </h2>
+    <div className="max-w-4xl mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      {/* Progress Steps */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          {[
+            { id: 'upload', label: '1. Upload' },
+            { id: 'explanation', label: '2. Explain' },
+            { id: 'metadata-review', label: '3. Review' },
+            { id: 'goal', label: '4. Goal' },
+            { id: 'post-selection', label: '5. Select' },
+            { id: 'publish', label: '6. Publish' },
+          ].map((step, index) => (
+            <div key={step.id} className="flex items-center">
+              <div
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                  currentStep === step.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                }`}
+              >
+                {index + 1}
+              </div>
+              {index < 5 && (
+                <div className="w-12 h-1 bg-gray-200 dark:bg-gray-700 mx-2"></div>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-between mt-2">
+          {[
+            'Upload',
+            'Explain',
+            'Review',
+            'Goal',
+            'Select',
+            'Publish',
+          ].map((label) => (
+            <div key={label} className="text-xs text-gray-500 dark:text-gray-400 w-20 text-center">
+              {label}
+            </div>
+          ))}
+        </div>
+      </div>
 
-        {/* File Upload */}
-        <div className="mb-6">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="video/*"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+      {/* Step 1: Upload Video */}
+      {currentStep === 'upload' && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Step 1: Upload Your Video
+          </h2>
 
-          {!preview ? (
+          <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept="video/mp4,video/quicktime,video/x-msvideo"
+              className="hidden"
+            />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-12 text-center hover:border-indigo-500 dark:hover:border-indigo-400 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold"
             >
-              <CloudArrowUpIcon className="mx-auto h-16 w-16 text-gray-400 mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">Click to select video file</p>
-              <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-                MP4, MOV up to 500MB
-              </p>
+              Select Video File
             </button>
-          ) : (
-            <div className="relative">
+            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              MP4, MOV, AVI (max 500MB)
+            </p>
+          </div>
+
+          {videoPreview && (
+            <div className="mt-4">
               <video
-                src={preview}
+                src={videoPreview}
                 controls
-                className="w-full rounded-lg"
-                style={{ maxHeight: '400px' }}
+                className="w-full max-h-96 rounded-lg"
               />
+              <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                Selected: {videoFile?.name}
+              </p>
+
+              {uploadProgress > 0 && uploadProgress < 100 && (
+                <div className="mt-4">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-blue-600 h-2 rounded-full transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                    Uploading: {uploadProgress}%
+                  </p>
+                </div>
+              )}
+
               <button
-                onClick={() => {
-                  setFile(null);
-                  setPreview(null);
-                }}
-                className="absolute top-2 right-2 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                onClick={handleUpload}
+                disabled={uploadProgress > 0 && uploadProgress < 100}
+                className="mt-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold w-full"
               >
-                Remove
+                Upload & Continue
               </button>
             </div>
           )}
         </div>
+      )}
 
-        {/* Metadata Form */}
+      {/* Step 2: Explain Video */}
+      {currentStep === 'explanation' && (
         <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title *
-            </label>
-            <input
-              type="text"
-              value={metadata.title}
-              onChange={e => setMetadata({ ...metadata, title: e.target.value })}
-              placeholder="Enter video title"
-              required
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Step 2: Explain Your Video
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Describe what this video is about so Grok can generate a compelling title and description.
+          </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description
-            </label>
-            <textarea
-              value={metadata.description}
-              onChange={e => setMetadata({ ...metadata, description: e.target.value })}
-              placeholder="Enter video description"
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
+          <textarea
+            value={userExplanation}
+            onChange={(e) => setUserExplanation(e.target.value)}
+            placeholder="Example: This video shows how to optimize React performance using memoization techniques. I demonstrate practical examples with before/after comparisons."
+            rows={6}
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+          />
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hashtags
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={hashtagInput}
-                onChange={e => setHashtagInput(e.target.value)}
-                onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addHashtag())}
-                placeholder="#hashtag"
-                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-              />
-              <button
-                onClick={addHashtag}
-                className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-              >
-                Add
-              </button>
-            </div>
+          <button
+            onClick={handleGenerateMetadata}
+            disabled={isGeneratingMetadata || !userExplanation.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold w-full"
+          >
+            {isGeneratingMetadata ? 'Generating with Grok AI...' : 'Generate Title & Description'}
+          </button>
+        </div>
+      )}
+
+      {/* Step 3: Review Metadata */}
+      {currentStep === 'metadata-review' && generatedMetadata && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Step 3: Review Generated Metadata
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Grok AI has generated a title and description for your video. Accept it or generate a new one.
+          </p>
+
+          <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
+              Title:
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">{generatedMetadata.title}</p>
+
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mt-4 mb-2">
+              Description:
+            </h3>
+            <p className="text-gray-700 dark:text-gray-300">{generatedMetadata.description}</p>
+
+            <h3 className="font-semibold text-lg text-gray-900 dark:text-white mt-4 mb-2">
+              Suggested Hashtags:
+            </h3>
             <div className="flex flex-wrap gap-2">
-              {metadata.hashtags.map(tag => (
+              {generatedMetadata.suggestedHashtags.map((tag, idx) => (
                 <span
-                  key={tag}
-                  className="px-3 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full text-sm flex items-center gap-1"
+                  key={idx}
+                  className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
                 >
-                  {tag}
-                  <button
-                    onClick={() => removeHashtag(tag)}
-                    className="hover:text-red-600"
-                  >
-                    ×
-                  </button>
+                  #{tag}
                 </span>
               ))}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Call to Action (CTA)
-            </label>
-            <input
-              type="text"
-              value={metadata.cta}
-              onChange={e => setMetadata({ ...metadata, cta: e.target.value })}
-              placeholder="e.g., Watch more at..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Alt Text (Accessibility)
-            </label>
-            <input
-              type="text"
-              value={metadata.alt_text}
-              onChange={e => setMetadata({ ...metadata, alt_text: e.target.value })}
-              placeholder="Describe the video content"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            />
-          </div>
-        </div>
-
-        {/* Geo-Restrictions */}
-        <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <GlobeAltIcon className="h-6 w-6 text-gray-600 dark:text-gray-400" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                Geographic Restrictions
-              </h3>
-            </div>
-            <label className="flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={geoEnabled}
-                onChange={e => setGeoEnabled(e.target.checked)}
-                className="mr-2"
-              />
-              <span className="text-sm text-gray-700 dark:text-gray-300">Enable</span>
-            </label>
-          </div>
-
-          {geoEnabled && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Type
-                </label>
-                <select
-                  value={geoRestrictions.type}
-                  onChange={e => setGeoRestrictions({ ...geoRestrictions, type: e.target.value as 'whitelist' | 'blacklist' })}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="whitelist">Whitelist (Only allow these countries)</option>
-                  <option value="blacklist">Blacklist (Block these countries)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Countries (ISO codes: US, MX, ES, etc.)
-                </label>
-                <div className="flex gap-2 mb-2">
-                  <input
-                    type="text"
-                    value={countryInput}
-                    onChange={e => setCountryInput(e.target.value)}
-                    onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), addCountry())}
-                    placeholder="US"
-                    maxLength={2}
-                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  <button
-                    onClick={addCountry}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-                  >
-                    Add
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {geoRestrictions.countries.map(country => (
-                    <span
-                      key={country}
-                      className="px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full text-sm flex items-center gap-1"
-                    >
-                      {country}
-                      <button
-                        onClick={() => removeCountry(country)}
-                        className="hover:text-red-600"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Block Message
-                </label>
-                <input
-                  type="text"
-                  value={geoRestrictions.message}
-                  onChange={e => setGeoRestrictions({ ...geoRestrictions, message: e.target.value })}
-                  placeholder="Message shown to blocked users"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-6 flex gap-3">
-          <button
-            onClick={handleUpload}
-            disabled={!file || uploading || !metadata.title}
-            className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
-          >
-            {uploading ? 'Uploading...' : processing ? 'Processing...' : 'Upload & Process'}
-          </button>
-
-          {uploadedVideo && (
+          <div className="flex gap-4">
             <button
-              onClick={handlePublish}
-              className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold"
+              onClick={handleRegenerateMetadata}
+              disabled={isGeneratingMetadata}
+              className="flex-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold"
             >
-              Publish Now
+              {isGeneratingMetadata ? 'Regenerating...' : 'Generate Another'}
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Upload Result */}
-      {uploadedVideo && (
-        <div className="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4">
-          <h3 className="font-semibold text-green-900 dark:text-green-100 mb-2">
-            ✅ Video Processed Successfully
-          </h3>
-          <div className="text-sm text-green-800 dark:text-green-200 space-y-1">
-            <p>• Compression: {uploadedVideo.compressionRatio?.toFixed(1)}% reduction</p>
-            <p>• Duration: {uploadedVideo.metadata?.duration?.toFixed(1)}s</p>
-            <p>• Size: {(uploadedVideo.metadata?.size / (1024 * 1024)).toFixed(2)} MB</p>
+            <button
+              onClick={handleAcceptMetadata}
+              className="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold"
+            >
+              Accept & Continue
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Step 4: User Goal */}
+      {currentStep === 'goal' && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Step 4: What's Your Goal?
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Describe what you want to achieve with this post. Grok will create optimized content in English and Spanish.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Your Goal
+              </label>
+              <textarea
+                value={userGoal}
+                onChange={(e) => setUserGoal(e.target.value)}
+                placeholder="Example: Increase product sales, attract followers from Asia, promote upcoming event, etc."
+                rows={4}
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Target Audience (Optional)
+              </label>
+              <input
+                type="text"
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+                placeholder="Example: Tech enthusiasts in Asia, Spanish-speaking entrepreneurs, etc."
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleGeneratePosts}
+            disabled={isGeneratingPosts || !userGoal.trim()}
+            className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold w-full"
+          >
+            {isGeneratingPosts ? 'Generating Posts with Grok AI...' : 'Generate Post Variants'}
+          </button>
+        </div>
+      )}
+
+      {/* Step 5: Select Post Variant */}
+      {currentStep === 'post-selection' && postVariants && (
+        <div className="space-y-4">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+            Step 5: Choose Your Post
+          </h2>
+          <p className="text-red-600 dark:text-red-400 font-semibold">
+            ⚠️ IMPORTANT: You can only publish in ONE language to avoid spam detection
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* English Variant */}
+            <div
+              onClick={() => setSelectedLanguage('en')}
+              className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
+                selectedLanguage === 'en'
+                  ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  English Version
+                </h3>
+                {selectedLanguage === 'en' && (
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                    Selected
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Content:
+                  </p>
+                  <p className="text-gray-800 dark:text-gray-200 mt-1">
+                    {postVariants.english.content}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Hashtags:
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {postVariants.english.hashtags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {postVariants.english.cta && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      CTA:
+                    </p>
+                    <p className="text-gray-800 dark:text-gray-200 mt-1">
+                      {postVariants.english.cta}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Spanish Variant */}
+            <div
+              onClick={() => setSelectedLanguage('es')}
+              className={`p-6 rounded-lg border-2 cursor-pointer transition-all ${
+                selectedLanguage === 'es'
+                  ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                  Spanish Version
+                </h3>
+                {selectedLanguage === 'es' && (
+                  <span className="bg-blue-600 text-white px-3 py-1 rounded-full text-sm">
+                    Seleccionado
+                  </span>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Contenido:
+                  </p>
+                  <p className="text-gray-800 dark:text-gray-200 mt-1">
+                    {postVariants.spanish.content}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                    Hashtags:
+                  </p>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {postVariants.spanish.hashtags.map((tag, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-sm"
+                      >
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {postVariants.spanish.cta && (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      CTA:
+                    </p>
+                    <p className="text-gray-800 dark:text-gray-200 mt-1">
+                      {postVariants.spanish.cta}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleRegeneratePosts}
+              disabled={isGeneratingPosts}
+              className="flex-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold"
+            >
+              {isGeneratingPosts ? 'Regenerating...' : 'Generate Different Posts'}
+            </button>
+            <button
+              onClick={() => handlePublish(false)}
+              disabled={!selectedLanguage || isPublishing}
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold"
+            >
+              {isPublishing ? 'Publishing...' : 'Publish Now'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 6: Success */}
+      {currentStep === 'publish' && publishSuccess && (
+        <div className="text-center space-y-4">
+          <div className="text-6xl">🎉</div>
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Video Published Successfully!
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400">
+            Your video has been published in {selectedLanguage === 'en' ? 'English' : 'Spanish'}.
+          </p>
+
+          <button
+            onClick={handleReset}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-semibold"
+          >
+            Upload Another Video
+          </button>
         </div>
       )}
     </div>
