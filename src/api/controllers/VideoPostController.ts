@@ -6,6 +6,7 @@ import database from '../../database/connection';
 import { videoProcessingService } from '../../services/VideoProcessingService';
 import { geoBlockingService } from '../../services/GeoBlockingService';
 import { twitterVideoAdapter } from '../../platforms/twitter/TwitterVideoAdapter';
+import aiContentGenerationService from '../../services/AIContentGenerationService';
 import { decryptCredentials } from '../../utils/encryption';
 import multer from 'multer';
 import path from 'path';
@@ -413,6 +414,168 @@ export class VideoPostController {
       return res.status(500).json({
         success: false,
         error: error.message || 'Failed to get geo suggestions',
+      });
+    }
+  }
+
+  /**
+   * POST /api/video/generate-metadata
+   * Generate video title and description using Grok AI
+   */
+  async generateMetadata(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { userExplanation, videoFileName } = req.body;
+
+      if (!userExplanation) {
+        return res.status(400).json({
+          success: false,
+          error: 'User explanation is required',
+        });
+      }
+
+      logger.info('Generating video metadata with Grok', {
+        userId: req.user!.id,
+        videoFileName,
+      });
+
+      const metadata = await aiContentGenerationService.generateVideoMetadata(
+        userExplanation,
+        videoFileName || 'video.mp4'
+      );
+
+      return res.json({
+        success: true,
+        metadata,
+      });
+    } catch (error: any) {
+      logger.error('Generate metadata error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to generate metadata',
+      });
+    }
+  }
+
+  /**
+   * POST /api/video/generate-posts
+   * Generate post variants in English and Spanish using Grok AI
+   */
+  async generatePosts(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { videoTitle, videoDescription, userGoal, targetAudience } = req.body;
+
+      if (!videoTitle || !videoDescription || !userGoal) {
+        return res.status(400).json({
+          success: false,
+          error: 'Video title, description, and user goal are required',
+        });
+      }
+
+      logger.info('Generating post variants with Grok', {
+        userId: req.user!.id,
+        videoTitle,
+        userGoal,
+      });
+
+      const variants = await aiContentGenerationService.generatePostVariants(
+        videoTitle,
+        videoDescription,
+        userGoal,
+        targetAudience
+      );
+
+      return res.json({
+        success: true,
+        variants,
+      });
+    } catch (error: any) {
+      logger.error('Generate posts error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to generate post variants',
+      });
+    }
+  }
+
+  /**
+   * POST /api/video/regenerate-posts
+   * Regenerate post variants with different approach
+   */
+  async regeneratePosts(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { videoTitle, videoDescription, userGoal, previousAttempts } = req.body;
+
+      if (!videoTitle || !videoDescription || !userGoal) {
+        return res.status(400).json({
+          success: false,
+          error: 'Video title, description, and user goal are required',
+        });
+      }
+
+      logger.info('Regenerating post variants with Grok', {
+        userId: req.user!.id,
+        videoTitle,
+        attemptsCount: previousAttempts?.length || 0,
+      });
+
+      const variants = await aiContentGenerationService.regeneratePostVariants(
+        videoTitle,
+        videoDescription,
+        userGoal,
+        previousAttempts || []
+      );
+
+      return res.json({
+        success: true,
+        variants,
+      });
+    } catch (error: any) {
+      logger.error('Regenerate posts error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to regenerate post variants',
+      });
+    }
+  }
+
+  /**
+   * POST /api/video/generate-bulk-posts
+   * Generate post variants for multiple videos
+   */
+  async generateBulkPosts(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { videos } = req.body;
+
+      if (!videos || !Array.isArray(videos) || videos.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Videos array is required',
+        });
+      }
+
+      if (videos.length > 6) {
+        return res.status(400).json({
+          success: false,
+          error: 'Maximum 6 videos allowed for bulk generation',
+        });
+      }
+
+      logger.info('Generating bulk post variants with Grok', {
+        userId: req.user!.id,
+        videosCount: videos.length,
+      });
+
+      const allVariants = await aiContentGenerationService.generateBulkPostVariants(videos);
+
+      return res.json({
+        success: true,
+        variants: allVariants,
+      });
+    } catch (error: any) {
+      logger.error('Generate bulk posts error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to generate bulk post variants',
       });
     }
   }
