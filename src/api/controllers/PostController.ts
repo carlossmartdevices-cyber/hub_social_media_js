@@ -57,6 +57,66 @@ export class PostController {
     }
   }
 
+  /**
+   * Publish post immediately without scheduling
+   * POST /api/posts/publish-now
+   *
+   * Request body:
+   * {
+   *   "platforms": ["twitter", "telegram"],
+   *   "content": { "text": "...", "media": [...], "hashtags": [...], "links": [...] }
+   * }
+   */
+  async publishNow(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { platforms, content } = req.body;
+      const userId = req.user!.id;
+
+      // Validate platforms
+      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+        return res.status(400).json({ error: 'At least one platform is required' });
+      }
+
+      for (const platform of platforms) {
+        if (!ValidationService.isValidPlatform(platform)) {
+          return res.status(400).json({ error: `Invalid platform: ${platform}` });
+        }
+      }
+
+      // Validate content
+      const contentValidation = ValidationService.validatePostContent(content);
+      if (!contentValidation.valid) {
+        return res.status(400).json({ errors: contentValidation.errors });
+      }
+
+      // Create post object with immediate scheduling
+      const post: Post = {
+        id: uuidv4(),
+        userId,
+        platforms: platforms as Platform[],
+        content,
+        scheduledAt: new Date(), // Set to now for immediate publishing
+        status: PostStatus.SCHEDULED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Schedule post for immediate execution
+      const postId = await hubManager.schedulePost(post, userId);
+
+      logger.info(`Post published immediately: ${postId}`);
+
+      return res.status(201).json({
+        message: 'Post is being published now',
+        postId,
+        status: 'publishing',
+      });
+    } catch (error) {
+      logger.error('Publish now error:', error);
+      return res.status(500).json({ error: 'Failed to publish post' });
+    }
+  }
+
   async getPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
