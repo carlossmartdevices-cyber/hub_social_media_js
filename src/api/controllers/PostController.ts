@@ -57,6 +57,66 @@ export class PostController {
     }
   }
 
+  /**
+   * Publish post immediately without scheduling
+   * POST /api/posts/publish-now
+   *
+   * Request body:
+   * {
+   *   "platforms": ["twitter", "telegram"],
+   *   "content": { "text": "...", "media": [...], "hashtags": [...], "links": [...] }
+   * }
+   */
+  async publishNow(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { platforms, content } = req.body;
+      const userId = req.user!.id;
+
+      // Validate platforms
+      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+        return res.status(400).json({ error: 'At least one platform is required' });
+      }
+
+      for (const platform of platforms) {
+        if (!ValidationService.isValidPlatform(platform)) {
+          return res.status(400).json({ error: `Invalid platform: ${platform}` });
+        }
+      }
+
+      // Validate content
+      const contentValidation = ValidationService.validatePostContent(content);
+      if (!contentValidation.valid) {
+        return res.status(400).json({ errors: contentValidation.errors });
+      }
+
+      // Create post object with immediate scheduling
+      const post: Post = {
+        id: uuidv4(),
+        userId,
+        platforms: platforms as Platform[],
+        content,
+        scheduledAt: new Date(), // Set to now for immediate publishing
+        status: PostStatus.SCHEDULED,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Schedule post for immediate execution
+      const postId = await hubManager.schedulePost(post, userId);
+
+      logger.info(`Post published immediately: ${postId}`);
+
+      return res.status(201).json({
+        message: 'Post is being published now',
+        postId,
+        status: 'publishing',
+      });
+    } catch (error) {
+      logger.error('Publish now error:', error);
+      return res.status(500).json({ error: 'Failed to publish post' });
+    }
+  }
+
   async getPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
@@ -154,6 +214,71 @@ export class PostController {
     }
   }
 
+  /**
+   * Reschedule a post to a new date/time
+   * PATCH /api/posts/:id/reschedule
+   *
+   * Request body:
+   * {
+   *   "scheduledAt": "2024-01-15T10:00:00Z"
+   * }
+   */
+  async reschedulePost(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const { id } = req.params;
+      const { scheduledAt } = req.body;
+      const userId = req.user!.id;
+
+      if (!scheduledAt) {
+        return res.status(400).json({ error: 'scheduledAt is required' });
+      }
+
+      // Verify ownership and get current post
+      const postResult = await database.query(
+        'SELECT * FROM posts WHERE id = $1 AND user_id = $2',
+        [id, userId]
+      );
+
+      if (postResult.rows.length === 0) {
+        return res.status(404).json({ error: 'Post not found' });
+      }
+
+      const post = postResult.rows[0];
+
+      // Only allow rescheduling of scheduled or draft posts
+      if (!['scheduled', 'draft'].includes(post.status)) {
+        return res.status(400).json({
+          error: `Cannot reschedule ${post.status} posts. Only scheduled or draft posts can be rescheduled.`,
+        });
+      }
+
+      const newScheduledAt = new Date(scheduledAt);
+
+      // Validate date is in the future
+      if (newScheduledAt <= new Date()) {
+        return res.status(400).json({
+          error: 'Scheduled time must be in the future',
+        });
+      }
+
+      // Update the scheduled time
+      await database.query(
+        'UPDATE posts SET scheduled_at = $1, updated_at = NOW() WHERE id = $2',
+        [newScheduledAt, id]
+      );
+
+      logger.info(`Post ${id} rescheduled to ${newScheduledAt.toISOString()}`);
+
+      return res.json({
+        message: 'Post rescheduled successfully',
+        scheduledAt: newScheduledAt,
+      });
+    } catch (error) {
+      logger.error('Reschedule post error:', error);
+      return res.status(500).json({ error: 'Failed to reschedule post' });
+    }
+  }
+
   async getMetrics(req: AuthRequest, res: Response): Promise<Response> {
     try {
       const { id } = req.params;
@@ -183,6 +308,121 @@ export class PostController {
     } catch (error) {
       logger.error('Get metrics error:', error);
       return res.status(500).json({ error: 'Failed to get metrics' });
+    }
+  }
+
+  /**
+   * Get aggregated analytics metrics
+   * GET /api/posts/analytics/metrics?range=30days
+   */
+  async getAnalyticsMetrics(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const userId = req.user!.id;
+      const range = req.query.range || '30days';
+
+      // Calculate date range
+      const days = range === '7days' ? 7 : range === '30days' ? 30 : 90;
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - days);
+
+      // Engagement by Platform
+      const engagementByPlatform = await database.query(
+        `SELECT
+          pp.platform,
+          SUM(COALESCE(pm.likes, 0)) as total_likes,
+          SUM(COALESCE(pm.shares, 0)) as total_shares,
+          SUM(COALESCE(pm.comments, 0)) as total_comments,
+          AVG(COALESCE(pm.engagement, 0)) as avg_engagement
+        FROM posts p
+        LEFT JOIN platform_posts pp ON p.id = pp.post_id
+        LEFT JOIN platform_metrics pm ON pp.id = pm.platform_post_id
+        WHERE p.user_id = $1
+          AND p.published_at >= $2
+          AND p.status = 'published'
+        GROUP BY pp.platform
+        ORDER BY avg_engagement DESC`,
+        [userId, startDate]
+      );
+
+      // Engagement Over Time
+      const engagementOverTime = await database.query(
+        `SELECT
+          DATE(p.published_at) as date,
+          AVG(COALESCE(pm.engagement, 0)) as engagement
+        FROM posts p
+        LEFT JOIN platform_posts pp ON p.id = pp.post_id
+        LEFT JOIN platform_metrics pm ON pp.id = pm.platform_post_id
+        WHERE p.user_id = $1
+          AND p.published_at >= $2
+          AND p.status = 'published'
+        GROUP BY DATE(p.published_at)
+        ORDER BY date ASC`,
+        [userId, startDate]
+      );
+
+      // Posts by Status
+      const postsByStatus = await database.query(
+        `SELECT
+          status,
+          COUNT(*) as count
+        FROM posts
+        WHERE user_id = $1
+          AND created_at >= $2
+        GROUP BY status
+        ORDER BY count DESC`,
+        [userId, startDate]
+      );
+
+      // Top Performing Posts
+      const topPerformingPosts = await database.query(
+        `SELECT
+          p.id,
+          p.content->>'text' as text,
+          pp.platform,
+          COALESCE(pm.engagement, 0) as engagement,
+          COALESCE(pm.likes, 0) as likes,
+          COALESCE(pm.shares, 0) as shares,
+          COALESCE(pm.comments, 0) as comments
+        FROM posts p
+        LEFT JOIN platform_posts pp ON p.id = pp.post_id
+        LEFT JOIN platform_metrics pm ON pp.id = pm.platform_post_id
+        WHERE p.user_id = $1
+          AND p.published_at >= $2
+          AND p.status = 'published'
+        ORDER BY pm.engagement DESC NULLS LAST
+        LIMIT 10`,
+        [userId, startDate]
+      );
+
+      return res.json({
+        engagementByPlatform: engagementByPlatform.rows.map(row => ({
+          platform: row.platform,
+          totalLikes: parseInt(row.total_likes || 0),
+          totalShares: parseInt(row.total_shares || 0),
+          totalComments: parseInt(row.total_comments || 0),
+          avgEngagement: parseFloat(row.avg_engagement || 0),
+        })),
+        engagementOverTime: engagementOverTime.rows.map(row => ({
+          date: row.date,
+          engagement: parseFloat(row.engagement || 0),
+        })),
+        postsByStatus: postsByStatus.rows.map(row => ({
+          status: row.status,
+          count: parseInt(row.count),
+        })),
+        topPerformingPosts: topPerformingPosts.rows.map(row => ({
+          id: row.id,
+          text: row.text?.substring(0, 100) || '',
+          platform: row.platform,
+          engagement: parseFloat(row.engagement || 0),
+          likes: parseInt(row.likes || 0),
+          shares: parseInt(row.shares || 0),
+          comments: parseInt(row.comments || 0),
+        })),
+      });
+    } catch (error) {
+      logger.error('Get analytics metrics error:', error);
+      return res.status(500).json({ error: 'Failed to get analytics metrics' });
     }
   }
 

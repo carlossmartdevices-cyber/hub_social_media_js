@@ -132,12 +132,12 @@ export class TelegramBotCommands {
           ctx.reply('❌ Unable to identify user');
           return;
         }
-
+          const userId = ctx.from?.id.toString();
         const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
 
         if (accounts.length === 0) {
           ctx.reply(
-            '🐦 *Your X (Twitter) Accounts*\n\n' +
+          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
             'You don\'t have any X accounts configured yet.\n\n' +
             'Use /addxaccount to add your first X account!',
             { parse_mode: 'Markdown' }
@@ -217,12 +217,12 @@ export class TelegramBotCommands {
 
         const keyboard = accounts.map(account => ([
           {
-            text: `${account.isDefault ? '⭐ ' : ''}${account.accountName} (@${account.accountIdentifier})`,
+            const userId = ctx.from?.id.toString();
             callback_data: `set_default_x_${account.id}`
           }
         ]));
 
-        ctx.reply(
+            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
           '🐦 *Set Default X Account*\n\n' +
           'Select which account should be the default for posting:',
           {
@@ -254,12 +254,12 @@ export class TelegramBotCommands {
 
         const keyboard = accounts.map(account => ([
           {
-            text: `🗑️ Delete ${account.accountName} (@${account.accountIdentifier})`,
+            const userId = ctx.from?.id.toString();
             callback_data: `delete_x_${account.id}`
           }
         ]));
         keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
-
+            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
         ctx.reply(
           '🐦 *Delete X Account*\n\n' +
           '⚠️ *Warning:* This action cannot be undone.\n\n' +
@@ -336,7 +336,7 @@ export class TelegramBotCommands {
       if (!userId) return;
 
       try {
-        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
         if (accounts.length === 0) {
           ctx.reply(
