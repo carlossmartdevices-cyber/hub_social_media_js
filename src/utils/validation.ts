@@ -6,8 +6,23 @@ export class ValidationService {
   }
 
   static isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    // Use a simpler, non-backtracking regex to prevent ReDoS
+    // Limit length first to prevent excessive processing
+    if (!email || email.length > 254) return false;
+
+    // Simple validation: has exactly one @, has content before and after
+    const atIndex = email.indexOf('@');
+    if (atIndex < 1 || atIndex !== email.lastIndexOf('@')) return false;
+
+    const local = email.substring(0, atIndex);
+    const domain = email.substring(atIndex + 1);
+
+    // Basic validation without backtracking
+    if (local.length === 0 || domain.length < 3) return false;
+    if (local.includes(' ') || domain.includes(' ')) return false;
+    if (!domain.includes('.')) return false;
+
+    return true;
   }
 
   /**
@@ -33,10 +48,21 @@ export class ValidationService {
 
   /**
    * Remove all HTML tags (for plain text only content)
+   * Uses iterative approach to handle nested/malformed tags like <<script>script>
    */
   static stripHtmlTags(text: string): string {
     if (!text) return '';
-    return text.replace(/<[^>]*>/g, '').trim();
+
+    let result = text;
+    let previous = '';
+
+    // Keep removing tags until no more changes (handles nested patterns)
+    while (result !== previous) {
+      previous = result;
+      result = result.replace(/<[^>]*>/g, '');
+    }
+
+    return result.trim();
   }
 
   /**
