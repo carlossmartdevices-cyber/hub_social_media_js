@@ -1,6 +1,7 @@
 import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
+import path from 'path';
 import config from '../config';
 import logger from '../utils/logger';
 import aiContentGenerationService from './AIContentGenerationService';
@@ -55,6 +56,28 @@ export class TelegramBroadcastService {
   /**
    * Upload video to Telegram servers (supports large files)
    */
+  /**
+   * Validate file path to prevent path traversal attacks
+   */
+  private validateFilePath(filePath: string, allowedDir?: string): string {
+    const resolvedPath = path.resolve(filePath);
+
+    // If an allowed directory is specified, ensure path is within it
+    if (allowedDir) {
+      const resolvedAllowedDir = path.resolve(allowedDir);
+      if (!resolvedPath.startsWith(resolvedAllowedDir + path.sep) && resolvedPath !== resolvedAllowedDir) {
+        throw new Error('Path traversal attempt detected');
+      }
+    }
+
+    // Check for common path traversal patterns
+    if (filePath.includes('..') || filePath.includes('\0')) {
+      throw new Error('Invalid file path');
+    }
+
+    return resolvedPath;
+  }
+
   public async uploadVideoToTelegram(
     videoPath: string,
     options?: {
@@ -66,13 +89,17 @@ export class TelegramBroadcastService {
     }
   ): Promise<VideoUploadResult> {
     try {
+      // Validate paths to prevent path traversal
+      const safeVideoPath = this.validateFilePath(videoPath);
+
       // For large files, we need to use a temporary chat to upload
       // Then we can reuse the file_id for broadcasts
       const formData = new FormData();
-      formData.append('video', fs.createReadStream(videoPath));
+      formData.append('video', fs.createReadStream(safeVideoPath));
 
       if (options?.thumbnailPath) {
-        formData.append('thumbnail', fs.createReadStream(options.thumbnailPath));
+        const safeThumbnailPath = this.validateFilePath(options.thumbnailPath);
+        formData.append('thumbnail', fs.createReadStream(safeThumbnailPath));
       }
 
       if (options?.duration) {

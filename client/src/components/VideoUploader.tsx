@@ -62,13 +62,28 @@ export function VideoUploader() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper to validate blob URLs
+  const isValidBlobUrl = (url: string): boolean => {
+    return url.startsWith('blob:');
+  };
+
   // Step 1: Handle video file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+    if (!validTypes.includes(file.type)) {
+      alert('Invalid file type. Please select MP4, MOV, or AVI.');
+      return;
+    }
+
     setVideoFile(file);
-    setVideoPreview(URL.createObjectURL(file));
+    const blobUrl = URL.createObjectURL(file);
+    if (isValidBlobUrl(blobUrl)) {
+      setVideoPreview(blobUrl);
+    }
   };
 
   // Step 1: Upload video
@@ -332,7 +347,7 @@ export function VideoUploader() {
             </p>
           </div>
 
-          {videoPreview && (
+          {videoPreview && isValidBlobUrl(videoPreview) && (
             <div className="mt-4">
               <video
                 src={videoPreview}
