@@ -206,4 +206,45 @@ router.post(
   videoPostController.generateBulkPosts.bind(videoPostController)
 );
 
+/**
+ * POST /api/video/:id/publish-multi-platform
+ * Publish video to multiple platforms (Twitter + Telegram)
+ *
+ * Body:
+ * {
+ *   "platforms": ["twitter", "telegram"],
+ *   "twitterAccountId": "account-uuid",
+ *   "telegramChannelIds": ["channel-uuid-1", "channel-uuid-2"],
+ *   "caption": "Video caption with hashtags",
+ *   "videoMetadata": {
+ *     "title": "Video Title",
+ *     "description": "Description",
+ *     "hashtags": ["#tag1", "#tag2"]
+ *   },
+ *   "scheduledAt": "2024-01-15T10:00:00Z" // optional
+ * }
+ */
+router.post(
+  '/:id/publish-multi-platform',
+  [
+    body('platforms').isArray({ min: 1 }).withMessage('At least one platform is required'),
+    body('twitterAccountId').optional().isString(),
+    body('telegramChannelIds').optional().isArray(),
+    body('caption').optional().isString(),
+    body('videoMetadata').optional().isObject(),
+    body('scheduledAt').optional().isISO8601(),
+    validate,
+  ],
+  videoPostController.publishMultiPlatform.bind(videoPostController)
+);
+
+/**
+ * GET /api/video/:id/publish-status
+ * Get publishing status across all platforms
+ */
+router.get(
+  '/:id/publish-status',
+  videoPostController.getPublishStatus.bind(videoPostController)
+);
+
 export default router;
