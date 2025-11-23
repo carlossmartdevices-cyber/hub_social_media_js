@@ -75,11 +75,3 @@ scrape_configs:
       - targets: ['cadvisor:8080']
         labels:
           service: 'cadvisor'
-
-# Storage configuration
-storage:
-  tsdb:
-    path: /prometheus/data
-    retention:
-      time: 30d # Keep data for 30 days
-      size: 10GB # Maximum storage size
