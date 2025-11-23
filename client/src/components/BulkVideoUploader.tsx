@@ -42,12 +42,25 @@ export function BulkVideoUploader() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Helper to validate blob URLs
+  const isValidBlobUrl = (url: string): boolean => {
+    return url.startsWith('blob:');
+  };
+
   // Step 1: Handle multiple video file selection
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
 
     if (files.length > 6) {
       alert('Maximum 6 videos allowed for bulk upload');
+      return;
+    }
+
+    // Validate file types
+    const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+    const invalidFiles = files.filter(f => !validTypes.includes(f.type));
+    if (invalidFiles.length > 0) {
+      alert('Invalid file types detected. Please select only MP4, MOV, or AVI files.');
       return;
     }
 
@@ -340,7 +353,9 @@ export function BulkVideoUploader() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {videos.map((video, idx) => (
                   <div key={idx} className="border border-gray-300 dark:border-gray-600 rounded-lg p-2">
-                    <video src={video.preview} className="w-full h-32 object-cover rounded" />
+                    {isValidBlobUrl(video.preview) && (
+                      <video src={video.preview} className="w-full h-32 object-cover rounded" />
+                    )}
                     <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
                       {video.file.name}
                     </p>
@@ -380,7 +395,9 @@ export function BulkVideoUploader() {
           {videos.map((video, idx) => (
             <div key={idx} className="border border-gray-300 dark:border-gray-600 rounded-lg p-4">
               <div className="flex gap-4">
-                <video src={video.preview} className="w-32 h-24 object-cover rounded" />
+                {isValidBlobUrl(video.preview) && (
+                  <video src={video.preview} className="w-32 h-24 object-cover rounded" />
+                )}
                 <div className="flex-1">
                   <p className="font-semibold text-gray-900 dark:text-white mb-2">
                     Video {idx + 1}: {video.file.name}

@@ -540,6 +540,9 @@ After EVERY batch of posts, you MUST include an English lesson section for Spani
     rawContent: string,
     count: number
   ): { english: any[]; spanish: any[]; englishLesson?: any } {
+    // Limit count to prevent resource exhaustion (max 100 posts)
+    const safeCount = Math.min(Math.max(1, count), 100);
+
     const fallbackPost = {
       text: rawContent.substring(0, 280), // Twitter character limit
       hashtags: ['#PNP', '#PNPgay', '#LatinoPNP'],
@@ -547,8 +550,8 @@ After EVERY batch of posts, you MUST include an English lesson section for Spani
     };
 
     return {
-      english: Array(count).fill(fallbackPost),
-      spanish: Array(count).fill(fallbackPost),
+      english: Array(safeCount).fill(fallbackPost),
+      spanish: Array(safeCount).fill(fallbackPost),
       englishLesson: undefined,
     };
   }
