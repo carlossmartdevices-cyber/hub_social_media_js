@@ -7,6 +7,7 @@ import { videoProcessingService } from '../../services/VideoProcessingService';
 import { geoBlockingService } from '../../services/GeoBlockingService';
 import { twitterVideoAdapter } from '../../platforms/twitter/TwitterVideoAdapter';
 import aiContentGenerationService from '../../services/AIContentGenerationService';
+import { multiPlatformPublishService } from '../../services/MultiPlatformPublishService';
 import { decryptCredentials } from '../../utils/encryption';
 import multer from 'multer';
 import path from 'path';
@@ -576,6 +577,120 @@ export class VideoPostController {
       return res.status(500).json({
         success: false,
         error: error.message || 'Failed to generate bulk post variants',
+      });
+    }
+  }
+
+  /**
+   * POST /api/video/:id/publish-multi-platform
+   * Publish video to multiple platforms (Twitter + Telegram)
+   */
+  async publishMultiPlatform(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+      const {
+        platforms,
+        twitterAccountId,
+        telegramChannelIds,
+        caption,
+        videoMetadata,
+        scheduledAt,
+      } = req.body;
+
+      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'At least one platform is required',
+        });
+      }
+
+      if (platforms.includes('twitter') && !twitterAccountId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Twitter account ID is required for Twitter publishing',
+        });
+      }
+
+      if (platforms.includes('telegram') && (!telegramChannelIds || telegramChannelIds.length === 0)) {
+        return res.status(400).json({
+          success: false,
+          error: 'At least one Telegram channel is required for Telegram publishing',
+        });
+      }
+
+      // If scheduled, handle scheduling
+      if (scheduledAt) {
+        await database.query(
+          `UPDATE posts
+           SET scheduled_at = $1, status = 'scheduled', platforms = $2
+           WHERE id = $3 AND user_id = $4`,
+          [scheduledAt, platforms, id, userId]
+        );
+
+        return res.json({
+          success: true,
+          message: 'Video scheduled for multi-platform publishing',
+          scheduledAt,
+          platforms,
+        });
+      }
+
+      logger.info('Starting multi-platform publish', {
+        userId,
+        postId: id,
+        platforms,
+      });
+
+      // Publish to multiple platforms
+      const result = await multiPlatformPublishService.publishToMultiplePlatforms({
+        postId: id,
+        userId,
+        platforms,
+        twitterAccountId,
+        telegramChannelIds,
+        caption,
+        videoMetadata,
+      });
+
+      return res.json({
+        success: result.success,
+        message: result.success
+          ? `Video published to ${result.totalSuccess} platform(s) successfully`
+          : 'Failed to publish to all platforms',
+        results: result.results,
+        totalSuccess: result.totalSuccess,
+        totalFailed: result.totalFailed,
+      });
+    } catch (error: any) {
+      logger.error('Multi-platform publish error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to publish to multiple platforms',
+      });
+    }
+  }
+
+  /**
+   * GET /api/video/:id/publish-status
+   * Get publishing status across all platforms
+   */
+  async getPublishStatus(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const userId = req.user!.id;
+      const { id } = req.params;
+
+      const status = await multiPlatformPublishService.getPublishStatus(id, userId);
+
+      return res.json({
+        success: true,
+        status,
+      });
+    } catch (error: any) {
+      logger.error('Get publish status error:', error);
+      return res.status(500).json({
+        success: false,
+        error: error.message || 'Failed to get publish status',
       });
     }
   }
