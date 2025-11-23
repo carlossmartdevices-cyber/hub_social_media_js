@@ -7,6 +7,7 @@ import { PublishResult } from '../../platforms/base/PlatformAdapter';
 import { logger } from '../../utils/logger';
 import config from '../../config';
 import database from '../../database/connection';
+import { notificationService } from '../../services/NotificationService';
 
 const connection = {
   host: config.redis.host,
@@ -19,6 +20,7 @@ interface PostJobData {
   platform: Platform;
   content: PostContent;
   credentials: Record<string, string>;
+  userId: string;
 }
 
 export class PostWorker {
@@ -40,7 +42,7 @@ export class PostWorker {
   }
 
   private async processJob(job: Job<PostJobData>) {
-    const { postId, platform, content, credentials } = job.data;
+    const { postId, platform, content, credentials, userId } = job.data;
     const startTime = Date.now();
 
     try {
@@ -69,6 +71,9 @@ export class PostWorker {
       // Record result in database
       await this.recordPublishResult(postId, platform, result);
 
+      // Send notification
+      await this.sendNotification(postId, platform, userId, result);
+
       const duration = Date.now() - startTime;
       await this.recordJobMetrics(job.id || '', platform, 'success', duration);
 
@@ -76,6 +81,10 @@ export class PostWorker {
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Send failure notification
+      await this.sendFailureNotification(postId, platform, userId, errorMessage);
+
       await this.recordJobMetrics(job.id || '', platform, 'failure', duration, errorMessage);
       throw error;
     }
@@ -128,6 +137,97 @@ export class PostWorker {
       );
     } catch (error) {
       logger.error('Failed to record job metrics:', error);
+    }
+  }
+
+  /**
+   * Get user's notification configuration
+   */
+  private async getNotificationConfig(userId: string): Promise<any> {
+    try {
+      const result = await database.query(
+        `SELECT notification_config FROM users WHERE id = $1`,
+        [userId]
+      );
+
+      if (result.rows.length > 0 && result.rows[0].notification_config) {
+        return result.rows[0].notification_config;
+      }
+
+      // Return default configuration (notifications disabled)
+      return {
+        enabled: false,
+        telegramChatId: null,
+        webhookUrl: null,
+      };
+    } catch (error) {
+      logger.error('Failed to get notification config:', error);
+      return { enabled: false };
+    }
+  }
+
+  /**
+   * Send notification for successful post
+   */
+  private async sendNotification(
+    postId: string,
+    platform: Platform,
+    userId: string,
+    result: PublishResult
+  ): Promise<void> {
+    try {
+      const config = await this.getNotificationConfig(userId);
+
+      if (!config.enabled) {
+        return;
+      }
+
+      if (result.success) {
+        await notificationService.notifySuccess(postId, platform, userId, {
+          telegramChatId: config.telegramChatId,
+          webhookUrl: config.webhookUrl,
+        });
+      } else {
+        await notificationService.notifyFailure(
+          postId,
+          platform,
+          result.error || 'Unknown error',
+          userId,
+          {
+            telegramChatId: config.telegramChatId,
+            webhookUrl: config.webhookUrl,
+          }
+        );
+      }
+    } catch (error) {
+      logger.error('Failed to send notification:', error);
+      // Don't throw - notifications are non-critical
+    }
+  }
+
+  /**
+   * Send failure notification
+   */
+  private async sendFailureNotification(
+    postId: string,
+    platform: Platform,
+    userId: string,
+    error: string
+  ): Promise<void> {
+    try {
+      const config = await this.getNotificationConfig(userId);
+
+      if (!config.enabled) {
+        return;
+      }
+
+      await notificationService.notifyFailure(postId, platform, error, userId, {
+        telegramChatId: config.telegramChatId,
+        webhookUrl: config.webhookUrl,
+      });
+    } catch (err) {
+      logger.error('Failed to send failure notification:', err);
+      // Don't throw - notifications are non-critical
     }
   }
 

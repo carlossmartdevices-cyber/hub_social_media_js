@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: "social-hub",
-      script: "src/index.ts",
-      interpreter: "./node_modules/.bin/ts-node",
+      script: "dist/index.js",
       env: {
         NODE_ENV: "production"
       }

@@ -6,7 +6,7 @@ dotenv.config({ override: true });
 export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '33010', 10),
-  apiUrl: process.env.API_URL || 'https://easybots.store',
+  apiUrl: process.env.API_URL || 'https://pnptv.app',
 
   database: {
     host: process.env.DB_HOST || 'localhost',
@@ -18,7 +18,7 @@ export const config = {
 
   redis: {
     host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379', 10),
+    port: parseInt(process.env.REDIS_PORT || '6380', 10),
     password: process.env.REDIS_PASSWORD || '',
   },
 
@@ -32,11 +32,16 @@ export const config = {
 
   platforms: {
     twitter: {
+      // OAuth 1.0a (legacy)
       apiKey: process.env.TWITTER_API_KEY || '',
       apiSecret: process.env.TWITTER_API_SECRET || '',
       accessToken: process.env.TWITTER_ACCESS_TOKEN || '',
       accessSecret: process.env.TWITTER_ACCESS_SECRET || '',
       bearerToken: process.env.TWITTER_BEARER_TOKEN || '',
+      // OAuth 2.0 (new)
+      clientId: process.env.TWITTER_CLIENT_ID || '',
+      clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
+      redirectUri: process.env.TWITTER_REDIRECT_URI || 'http://localhost:33010/api/oauth/twitter/callback',
     },
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN || '',
