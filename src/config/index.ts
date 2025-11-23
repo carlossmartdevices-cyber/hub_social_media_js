@@ -5,8 +5,8 @@ dotenv.config({ override: true });
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
-  port: parseInt(process.env.PORT || '33010', 10),
-  apiUrl: process.env.API_URL || 'https://pnptv.app',
+  port: parseInt(process.env.PORT || '8080', 10),
+  apiUrl: process.env.API_URL || 'http://localhost:8080',
 
   database: {
     host: process.env.DB_HOST || 'localhost',
