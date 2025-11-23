@@ -68,7 +68,7 @@ export class OAuth2Controller {
 
       logger.info('Twitter account connected successfully', {
         userId: result.userId,
-        account: result.accountInfo,
+        account: result.accountInfo.username ? result.accountInfo.username.substring(0, 3) + '***' : 'unknown',
       });
 
       // Redirect to frontend with success
