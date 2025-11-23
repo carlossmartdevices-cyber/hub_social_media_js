@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { config } from '../config';
-import { AIGeneratedContent, AIContentRequest, Language, Platform } from '../core/content/types';
+import { AIGeneratedContent, AIContentRequest, Language, Platform, EnglishLesson } from '../core/content/types';
 import { logger } from '../utils/logger';
 
 /**
@@ -231,8 +231,78 @@ You MUST rotate cities and continents.
 * Never use the same emojis in the same positions.
 * Never keep the same hashtag set two posts in a row.
 * Never use identical sentence flow.
-* Never explain your output.
-* Never add disclaimers.`;
+* Never explain your output (except in the English Lesson section).
+* Never add disclaimers.
+
+---
+
+# 📚 **ENGLISH LESSON FOR SPANISH SPEAKERS** (MANDATORY)
+
+After EVERY batch of posts, you MUST include an English lesson section for Spanish-speaking users.
+
+**Format**:
+
+\`\`\`
+---
+📚 LECCIÓN DE INGLÉS / ENGLISH LESSON
+
+[Title in Spanish explaining what the lesson covers]
+
+✨ Explicación:
+[Detailed explanation in Spanish about English terms, slang, or phrases used in the posts]
+
+🎯 Ejemplos de los posts:
+- [Quote specific phrases from the generated posts and explain them]
+- [Show how slang terms were used contextually]
+
+🔥 Slang útil para la marca PNPtv:
+1. [Slang term] - [Spanish meaning] - "Ejemplo: [usage example]"
+2. [Slang term] - [Spanish meaning] - "Ejemplo: [usage example]"
+3. [Slang term] - [Spanish meaning] - "Ejemplo: [usage example]"
+
+💡 Por qué usamos estas palabras:
+[Explain why these terms fit the PNPtv brand voice - bold, sexy, party vibes]
+
+🌈 Diferencias culturales:
+[Explain any cultural nuances between English and Spanish in the party/LGBTQ+ context]
+\`\`\`
+
+**Rules for English Lessons**:
+
+1. **Always include** this section after the posts
+2. **Reference actual content** from the posts you generated
+3. **Explain slang** that appears in the posts (piggy, cloud, slam, morboso, etc.)
+4. **If user requested specific terms** (e.g., "use 'morboso'"), explain how you translated or adapted it
+5. **Include 3-5 slang terms** relevant to PNPtv brand (party, gay, Latino culture)
+6. **Make it educational** but keep the sexy, playful tone
+7. **Write in Spanish** so Spanish speakers can learn English
+8. **Include pronunciation tips** when helpful
+9. **Explain cultural context** of LGBTQ+/party terms
+
+**Example slang terms to teach**:
+- Piggy (cerdo/morboso)
+- Cloud/clouding (fumar/nublar)
+- Slam/slamming (inyectar)
+- Kinky (pervertido/morboso)
+- Horny (caliente/cachondo)
+- Trade (tipo atractivo)
+- Vers (versátil)
+- Twink (chico joven delgado)
+- Bear (oso)
+- Daddy (papi)
+- Party (fiesta/sesión)
+- Lit (increíble/prendido)
+
+---
+
+# 🚫 **NEVER DO THIS**
+
+* Never repeat posts or templates.
+* Never use the same emojis in the same positions.
+* Never keep the same hashtag set two posts in a row.
+* Never use identical sentence flow.
+* Never skip the English Lesson section.
+* Never add disclaimers about safety or legality.`;
 
   constructor() {
     if (config.ai.grok.enabled && config.ai.grok.apiKey) {
@@ -321,15 +391,25 @@ You MUST rotate cities and continents.
   private parseGeneratedContent(
     content: string,
     expectedCount: number
-  ): { english: any[]; spanish: any[] } {
+  ): { english: any[]; spanish: any[]; englishLesson?: any } {
     const english: any[] = [];
     const spanish: any[] = [];
+    let englishLesson: any = undefined;
 
     try {
-      // Split content into English and Spanish sections
+      // Split content into sections
       const sections = content.split(/🇪🇸\s+Español/i);
       const englishSection = sections[0];
-      const spanishSection = sections[1] || '';
+      const spanishAndLessonSection = sections[1] || '';
+
+      // Extract English lesson from the end
+      const lessonMatch = content.match(/📚\s+LECCIÓN DE INGLÉS[\s\S]*$/i);
+      if (lessonMatch) {
+        englishLesson = this.extractEnglishLesson(lessonMatch[0]);
+      }
+
+      // Remove lesson section from Spanish section
+      const spanishSection = spanishAndLessonSection.split(/📚\s+LECCIÓN DE INGLÉS/i)[0];
 
       // Extract English posts
       const englishMatches = englishSection.match(/\d+\)([\s\S]*?)(?=\d+\)|$)/g) || [];
@@ -354,12 +434,66 @@ You MUST rotate cities and continents.
       logger.info('Successfully parsed AI content', {
         englishPosts: english.length,
         spanishPosts: spanish.length,
+        hasLesson: !!englishLesson,
       });
 
-      return { english, spanish };
+      return { english, spanish, englishLesson };
     } catch (error: any) {
       logger.error('Error parsing AI content', { error: error.message });
       return this.createFallbackPosts(content, expectedCount);
+    }
+  }
+
+  /**
+   * Extract English lesson from content
+   */
+  private extractEnglishLesson(lessonText: string): any | null {
+    try {
+      // Extract title (first line after header)
+      const titleMatch = lessonText.match(/📚\s+LECCIÓN DE INGLÉS[^\n]*\n\n([^\n]+)/i);
+      const title = titleMatch ? titleMatch[1].trim() : 'English Slang & Terms for PNPtv';
+
+      // Extract explanation
+      const explanationMatch = lessonText.match(/✨\s+Explicación:\s*([\s\S]*?)(?=🎯|$)/i);
+      const explanation = explanationMatch ? explanationMatch[1].trim() : '';
+
+      // Extract examples
+      const examplesMatch = lessonText.match(/🎯\s+Ejemplos de los posts:\s*([\s\S]*?)(?=🔥|$)/i);
+      const examplesText = examplesMatch ? examplesMatch[1].trim() : '';
+      const examples = examplesText
+        .split('\n')
+        .filter(line => line.trim().startsWith('-'))
+        .map(line => line.replace(/^-\s*/, '').trim());
+
+      // Extract slang terms
+      const slangMatch = lessonText.match(/🔥\s+Slang útil.*?:\s*([\s\S]*?)(?=💡|$)/i);
+      const slangText = slangMatch ? slangMatch[1].trim() : '';
+      const slangTerms = slangText
+        .split('\n')
+        .filter(line => line.trim().match(/^\d+\./))
+        .map(line => {
+          const parts = line.replace(/^\d+\.\s*/, '').split(' - ');
+          return {
+            term: parts[0]?.trim() || '',
+            meaning: parts[1]?.trim() || '',
+            usage: parts[2]?.replace(/^"/, '').replace(/"$/, '').trim() || '',
+          };
+        })
+        .filter(term => term.term);
+
+      if (!title && !explanation && examples.length === 0 && slangTerms.length === 0) {
+        return null;
+      }
+
+      return {
+        title,
+        explanation,
+        examples,
+        slangTerms,
+      };
+    } catch (error: any) {
+      logger.error('Error extracting English lesson', { error: error.message });
+      return null;
     }
   }
 
@@ -405,7 +539,7 @@ You MUST rotate cities and continents.
   private createFallbackPosts(
     rawContent: string,
     count: number
-  ): { english: any[]; spanish: any[] } {
+  ): { english: any[]; spanish: any[]; englishLesson?: any } {
     const fallbackPost = {
       text: rawContent.substring(0, 280), // Twitter character limit
       hashtags: ['#PNP', '#PNPgay', '#LatinoPNP'],
@@ -415,6 +549,7 @@ You MUST rotate cities and continents.
     return {
       english: Array(count).fill(fallbackPost),
       spanish: Array(count).fill(fallbackPost),
+      englishLesson: undefined,
     };
   }
 
