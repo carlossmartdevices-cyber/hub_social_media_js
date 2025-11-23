@@ -127,23 +127,21 @@ export class TelegramBotCommands {
     // X Accounts Management - List all X accounts
     this.bot.command('xaccounts', async (ctx) => {
       try {
-        const userId = ctx.from?.id.toString();
-        if (!userId) {
-          ctx.reply('❌ Unable to identify user');
-          return;
-        }
-          const userId = ctx.from?.id.toString();
-        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
-
-        if (accounts.length === 0) {
-          ctx.reply(
+          const userId = ctx.from?.id;
+          if (!userId) {
+            ctx.reply('❌ Unable to identify user');
+            return;
+          }
           const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
-            'You don\'t have any X accounts configured yet.\n\n' +
-            'Use /addxaccount to add your first X account!',
-            { parse_mode: 'Markdown' }
-          );
-          return;
-        }
+
+          if (accounts.length === 0) {
+            ctx.reply(
+              'You don\'t have any X accounts configured yet.\n\n' +
+              'Use /addxaccount to add your first X account!',
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          }
 
         let message = '🐦 *Your X (Twitter) Accounts*\n\n';
         const keyboard: any[][] = [];
@@ -197,39 +195,35 @@ export class TelegramBotCommands {
     // Set default X account
     this.bot.command('setdefaultx', async (ctx) => {
       try {
-        const userId = ctx.from?.id.toString();
-        if (!userId) {
-          ctx.reply('❌ Unable to identify user');
-          return;
-        }
-
-        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
-
-        if (accounts.length === 0) {
-          ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
-          return;
-        }
-
-        if (accounts.length === 1) {
-          ctx.reply('ℹ️ You only have one X account, and it\'s already the default.');
-          return;
-        }
-
-        const keyboard = accounts.map(account => ([
-          {
-            const userId = ctx.from?.id.toString();
-            callback_data: `set_default_x_${account.id}`
+          const userId = ctx.from?.id;
+          if (!userId) {
+            ctx.reply('❌ Unable to identify user');
+            return;
           }
-        ]));
+          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
-            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
-          '🐦 *Set Default X Account*\n\n' +
-          'Select which account should be the default for posting:',
-          {
-            parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboard }
+          if (accounts.length === 0) {
+            ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
+            return;
           }
-        );
+
+          if (accounts.length === 1) {
+            ctx.reply('ℹ️ You only have one X account, and it\'s already the default.');
+            return;
+          }
+
+          const keyboard = accounts.map(account => ([
+            { text: account.accountName, callback_data: `set_default_x_${account.id}` }
+          ]));
+
+          ctx.reply(
+            '🐦 *Set Default X Account*\n\n' +
+            'Select which account should be the default for posting:',
+            {
+              parse_mode: 'Markdown',
+              reply_markup: { inline_keyboard: keyboard }
+            }
+          );
       } catch (error: any) {
         logger.error('Error in setdefaultx command:', error);
         ctx.reply('❌ Error. Please try again later.');
@@ -239,36 +233,31 @@ export class TelegramBotCommands {
     // Delete X account
     this.bot.command('deletexaccount', async (ctx) => {
       try {
-        const userId = ctx.from?.id.toString();
-        if (!userId) {
-          ctx.reply('❌ Unable to identify user');
-          return;
-        }
-
-        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
-
-        if (accounts.length === 0) {
-          ctx.reply('❌ You don\'t have any X accounts to delete.');
-          return;
-        }
-
-        const keyboard = accounts.map(account => ([
-          {
-            const userId = ctx.from?.id.toString();
-            callback_data: `delete_x_${account.id}`
+          const userId = ctx.from?.id;
+          if (!userId) {
+            ctx.reply('❌ Unable to identify user');
+            return;
           }
-        ]));
-        keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
-            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
-        ctx.reply(
-          '🐦 *Delete X Account*\n\n' +
-          '⚠️ *Warning:* This action cannot be undone.\n\n' +
-          'Select the account you want to delete:',
-          {
-            parse_mode: 'Markdown',
-            reply_markup: { inline_keyboard: keyboard }
+          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+
+          if (accounts.length === 0) {
+            ctx.reply('❌ You don\'t have any X accounts to delete.');
+            return;
           }
-        );
+
+          const keyboard = accounts.map(account => ([
+            { text: account.accountName, callback_data: `delete_x_${account.id}` }
+          ]));
+          keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
+          ctx.reply(
+            '🐦 *Delete X Account*\n\n' +
+            '⚠️ *Warning:* This action cannot be undone.\n\n' +
+            'Select the account you want to delete:',
+            {
+              parse_mode: 'Markdown',
+              reply_markup: { inline_keyboard: keyboard }
+            }
+          );
       } catch (error: any) {
         logger.error('Error in deletexaccount command:', error);
         ctx.reply('❌ Error. Please try again later.');
@@ -332,47 +321,47 @@ export class TelegramBotCommands {
     this.bot.action('x_accounts', async (ctx) => {
       ctx.answerCbQuery();
       // Trigger the /xaccounts command logic
-      const userId = ctx.from?.id.toString();
-      if (!userId) return;
+        const userId = ctx.from?.id;
+        if (!userId) return;
 
-      try {
-        const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+        try {
+          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
-        if (accounts.length === 0) {
-          ctx.reply(
-            '🐦 *Your X (Twitter) Accounts*\n\n' +
-            'You don\'t have any X accounts configured yet.\n\n' +
-            'Use /addxaccount to add your first X account!',
-            { parse_mode: 'Markdown' }
-          );
-          return;
+          if (accounts.length === 0) {
+            ctx.reply(
+              '🐦 *Your X (Twitter) Accounts*\n\n' +
+              'You don\'t have any X accounts configured yet.\n\n' +
+              'Use /addxaccount to add your first X account!',
+              { parse_mode: 'Markdown' }
+            );
+            return;
+          }
+
+          let message = '🐦 *Your X (Twitter) Accounts*\n\n';
+          const keyboard: any[][] = [];
+
+          accounts.forEach((account, index) => {
+            const defaultBadge = account.isDefault ? ' ⭐' : '';
+            const activeBadge = account.isActive ? '✅' : '❌';
+            message += `${index + 1}. ${activeBadge} *${account.accountName}*${defaultBadge}\n`;
+            message += `   @${account.accountIdentifier}\n\n`;
+
+            keyboard.push([
+              { text: `📝 Edit ${account.accountName}`, callback_data: `edit_x_${account.id}` },
+              { text: account.isDefault ? '⭐ Default' : '⭐ Set Default', callback_data: `default_x_${account.id}` }
+            ]);
+          });
+
+          keyboard.push([{ text: '➕ Add New X Account', callback_data: 'add_x_account' }]);
+
+          ctx.reply(message, {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboard }
+          });
+        } catch (error) {
+          logger.error('Error in x_accounts callback:', error);
+          ctx.reply('❌ Error fetching accounts');
         }
-
-        let message = '🐦 *Your X (Twitter) Accounts*\n\n';
-        const keyboard: any[][] = [];
-
-        accounts.forEach((account, index) => {
-          const defaultBadge = account.isDefault ? ' ⭐' : '';
-          const activeBadge = account.isActive ? '✅' : '❌';
-          message += `${index + 1}. ${activeBadge} *${account.accountName}*${defaultBadge}\n`;
-          message += `   @${account.accountIdentifier}\n\n`;
-
-          keyboard.push([
-            { text: `📝 Edit ${account.accountName}`, callback_data: `edit_x_${account.id}` },
-            { text: account.isDefault ? '⭐ Default' : '⭐ Set Default', callback_data: `default_x_${account.id}` }
-          ]);
-        });
-
-        keyboard.push([{ text: '➕ Add New X Account', callback_data: 'add_x_account' }]);
-
-        ctx.reply(message, {
-          parse_mode: 'Markdown',
-          reply_markup: { inline_keyboard: keyboard }
-        });
-      } catch (error) {
-        logger.error('Error in x_accounts callback:', error);
-        ctx.reply('❌ Error fetching accounts');
-      }
     });
 
     // Add X account callback
@@ -488,7 +477,7 @@ export class TelegramBotCommands {
       if (userId && this.userStates.has(userId)) {
         const state = this.userStates.get(userId);
 
-        try {
+        const userId = ctx.from?.id;
           switch (state.step) {
             case 'account_name':
               state.accountName = text;
@@ -512,10 +501,10 @@ export class TelegramBotCommands {
               break;
 
             case 'api_key':
-              state.apiKey = text;
-              state.step = 'api_secret';
-              this.userStates.set(userId, state);
-              ctx.reply(
+                  const accounts = await platformAccountService.getUserPlatformAccounts(
+                    userId.toString(),
+                    'twitter'
+                  );
                 '🔑 Step 4/6: Enter your X API Secret\n\n' +
                 'Type your answer or /cancel to abort.'
               );
