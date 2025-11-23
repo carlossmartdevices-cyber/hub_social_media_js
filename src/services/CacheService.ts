@@ -79,7 +79,7 @@ export class CacheService {
   /**
    * Set value in cache with TTL (seconds)
    */
-  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
+  async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
     if (!this.isConnected) {
       logger.warn('Redis not connected, skipping cache set');
       return;

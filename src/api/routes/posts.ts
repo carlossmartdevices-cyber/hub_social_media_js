@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { body, query } from 'express-validator';
+import { body } from 'express-validator';
 import PostController from '../controllers/PostController';
 import { authMiddleware } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
@@ -18,13 +18,39 @@ router.post(
   PostController.createPost
 );
 
+// Publish Now - Immediate publishing without scheduling
+router.post(
+  '/publish-now',
+  authMiddleware,
+  [
+    body('platforms').isArray({ min: 1 }).withMessage('At least one platform is required'),
+    body('content').isObject().withMessage('Content is required'),
+    body('content.text').notEmpty().withMessage('Content text is required'),
+    validate,
+  ],
+  PostController.publishNow
+);
+
 router.get('/', authMiddleware, PostController.listPosts);
 
 router.get('/:id', authMiddleware, PostController.getPost);
 
 router.delete('/:id/cancel', authMiddleware, PostController.cancelPost);
 
+router.patch(
+  '/:id/reschedule',
+  authMiddleware,
+  [
+    body('scheduledAt').notEmpty().withMessage('scheduledAt is required'),
+    validate,
+  ],
+  PostController.reschedulePost
+);
+
 router.get('/:id/metrics', authMiddleware, PostController.getMetrics);
+
+// Analytics Routes
+router.get('/analytics/metrics', authMiddleware, PostController.getAnalyticsMetrics);
 
 // AI Content Generation Routes
 router.post(

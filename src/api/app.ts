@@ -16,8 +16,8 @@ export function createApp(): Application {
 
   // 🟡 HIGH: Restrictive CORS configuration
   const allowedOrigins = config.env === 'production'
-    ? [config.apiUrl]
-    : ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
+    ? [config.apiUrl, 'https://pnptv.app']
+    : ['http://localhost:3010', 'https://pnptv.app'];
 
   app.use(cors({
     origin: (origin, callback) => {
@@ -53,6 +53,10 @@ export function createApp(): Application {
   // Post routes - moderate payload for content + metadata
   app.use('/api/posts', express.json({ limit: '1mb' }));
   app.use('/api/posts', express.urlencoded({ extended: true, limit: '1mb' }));
+
+  // AI routes - moderate payload for AI requests
+  app.use('/api/ai', express.json({ limit: '500kb' }));
+  app.use('/api/ai', express.urlencoded({ extended: true, limit: '500kb' }));
 
   // Media/upload routes - larger payload
   app.use('/api/media', express.json({ limit: '10mb' }));

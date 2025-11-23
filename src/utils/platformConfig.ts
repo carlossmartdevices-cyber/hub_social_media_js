@@ -70,28 +70,37 @@ export function logPlatformStatus(): void {
   ];
   const notConfigured = allPlatforms.filter(p => !configured.includes(p));
 
-  logger.info('=== Platform Configuration Status ===');
+  logger.info('========================================');
+  logger.info('   Platform Configuration Status');
+  logger.info('========================================');
 
   if (configured.length > 0) {
-    logger.info(`Configured platforms (${configured.length}):`);
+    logger.info(`✅ Configured platforms (${configured.length}/${allPlatforms.length}):`);
     configured.forEach(platform => {
-      logger.info(`  ✓ ${platform}`);
+      logger.info(`   ✓ ${platform.toUpperCase()}`);
     });
   } else {
-    logger.warn('No platforms are configured with API credentials');
+    logger.info('ℹ️  No global platform credentials configured');
   }
 
-  if (notConfigured.length > 0) {
-    logger.info(`Not configured (${notConfigured.length}):`);
+  if (notConfigured.length > 0 && notConfigured.length < allPlatforms.length) {
+    logger.info(`⚪ Not configured (${notConfigured.length}/${allPlatforms.length}):`);
     notConfigured.forEach(platform => {
-      logger.info(`  ✗ ${platform}`);
+      logger.info(`   ○ ${platform.toUpperCase()}`);
     });
   }
 
-  logger.info('=====================================');
+  logger.info('========================================');
 
   if (configured.length === 0) {
-    logger.warn('⚠️  Bot is running but no social media platforms are configured');
-    logger.warn('⚠️  Users will need to add platform credentials to publish posts');
+    logger.info('ℹ️  Bot running in user-credentials mode');
+    logger.info('ℹ️  Users can add their own platform credentials via API');
+    logger.info('ℹ️  No need to configure all platforms - use only what you need!');
+  } else if (notConfigured.length > 0) {
+    logger.info('ℹ️  Partial configuration is OK - only configured platforms will be used');
+  } else {
+    logger.info('✅ All platforms are configured and ready!');
   }
+
+  logger.info('========================================');
 }

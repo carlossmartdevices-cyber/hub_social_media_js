@@ -6,9 +6,10 @@ import database from '../../database/connection';
 import config from '../../config';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
+import { AuthRequest } from '../middlewares/auth';
 
 export class AuthController {
-  async register(req: Request, res: Response) {
+  async register(req: Request, res: Response): Promise<Response> {
     try {
       const { email, password, name } = req.body;
 
@@ -36,22 +37,22 @@ export class AuthController {
 
       const user = result.rows[0];
 
-      // 🟡 HIGH: Generate access and refresh tokens
+      // Generate access and refresh tokens
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.jwt.secret,
-        { expiresIn: config.jwt.accessTokenExpiresIn }
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
       );
 
       const refreshToken = jwt.sign(
         { id: user.id, type: 'refresh' },
         config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshTokenExpiresIn }
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
       );
 
       logger.info(`User registered: ${email}`);
 
-      res.status(201).json({
+      return res.status(201).json({
         user: {
           id: user.id,
           email: user.email,
@@ -64,11 +65,11 @@ export class AuthController {
       });
     } catch (error) {
       logger.error('Registration error:', error);
-      res.status(500).json({ error: 'Failed to register user' });
+      return res.status(500).json({ error: 'Failed to register user' });
     }
   }
 
-  async login(req: Request, res: Response) {
+  async login(req: Request, res: Response): Promise<Response> {
     try {
       const { email, password } = req.body;
 
@@ -95,22 +96,22 @@ export class AuthController {
         return res.status(401).json({ error: 'Invalid credentials' });
       }
 
-      // 🟡 HIGH: Generate access and refresh tokens
+      // Generate access and refresh tokens
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
         config.jwt.secret,
-        { expiresIn: config.jwt.accessTokenExpiresIn }
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
       );
 
       const refreshToken = jwt.sign(
         { id: user.id, type: 'refresh' },
         config.jwt.refreshSecret,
-        { expiresIn: config.jwt.refreshTokenExpiresIn }
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
       );
 
       logger.info(`User logged in: ${email}`);
 
-      res.json({
+      return res.json({
         user: {
           id: user.id,
           email: user.email,
@@ -123,13 +124,13 @@ export class AuthController {
       });
     } catch (error) {
       logger.error('Login error:', error);
-      res.status(500).json({ error: 'Failed to login' });
+      return res.status(500).json({ error: 'Failed to login' });
     }
   }
 
-  async getProfile(req: any, res: Response) {
+  async getProfile(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
 
       const result = await database.query(
         'SELECT id, email, name, role, created_at FROM users WHERE id = $1',
@@ -140,17 +141,17 @@ export class AuthController {
         return res.status(404).json({ error: 'User not found' });
       }
 
-      res.json({ user: result.rows[0] });
+      return res.json({ user: result.rows[0] });
     } catch (error) {
       logger.error('Get profile error:', error);
-      res.status(500).json({ error: 'Failed to get profile' });
+      return res.status(500).json({ error: 'Failed to get profile' });
     }
   }
 
   /**
    * 🟡 HIGH: Refresh token endpoint
    */
-  async refresh(req: Request, res: Response) {
+  async refresh(req: Request, res: Response): Promise<Response> {
     try {
       const { refreshToken } = req.body;
 
@@ -159,7 +160,12 @@ export class AuthController {
       }
 
       try {
-        const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as any;
+        const decoded = jwt.verify(refreshToken, config.jwt.refreshSecret) as {
+          id: string;
+          type: string;
+          iat?: number;
+          exp?: number;
+        };
 
         if (decoded.type !== 'refresh') {
           return res.status(401).json({ error: 'Invalid token type' });
@@ -181,37 +187,38 @@ export class AuthController {
         const newAccessToken = jwt.sign(
           { id: user.id, email: user.email, role: user.role },
           config.jwt.secret,
-          { expiresIn: config.jwt.accessTokenExpiresIn }
+          { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
         );
 
-        res.json({
+        return res.json({
           accessToken: newAccessToken,
           token: newAccessToken, // Backward compatibility
         });
-      } catch (error: any) {
-        logger.error('Token verification failed:', error.message);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        logger.error('Token verification failed:', errorMessage);
         return res.status(401).json({ error: 'Invalid or expired refresh token' });
       }
     } catch (error) {
       logger.error('Refresh token error:', error);
-      res.status(500).json({ error: 'Failed to refresh token' });
+      return res.status(500).json({ error: 'Failed to refresh token' });
     }
   }
 
   /**
    * 🟡 HIGH: Logout endpoint
    */
-  async logout(req: any, res: Response) {
+  async logout(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const userId = req.user.id;
+      const userId = req.user!.id;
       logger.info(`User logged out: ${userId}`);
 
       // Note: For stateless JWT, we can't truly "logout"
       // In production, implement a token blacklist in Redis
-      res.json({ message: 'Logged out successfully' });
+      return res.json({ message: 'Logged out successfully' });
     } catch (error) {
       logger.error('Logout error:', error);
-      res.status(500).json({ error: 'Failed to logout' });
+      return res.status(500).json({ error: 'Failed to logout' });
     }
   }
 }
