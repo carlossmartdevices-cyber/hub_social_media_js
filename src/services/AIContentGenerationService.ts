@@ -1,5 +1,5 @@
 import axios from 'axios';
-import config from '../config';
+import { config } from '../config';
 import logger from '../utils/logger';
 
 interface VideoTitleDescription {
@@ -38,10 +38,16 @@ export class AIContentGenerationService {
   private enabled: boolean;
 
   constructor() {
-    this.apiKey = config.xai.apiKey || '';
-    this.baseUrl = config.xai.baseUrl || 'https://api.x.ai/v1';
-    this.model = config.xai.model || 'grok-beta';
-    this.enabled = config.xai.enabled || false;
+    logger.error('DEBUG: FULL config =', JSON.stringify(config, null, 2));
+    logger.error('DEBUG: process.env.XAI_API_KEY =', String(process.env.XAI_API_KEY));
+    if (!config.ai || !config.ai.grok) {
+      logger.error('FATAL: config.ai or config.ai.grok is undefined!');
+      process.exit(1);
+    }
+    this.apiKey = config.ai.grok.apiKey || '';
+    this.baseUrl = config.ai.grok.baseURL || 'https://api.x.ai/v1';
+    this.model = config.ai.grok.model || 'grok-beta';
+    this.enabled = config.ai.grok.enabled || false;
   }
 
   /**

@@ -476,8 +476,7 @@ export class TelegramBotCommands {
       // Check if user is in a multi-step flow
       if (userId && this.userStates.has(userId)) {
         const state = this.userStates.get(userId);
-
-        const userId = ctx.from?.id;
+        try {
           switch (state.step) {
             case 'account_name':
               state.accountName = text;
@@ -501,10 +500,10 @@ export class TelegramBotCommands {
               break;
 
             case 'api_key':
-                  const accounts = await platformAccountService.getUserPlatformAccounts(
-                    userId.toString(),
-                    'twitter'
-                  );
+              state.apiKey = text;
+              state.step = 'api_secret';
+              this.userStates.set(userId, state);
+              ctx.reply(
                 '🔑 Step 4/6: Enter your X API Secret\n\n' +
                 'Type your answer or /cancel to abort.'
               );

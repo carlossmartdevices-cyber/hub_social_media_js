@@ -6,17 +6,18 @@ import database from '../../database/connection';
 import { videoProcessingService } from '../../services/VideoProcessingService';
 import { geoBlockingService } from '../../services/GeoBlockingService';
 import { twitterVideoAdapter } from '../../platforms/twitter/TwitterVideoAdapter';
+import { MediaType } from '../../core/content/types';
 import aiContentGenerationService from '../../services/AIContentGenerationService';
-import { decryptCredentials } from '../../utils/encryption';
+import EncryptionService from '../../utils/encryption';
 import multer from 'multer';
 import path from 'path';
 
 // Configure multer for video uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, './uploads/temp');
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
     cb(null, `video-${uniqueSuffix}${path.extname(file.originalname)}`);
   },
@@ -27,7 +28,7 @@ export const videoUpload = multer({
   limits: {
     fileSize: 500 * 1024 * 1024, // 500MB max
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -57,7 +58,7 @@ export class VideoPostController {
         });
       }
 
-      const { title, description, platform = 'twitter', quality = 'medium' } = req.body;
+      const { title, description, quality = 'medium' } = req.body;
 
       // Create post record
       const postId = uuidv4();
@@ -309,7 +310,7 @@ export class VideoPostController {
         if (accountResult.rows.length === 0) {
           throw new Error('Twitter account not found');
         }
-        credentials = decryptCredentials(accountResult.rows[0].credentials);
+        credentials = JSON.parse(EncryptionService.decrypt(accountResult.rows[0].credentials));
       } else {
         throw new Error('No Twitter account specified');
       }
@@ -332,7 +333,7 @@ export class VideoPostController {
       const result = await twitterVideoAdapter.publishVideo(
         {
           text: videoMetadata.title,
-          media: [{ url: post.media_url, type: 'video' }],
+          media: [{ id: '', url: post.media_url, type: MediaType.VIDEO, mimeType: 'video/mp4', size: 0 }],
         },
         videoMetadata
       );

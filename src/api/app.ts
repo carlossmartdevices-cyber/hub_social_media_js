@@ -2,7 +2,7 @@ import express, { Application } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import config from '../config';
+import { config } from '../config';
 import routes from './routes';
 import { errorHandler } from './middlewares/errorHandler';
 import { logger } from '../utils/logger';

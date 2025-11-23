@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import database from '../../database/connection';
-import config from '../../config';
+import { config } from '../../config';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 import { AuthRequest } from '../middlewares/auth';

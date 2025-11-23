@@ -2,7 +2,7 @@ import { Worker, Job } from 'bullmq';
 import { Platform } from '../../core/content/types';
 import { PlatformFactory } from '../../platforms';
 import { logger } from '../../utils/logger';
-import config from '../../config';
+import { config } from '../../config';
 import database from '../../database/connection';
 
 const connection = {
