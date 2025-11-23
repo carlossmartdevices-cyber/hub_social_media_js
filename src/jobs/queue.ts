@@ -1,5 +1,5 @@
 import { Queue, QueueEvents } from 'bullmq';
-import config from '../config';
+import { config } from '../config';
 import { logger } from '../utils/logger';
 
 const connection = {

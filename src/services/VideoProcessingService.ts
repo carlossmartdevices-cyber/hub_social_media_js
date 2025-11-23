@@ -1,7 +1,6 @@
 import ffmpeg from 'fluent-ffmpeg';
 import { promises as fs } from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { logger } from '../utils/logger';
 import database from '../database/connection';
 

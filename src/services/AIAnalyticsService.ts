@@ -1,4 +1,4 @@
-import { db } from '../database/connection';
+import db from '../database/connection';
 import { logger } from '../utils/logger';
 import OpenAI from 'openai';
 import { config } from '../config';

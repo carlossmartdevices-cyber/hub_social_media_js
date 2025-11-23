@@ -1,7 +1,7 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { promises as fs } from 'fs';
 import { logger } from '../../utils/logger';
-import { PostContent, PublishResult } from '../../core/content/types';
+import { PostContent } from '../../core/content/types';
 
 interface VideoMetadata {
   title: string;
@@ -61,7 +61,7 @@ export class TwitterVideoAdapter {
   public async publishVideo(
     content: PostContent,
     videoMetadata: VideoMetadata
-  ): Promise<PublishResult> {
+  ): Promise<any> {
     if (!this.client) {
       throw new Error('Twitter client not initialized');
     }

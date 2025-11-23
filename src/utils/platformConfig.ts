@@ -1,4 +1,4 @@
-import config from '../config';
+import { config } from '../config';
 import { logger } from './logger';
 import { Platform } from '../core/content/types';
 

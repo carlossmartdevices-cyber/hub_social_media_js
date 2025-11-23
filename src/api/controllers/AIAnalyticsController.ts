@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middlewares/auth';
 import { aiAnalyticsService } from '../../services/AIAnalyticsService';
 import { logger } from '../../utils/logger';
 
@@ -10,7 +11,7 @@ export class AIAnalyticsController {
    * GET /api/ai/hashtags/smart
    * Generate smart hashtag suggestions based on historical performance
    */
-  public async getSmartHashtags(req: Request, res: Response): Promise<void> {
+  public async getSmartHashtags(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { platform, limit } = req.query;
@@ -39,7 +40,7 @@ export class AIAnalyticsController {
    * POST /api/ai/captions/smart
    * Generate smart caption suggestions based on historical performance
    */
-  public async getSmartCaptions(req: Request, res: Response): Promise<void> {
+  public async getSmartCaptions(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { topic, platform } = req.body;
@@ -68,7 +69,7 @@ export class AIAnalyticsController {
    * POST /api/ai/ideas
    * Generate content ideas based on historical performance and trends
    */
-  public async getContentIdeas(req: Request, res: Response): Promise<void> {
+  public async getContentIdeas(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { platform, count } = req.body;
@@ -97,7 +98,7 @@ export class AIAnalyticsController {
    * GET /api/ai/optimal-times
    * Analyze engagement to determine optimal posting times
    */
-  public async getOptimalPostingTimes(req: Request, res: Response): Promise<void> {
+  public async getOptimalPostingTimes(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { platform } = req.query;
@@ -125,10 +126,10 @@ export class AIAnalyticsController {
    * POST /api/ai/suggest-schedule
    * Get intelligent schedule suggestion for a post
    */
-  public async suggestSchedule(req: Request, res: Response): Promise<void> {
+  public async suggestSchedule(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
-      const { platform, timezone } = req.body;
+      const { platform } = req.body;
 
       const result = await aiAnalyticsService.analyzeOptimalPostingTimes(
         userId,
@@ -177,7 +178,6 @@ export class AIAnalyticsController {
    */
   private calculateNextOccurrence(dayOfWeek: number, hour: number): Date {
     const now = new Date();
-    const result = new Date(now);
 
     // Calculate days until target day
     const currentDay = now.getDay();
@@ -189,6 +189,7 @@ export class AIAnalyticsController {
       daysUntil = 7; // If today but hour has passed, go to next week
     }
 
+    const result = new Date(now);
     result.setDate(now.getDate() + daysUntil);
     result.setHours(hour, 0, 0, 0);
 
@@ -199,8 +200,6 @@ export class AIAnalyticsController {
    * Get default best time based on platform best practices
    */
   private getDefaultBestTime(platform?: string): Date {
-    const now = new Date();
-    const result = new Date(now);
 
     // Platform-specific best practice times
     const bestPractices: Record<string, { day: number; hour: number }> = {

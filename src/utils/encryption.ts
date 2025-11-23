@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import config from '../config';
+import { config } from '../config';
 
 const ALGORITHM = 'aes-256-cbc';
 const IV_LENGTH = 16;

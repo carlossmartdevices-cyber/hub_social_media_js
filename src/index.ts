@@ -1,5 +1,7 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { createApp } from './api/app';
-import config from './config';
+import { config } from './config';
 import { logger } from './utils/logger';
 import database from './database/connection';
 import { PostWorker } from './jobs/workers/PostWorker';

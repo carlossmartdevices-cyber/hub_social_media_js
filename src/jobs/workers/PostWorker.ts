@@ -5,7 +5,7 @@ import { ContentAdapter } from '../../core/content/ContentAdapter';
 import { MediaProcessor } from '../../core/content/MediaProcessor';
 import { PublishResult } from '../../platforms/base/PlatformAdapter';
 import { logger } from '../../utils/logger';
-import config from '../../config';
+import { config } from '../../config';
 import database from '../../database/connection';
 import { notificationService } from '../../services/NotificationService';
 

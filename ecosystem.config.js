@@ -9,8 +9,7 @@ module.exports = {
     },
     {
       name: "twitter-auth",
-      script: "src/platforms/twitter/TwitterAdapter.ts",
-      interpreter: "./node_modules/.bin/ts-node",
+      script: "dist/platforms/twitter/TwitterAdapter.js",
       env: {
         NODE_ENV: "production"
       }

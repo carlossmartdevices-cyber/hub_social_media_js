@@ -2,18 +2,8 @@ import { Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import database from '../../database/connection';
 import { logger } from '../../utils/logger';
-import { encryptCredentials, decryptCredentials } from '../../utils/encryption';
+import EncryptionService from '../../utils/encryption';
 import { ValidationService } from '../../utils/validation';
-
-interface PlatformAccount {
-  id?: string;
-  userId: string;
-  platform: string;
-  accountName: string;
-  accountIdentifier: string;
-  credentials: Record<string, string>;
-  isActive: boolean;
-}
 
 /**
  * PlatformAccountController - Manage multiple platform accounts per user
@@ -119,7 +109,7 @@ export class PlatformAccountController {
       }
 
       // Encrypt credentials
-      const encryptedCredentials = encryptCredentials(credentials);
+      const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(credentials));
 
       // Insert new account
       const result = await database.query(
@@ -193,7 +183,7 @@ export class PlatformAccountController {
           });
         }
 
-        const encryptedCredentials = encryptCredentials(credentials);
+        const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(credentials));
         updates.push(`credentials = $${paramCount}`);
         values.push(encryptedCredentials);
         paramCount++;
@@ -301,7 +291,7 @@ export class PlatformAccountController {
       }
 
       const accountData = account.rows[0];
-      const credentials = decryptCredentials(accountData.credentials);
+      const credentials = JSON.parse(EncryptionService.decrypt(accountData.credentials));
 
       // Try to initialize the platform adapter
       try {

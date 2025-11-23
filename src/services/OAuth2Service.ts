@@ -3,7 +3,7 @@ import axios from 'axios';
 import { config } from '../config';
 import { logger } from '../utils/logger';
 import database from '../database/connection';
-import { encryptCredentials } from '../utils/encryption';
+import EncryptionService from '../utils/encryption';
 
 interface OAuthState {
   userId: string;
@@ -147,7 +147,7 @@ export class OAuth2Service {
         username: twitterUser.username,
       };
 
-      const encryptedCredentials = encryptCredentials(credentials);
+      const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(credentials));
 
       // Check if account already exists
       const existingAccount = await database.query(
@@ -223,8 +223,7 @@ export class OAuth2Service {
       }
 
       // Decrypt credentials
-      const { decryptCredentials } = await import('../utils/encryption');
-      const credentials = decryptCredentials(accountData.credentials);
+      const credentials = JSON.parse(EncryptionService.decrypt(accountData.credentials));
 
       if (!credentials.refreshToken) {
         throw new Error('No refresh token available');
@@ -262,7 +261,7 @@ export class OAuth2Service {
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
       };
 
-      const encryptedCredentials = encryptCredentials(updatedCredentials);
+      const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(updatedCredentials));
 
       await database.query(
         `UPDATE platform_credentials

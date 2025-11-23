@@ -1,5 +1,5 @@
-import dotenv from 'dotenv';
 
+import dotenv from 'dotenv';
 dotenv.config();
 
 export const config = {
@@ -145,4 +145,9 @@ if (config.env === 'production') {
   }
 }
 
-export default config;
+if (!config.ai || !config.ai.grok) {
+  console.error('FATAL: config.ai or config.ai.grok is undefined!');
+  process.exit(1);
+}
+console.log('DEBUG: Loaded config:', JSON.stringify(config, null, 2));
+

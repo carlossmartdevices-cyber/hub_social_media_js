@@ -50,7 +50,7 @@ export class NotificationService {
     notification: PostNotification,
     notificationConfig: NotificationConfig
   ): Promise<void> {
-    const { postId, status, platform, error, timestamp } = notification;
+    // ...existing code...
 
     const message = this.formatNotificationMessage(notification);
 
