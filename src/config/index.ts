@@ -1,11 +1,6 @@
 
-<<<<<<< HEAD
 import dotenv from 'dotenv';
 dotenv.config();
-=======
-// Override system environment variables with .env file
-dotenv.config({ override: true });
->>>>>>> da7a35a75cb690221189d3b265e62ba9d5227925
 
 export const config = {
   env: process.env.NODE_ENV || 'development',

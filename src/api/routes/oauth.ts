@@ -8,10 +8,17 @@ const router = Router();
  * Twitter OAuth 2.0 routes
  */
 
-// Start Twitter OAuth flow (requires authentication)
+// Start Twitter OAuth flow (optional authentication - supports Telegram bot)
 router.get(
   '/twitter/authorize',
-  authMiddleware,
+  (req, res, next) => {
+    // Skip auth if userId is provided (Telegram bot)
+    if (req.query.userId) {
+      return next();
+    }
+    // Otherwise require JWT authentication
+    return authMiddleware(req, res, next);
+  },
   oauth2Controller.authorizeTwitter.bind(oauth2Controller)
 );
 
