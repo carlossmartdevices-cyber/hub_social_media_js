@@ -20,29 +20,38 @@ export class TelegramBotCommands {
     // Start command
     this.bot.command('start', (ctx) => {
       ctx.reply(
+<<<<<<< HEAD
         '👋 Welcome to PNPTV Social Media Hub!\n\n' +
         'Manage your content across multiple social media platforms with AI-powered tools.\n\n' +
         '📱 *Account Management:*\n' +
+=======
+        '👋 Welcome to Social Media Content Hub Bot!\n\n' +
+        'I can help you manage your content across multiple social media platforms.\n\n' +
+        '📱 *Quick Access:*\n' +
+        '/menu - Open main menu\n' +
+>>>>>>> da7a35a75cb690221189d3b265e62ba9d5227925
         '/xaccounts - Manage your X (Twitter) accounts\n' +
-        '/addxaccount - Add a new X account\n\n' +
+        '/help - Show all commands\n\n' +
         '📝 *Content:*\n' +
         '/schedule - Schedule posts via web dashboard\n' +
         '/list - View scheduled posts\n' +
         '/stats - View posting statistics\n\n' +
         '⚙️ *System:*\n' +
-        '/help - Show detailed help\n' +
         '/status - Check bot status',
         {
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
               [
+                { text: '📋 Main Menu', callback_data: 'back_to_menu' },
+              ],
+              [
                 { text: '🐦 X Accounts', callback_data: 'x_accounts' },
                 { text: '📝 New Post', callback_data: 'new_post' },
               ],
               [
                 { text: '📊 View Stats', callback_data: 'stats' },
-                { text: '📅 Scheduled Posts', callback_data: 'list_posts' },
+                { text: '💬 Support', callback_data: 'contact_support' },
               ],
             ],
           },
@@ -53,28 +62,77 @@ export class TelegramBotCommands {
     // Help command
     this.bot.command('help', (ctx) => {
       ctx.reply(
+<<<<<<< HEAD
         '📖 *PNPTV Social Media Hub Help*\n\n' +
+=======
+        '📖 *Content Hub Bot Help*\n\n' +
+        '*Navigation:*\n' +
+        '/start - Start the bot and view welcome message\n' +
+        '/menu - Open main menu with quick actions\n' +
+        '/help - Show this help message\n\n' +
+>>>>>>> da7a35a75cb690221189d3b265e62ba9d5227925
         '*Account Management:*\n' +
         '/xaccounts - View all your X (Twitter) accounts\n' +
         '/addxaccount - Add a new X account\n' +
         '/setdefaultx - Set default X account\n' +
         '/deletexaccount - Delete an X account\n\n' +
         '*Content Management:*\n' +
+<<<<<<< HEAD
         '/start - Start the bot\n' +
         '/status - Check system status\n' +
         '/schedule - Access web dashboard for scheduling\n' +
         '/list - View scheduled posts\n' +
         '/stats - View statistics\n\n' +
+=======
+        '/schedule - Schedule a new post\n' +
+        '/list - List scheduled posts\n' +
+        '/stats - View statistics\n' +
+        '/status - Check system status\n\n' +
+        '*Support:*\n' +
+        '/cancel - Cancel current operation\n' +
+        'Use /menu → Contact Support to get help\n\n' +
+>>>>>>> da7a35a75cb690221189d3b265e62ba9d5227925
         '*Features:*\n' +
         '• Multiple X (Twitter) accounts\n' +
         '• Multi-platform posting (X, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram)\n' +
         '• AI-powered content generation (XAI Grok)\n' +
         '• Post scheduling and automation\n' +
         '• Analytics and statistics\n' +
+<<<<<<< HEAD
         '• Video & image support\n\n' +
         'Web Dashboard: https://pnptv.app\n' +
         'Need help? Contact support at https://pnptv.app',
+=======
+        '• Media support (images, videos)',
+>>>>>>> da7a35a75cb690221189d3b265e62ba9d5227925
         { parse_mode: 'Markdown' }
+      );
+    });
+
+    // Menu command
+    this.bot.command('menu', (ctx) => {
+      ctx.reply(
+        '📋 *Main Menu*\n\n' +
+        'What would you like to do?',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🐦 X Accounts', callback_data: 'x_accounts' },
+                { text: '📊 View Stats', callback_data: 'stats' },
+              ],
+              [
+                { text: '📝 New Post', callback_data: 'new_post' },
+                { text: '📅 Scheduled Posts', callback_data: 'list_posts' },
+              ],
+              [
+                { text: '⚙️ Settings', callback_data: 'settings' },
+                { text: '💬 Contact Support', callback_data: 'contact_support' },
+              ],
+            ],
+          },
+        }
       );
     });
 
@@ -339,6 +397,92 @@ export class TelegramBotCommands {
           logger.error('Error in settings callback:', error);
         }
       }
+    });
+
+    // Contact Support callback
+    this.bot.action('contact_support', (ctx) => {
+      ctx.answerCbQuery();
+      ctx.reply(
+        '💬 *Contact Support*\n\n' +
+        'Need help? Our support team is here for you!\n\n' +
+        '*How to get support:*\n' +
+        '• Click the button below to open a support ticket\n' +
+        '• Describe your issue in detail\n' +
+        '• Include screenshots if possible\n' +
+        '• Our team typically responds within 24 hours\n\n' +
+        '*Common issues:*\n' +
+        '• Account connection problems\n' +
+        '• Posting errors\n' +
+        '• Feature requests\n' +
+        '• General questions',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '📩 Open Support Ticket', callback_data: 'open_support_ticket' }
+              ],
+              [
+                { text: '📚 Documentation', url: 'https://yourdomain.com/docs' },
+                { text: '❓ FAQ', url: 'https://yourdomain.com/faq' }
+              ],
+              [
+                { text: '⬅️ Back to Menu', callback_data: 'back_to_menu' }
+              ]
+            ]
+          }
+        }
+      );
+    });
+
+    // Open support ticket callback
+    this.bot.action('open_support_ticket', (ctx) => {
+      ctx.answerCbQuery();
+      const userId = ctx.from?.id;
+      const username = ctx.from?.username;
+
+      ctx.reply(
+        '📩 *Open Support Ticket*\n\n' +
+        'Please describe your issue or question in detail.\n\n' +
+        'Send your message in the next message, and our support team will be notified.\n\n' +
+        `User ID: \`${userId}\`\n` +
+        `Username: @${username || 'N/A'}\n\n` +
+        'Type /cancel to abort.',
+        { parse_mode: 'Markdown' }
+      );
+
+      // Set user state for support ticket
+      if (userId) {
+        this.userStates.set(userId, { step: 'support_ticket' });
+      }
+    });
+
+    // Back to menu callback
+    this.bot.action('back_to_menu', (ctx) => {
+      ctx.answerCbQuery();
+      ctx.reply(
+        '📋 *Main Menu*\n\n' +
+        'What would you like to do?',
+        {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: '🐦 X Accounts', callback_data: 'x_accounts' },
+                { text: '📊 View Stats', callback_data: 'stats' },
+              ],
+              [
+                { text: '📝 New Post', callback_data: 'new_post' },
+                { text: '📅 Scheduled Posts', callback_data: 'list_posts' },
+              ],
+              [
+                { text: '⚙️ Settings', callback_data: 'settings' },
+                { text: '💬 Contact Support', callback_data: 'contact_support' },
+              ],
+            ],
+          },
+        }
+      );
     });
 
     // X Accounts callback - show accounts list
@@ -639,6 +783,36 @@ export class TelegramBotCommands {
                   `Error: ${error.message}`
                 );
               }
+              break;
+
+            case 'support_ticket':
+              // Handle support ticket submission
+              this.userStates.delete(userId);
+
+              const supportMessage =
+                '🎫 *Support Ticket Received*\n\n' +
+                `From: ${ctx.from?.first_name || 'User'} ${ctx.from?.last_name || ''}\n` +
+                `Username: @${ctx.from?.username || 'N/A'}\n` +
+                `User ID: \`${userId}\`\n\n` +
+                `*Message:*\n${text}\n\n` +
+                `Received at: ${new Date().toISOString()}`;
+
+              // Log the support ticket
+              logger.info(`Support ticket from user ${userId}: ${text}`);
+
+              // Send confirmation to user
+              ctx.reply(
+                '✅ *Support Ticket Submitted*\n\n' +
+                'Thank you for contacting support!\n\n' +
+                'Your ticket has been received and our team will respond within 24 hours.\n\n' +
+                `Ticket ID: \`ST-${userId}-${Date.now()}\`\n\n` +
+                'You will receive a notification when we respond.',
+                { parse_mode: 'Markdown' }
+              );
+
+              // TODO: Send notification to support team
+              // This could be via email, another Telegram chat, or database entry
+              logger.warn('Support ticket needs to be routed to support team:', supportMessage);
               break;
 
             default:
