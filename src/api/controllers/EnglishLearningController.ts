@@ -51,7 +51,7 @@ export class EnglishLearningController {
    * GET /api/english-learning/topics
    * Get suggested learning topics
    */
-  async getSuggestedTopics(req: AuthRequest, res: Response): Promise<Response> {
+  async getSuggestedTopics(_req: AuthRequest, res: Response): Promise<Response> {
     try {
       const topics = await englishLearningService.getSuggestedTopics();
 

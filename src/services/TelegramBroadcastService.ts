@@ -2,7 +2,7 @@ import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
-import config from '../config';
+import { config } from '../config';
 import logger from '../utils/logger';
 import aiContentGenerationService from './AIContentGenerationService';
 
@@ -14,16 +14,9 @@ interface TelegramChannel {
   chatId: string; // Numeric ID or @username
 }
 
-interface BroadcastMessage {
-  text: string;
-  videoPath?: string;
-  thumbnailPath?: string;
-  caption?: string;
-  parseMode?: 'HTML' | 'Markdown' | 'MarkdownV2';
-  disableNotification?: boolean;
-}
+// BroadcastMessage interface removed - not used
 
-interface BroadcastResult {
+export interface BroadcastResult {
   channelId: string;
   channelTitle: string;
   success: boolean;
@@ -49,7 +42,7 @@ export class TelegramBroadcastService {
   private apiBaseUrl: string;
 
   constructor() {
-    this.botToken = config.telegram?.botToken || process.env.TELEGRAM_BOT_TOKEN || '';
+    this.botToken = config.platforms?.telegram?.botToken || process.env.TELEGRAM_BOT_TOKEN || '';
     this.apiBaseUrl = `https://api.telegram.org/bot${this.botToken}`;
   }
 

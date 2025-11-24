@@ -146,8 +146,7 @@ export class TelegramBotCommands {
       ctx.reply(
         '📝 *Schedule a New Post*\n\n' +
         'To schedule a post, please use the web dashboard.\n\n' +
-        '🌐 Web Dashboard: https://pnptv.app\n' +
-        '📚 API Docs: https://pnptv.app/api-docs',
+        '📅 Calendar: https://pnptv.app/calendar',
         { parse_mode: 'Markdown' }
       );
     });
@@ -157,7 +156,7 @@ export class TelegramBotCommands {
       ctx.reply(
         '📅 *Your Scheduled Posts*\n\n' +
         'To view your scheduled posts, please use the web dashboard.\n\n' +
-        '🌐 Dashboard: https://pnptv.app/posts',
+        '📅 Calendar: https://pnptv.app/calendar',
         { parse_mode: 'Markdown' }
       );
     });
@@ -167,8 +166,7 @@ export class TelegramBotCommands {
       ctx.reply(
         '📊 *Your Statistics*\n\n' +
         'View detailed statistics and analytics in the web dashboard.\n\n' +
-        '📈 Analytics Dashboard: https://pnptv.app/analytics\n' +
-        '📊 Metrics & Reports: https://pnptv.app/metrics',
+        '📈 Analytics Dashboard: https://pnptv.app/analytics',
         { parse_mode: 'Markdown' }
       );
     });

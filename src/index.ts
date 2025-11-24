@@ -68,19 +68,39 @@ async function startServer() {
       logger.info(`Server running on port ${config.port} in ${config.env} mode`);
       logger.info(`API available at ${config.apiUrl}/api`);
 
-      // Setup Telegram webhook AFTER server is listening
-      if (telegramBot && config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
+      // Initialize Telegram bot AFTER server is listening
+      if (config.platforms.telegram.botToken) {
         try {
-          const webhookUrl = `${config.platforms.telegram.webhookUrl}${config.platforms.telegram.webhookPath}`;
-          await telegramBot.setupWebhook(
-            webhookUrl,
-            config.platforms.telegram.webhookSecret || undefined
-          );
-          logger.info('Telegram bot webhook configured successfully');
+          const bot = new Telegraf(config.platforms.telegram.botToken);
+          telegramBot = new TelegramBotCommands(bot);
+
+          // Usa webhook si está habilitado en la config
+          if (config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
+            try {
+              const webhookUrl = `${config.platforms.telegram.webhookUrl}${config.platforms.telegram.webhookPath}`;
+              await telegramBot.setupWebhook(
+                webhookUrl,
+                config.platforms.telegram.webhookSecret || undefined
+              );
+              logger.info('Telegram bot webhook configured successfully');
+            } catch (error) {
+              logger.error('Failed to setup Telegram webhook:', error);
+              logger.warn('Bot will not receive updates via webhook');
+            }
+          } else {
+            // Start polling in background (don't await to avoid blocking)
+            telegramBot.startPolling().catch(error => {
+              logger.error('Failed to start Telegram bot polling:', error);
+              logger.warn('Bot will not receive updates');
+            });
+            logger.info('Telegram bot starting in polling mode...');
+          }
         } catch (error) {
-          logger.error('Failed to setup Telegram webhook:', error);
-          logger.warn('Bot will not receive updates via webhook');
+          logger.error('Failed to initialize Telegram bot:', error);
+          logger.warn('Application will continue without Telegram bot');
         }
+      } else {
+        logger.warn('Telegram bot token not configured - bot will not start');
       }
     });
 

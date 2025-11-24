@@ -8,10 +8,10 @@ import path from 'path';
 
 // Configure multer for video uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
+  destination: (_req, _file, cb) => {
     cb(null, './uploads/telegram');
   },
-  filename: (req, file, cb) => {
+  filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
     cb(null, `telegram-video-${uniqueSuffix}${path.extname(file.originalname)}`);
   },
@@ -22,7 +22,7 @@ export const telegramVideoUpload = multer({
   limits: {
     fileSize: 2000 * 1024 * 1024, // 2GB - Telegram supports up to 2GB for videos
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
@@ -228,7 +228,7 @@ export class TelegramBroadcastController {
    * GET /api/telegram/bot-info
    * Get Telegram bot information
    */
-  async getBotInfo(req: AuthRequest, res: Response): Promise<Response> {
+  async getBotInfo(_req: AuthRequest, res: Response): Promise<Response> {
     try {
       const botInfo = await telegramBroadcastService.getBotInfo();
 

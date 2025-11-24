@@ -1,8 +1,11 @@
 import { logger } from '../utils/logger';
 import database from '../database/connection';
+import { MediaType } from '../core/content/types';
 import { twitterVideoAdapter } from '../platforms/twitter/TwitterVideoAdapter';
-import { telegramBroadcastService } from './TelegramBroadcastService';
-import { decryptCredentials } from '../utils/encryption';
+import { TelegramBroadcastService } from './TelegramBroadcastService';
+
+const telegramBroadcastService = new TelegramBroadcastService();
+import EncryptionService from '../utils/encryption';
 import path from 'path';
 import fs from 'fs';
 
@@ -162,7 +165,7 @@ export class MultiPlatformPublishService {
         throw new Error('Unauthorized: Account does not belong to user');
       }
 
-      const credentials = decryptCredentials(accountResult.rows[0].credentials);
+      const credentials = JSON.parse(EncryptionService.decrypt(accountResult.rows[0].credentials));
 
       // Initialize adapter
       await twitterVideoAdapter.initialize(credentials);
@@ -182,7 +185,7 @@ export class MultiPlatformPublishService {
       const result = await twitterVideoAdapter.publishVideo(
         {
           text: videoMetadata.title || videoMetadata.description || '',
-          media: [{ url: videoPath, type: 'video' }],
+          media: [{ id: 'video-1', url: videoPath, type: MediaType.VIDEO, mimeType: 'video/mp4', size: 0 }],
         },
         videoMetadata
       );
@@ -248,7 +251,7 @@ export class MultiPlatformPublishService {
         supportsStreaming: true,
       });
 
-      if (!uploadResult.success) {
+      if (!(uploadResult as any).success) {
         throw new Error('Failed to upload video to Telegram');
       }
 
@@ -263,8 +266,8 @@ export class MultiPlatformPublishService {
       );
 
       // Store broadcast record
-      const successCount = broadcastResults.filter((r) => r.success).length;
-      const failedCount = broadcastResults.filter((r) => !r.success).length;
+      const successCount = broadcastResults.filter((r: any) => r.success).length;
+      const failedCount = broadcastResults.filter((r: any) => !r.success).length;
 
       const broadcastId = await this.storeTelegramBroadcast(
         userId,
@@ -318,7 +321,7 @@ export class MultiPlatformPublishService {
    */
   private async storeTelegramBroadcast(
     userId: string,
-    postId: string,
+    _postId: string,
     fileId: string,
     caption: string,
     totalChannels: number,

@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { config } from '../config';
-import { AIGeneratedContent, AIContentRequest, Language, Platform, EnglishLesson } from '../core/content/types';
+import { AIGeneratedContent, AIContentRequest, Language, Platform } from '../core/content/types';
 import { logger } from '../utils/logger';
 
 /**
