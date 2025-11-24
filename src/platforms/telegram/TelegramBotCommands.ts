@@ -16,6 +16,20 @@ export class TelegramBotCommands {
     this.setupCommands();
   }
 
+  /**
+   * Safely answer callback query without throwing errors
+   * Prevents "query is too old" errors from being logged
+   */
+  private async safeAnswerCbQuery(ctx: any, text?: string): Promise<void> {
+    try {
+      await ctx.answerCbQuery(text);
+    } catch (error: any) {
+      // Silently ignore callback query errors (query too old, invalid, etc.)
+      // These are expected and don't affect functionality
+      logger.debug('Callback query answer failed (expected):', error.message);
+    }
+  }
+
   private setupCommands() {
     // Start command
     this.bot.command('start', (ctx) => {
@@ -166,12 +180,11 @@ export class TelegramBotCommands {
           ctx.reply('❌ Unable to identify user');
           return;
         }
-          const userId = ctx.from?.id.toString();
+
         const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
 
         if (accounts.length === 0) {
           ctx.reply(
-          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
             'You don\'t have any X accounts configured yet.\n\n' +
             'Use /addxaccount to add your first X account!',
             { parse_mode: 'Markdown' }
@@ -251,12 +264,12 @@ export class TelegramBotCommands {
 
         const keyboard = accounts.map(account => ([
           {
-            const userId = ctx.from?.id.toString();
+            text: `${account.accountName} (@${account.accountIdentifier})`,
             callback_data: `set_default_x_${account.id}`
           }
         ]));
 
-            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+        ctx.reply(
           '🐦 *Set Default X Account*\n\n' +
           'Select which account should be the default for posting:',
           {
@@ -288,12 +301,12 @@ export class TelegramBotCommands {
 
         const keyboard = accounts.map(account => ([
           {
-            const userId = ctx.from?.id.toString();
+            text: `${account.accountName} (@${account.accountIdentifier})`,
             callback_data: `delete_x_${account.id}`
           }
         ]));
         keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
-            const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+
         ctx.reply(
           '🐦 *Delete X Account*\n\n' +
           '⚠️ *Warning:* This action cannot be undone.\n\n' +
@@ -321,8 +334,8 @@ export class TelegramBotCommands {
     });
 
     // Handle inline keyboard callbacks
-    this.bot.action('stats', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('stats', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '📊 *Statistics*\n\n' +
         'Total Posts: 0\n' +
@@ -332,8 +345,8 @@ export class TelegramBotCommands {
       );
     });
 
-    this.bot.action('new_post', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('new_post', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '📝 *Create New Post*\n\n' +
         'Please use the web dashboard to create and schedule posts.\n\n' +
@@ -342,8 +355,8 @@ export class TelegramBotCommands {
       );
     });
 
-    this.bot.action('list_posts', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('list_posts', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '📅 *Scheduled Posts*\n\n' +
         'You have 0 scheduled posts.\n\n' +
@@ -352,8 +365,8 @@ export class TelegramBotCommands {
       );
     });
 
-    this.bot.action('settings', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('settings', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '⚙️ *Settings*\n\n' +
         'Configure your settings in the web dashboard.\n\n' +
@@ -363,8 +376,8 @@ export class TelegramBotCommands {
     });
 
     // Contact Support callback
-    this.bot.action('contact_support', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('contact_support', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '💬 *Contact Support*\n\n' +
         'Need help? Our support team is here for you!\n\n' +
@@ -399,8 +412,8 @@ export class TelegramBotCommands {
     });
 
     // Open support ticket callback
-    this.bot.action('open_support_ticket', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('open_support_ticket', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       const userId = ctx.from?.id;
       const username = ctx.from?.username;
 
@@ -421,8 +434,8 @@ export class TelegramBotCommands {
     });
 
     // Back to menu callback
-    this.bot.action('back_to_menu', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('back_to_menu', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '📋 *Main Menu*\n\n' +
         'What would you like to do?',
@@ -450,7 +463,7 @@ export class TelegramBotCommands {
 
     // X Accounts callback - show accounts list
     this.bot.action('x_accounts', async (ctx) => {
-      ctx.answerCbQuery();
+      await this.safeAnswerCbQuery(ctx);
       // Trigger the /xaccounts command logic
       const userId = ctx.from?.id.toString();
       if (!userId) return;
@@ -496,8 +509,8 @@ export class TelegramBotCommands {
     });
 
     // Add X account callback
-    this.bot.action('add_x_account', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('add_x_account', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       const userId = ctx.from?.id;
       if (!userId) return;
 
@@ -513,7 +526,7 @@ export class TelegramBotCommands {
 
     // Set default account callback
     this.bot.action(/^default_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -538,7 +551,7 @@ export class TelegramBotCommands {
 
     // Delete account callback
     this.bot.action(/^delete_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -568,7 +581,7 @@ export class TelegramBotCommands {
 
     // Confirm delete callback
     this.bot.action(/^confirm_delete_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -592,8 +605,8 @@ export class TelegramBotCommands {
     });
 
     // Cancel delete callback
-    this.bot.action('cancel_delete', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('cancel_delete', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply('✅ Deletion cancelled.');
     });
 
