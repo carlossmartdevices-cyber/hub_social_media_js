@@ -11,6 +11,9 @@ import metricsService from '../services/MetricsService';
 export function createApp(): Application {
   const app = express();
 
+  // Trust proxy - required when behind nginx
+  app.set('trust proxy', true);
+
   // Security middleware
   app.use(helmet());
 
