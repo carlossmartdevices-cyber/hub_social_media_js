@@ -1,5 +1,5 @@
 import axios from 'axios';
-import config from '../config';
+import { config } from '../config';
 import logger from '../utils/logger';
 
 interface EnglishLearningQuery {
@@ -343,7 +343,7 @@ Respond in JSON format:
   /**
    * Fallback response when AI is not available
    */
-  private generateFallbackResponse(question: string): EnglishLearningResponse {
+  private generateFallbackResponse(_question: string): EnglishLearningResponse {
     return {
       answer: 'I apologize, but the English learning assistant is currently unavailable. Please check your API configuration.',
       examples: [

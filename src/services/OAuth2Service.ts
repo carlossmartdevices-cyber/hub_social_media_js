@@ -77,7 +77,42 @@ export class OAuth2Service {
       code_challenge_method: 'S256',
     });
 
+    logger.info('Generated Twitter OAuth URL:', {
+      clientId: config.platforms.twitter?.clientId,
+      redirectUri: config.platforms.twitter?.redirectUri,
+      scope: 'tweet.read tweet.write users.read offline.access',
+      userId
+    });
+
     return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
+  }
+
+  /**
+   * Get or create user from Telegram ID
+   * @param telegramId - Telegram user ID
+   * @returns UUID of the user
+   */
+  private async getOrCreateUserFromTelegram(telegramId: string): Promise<string> {
+    // Check if user exists with this telegram_id
+    const existingUser = await database.query(
+      `SELECT id FROM users WHERE telegram_id = $1`,
+      [telegramId]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return existingUser.rows[0].id;
+    }
+
+    // Create new user
+    const newUser = await database.query(
+      `INSERT INTO users (email, telegram_id, email_verified)
+       VALUES ($1, $2, false)
+       RETURNING id`,
+      [`telegram_${telegramId}@temp.local`, telegramId]
+    );
+
+    logger.info('Created user from Telegram ID', { telegramId });
+    return newUser.rows[0].id;
   }
 
   /**
@@ -101,6 +136,16 @@ export class OAuth2Service {
     this.stateStore.delete(state);
 
     try {
+      // Get or create user UUID from Telegram ID (if userId is not a UUID)
+      let userUuid = oauthState.userId;
+      // Check if userId is a Telegram ID (numeric string) instead of UUID
+      if (/^\d+$/.test(oauthState.userId)) {
+        userUuid = await this.getOrCreateUserFromTelegram(oauthState.userId);
+        logger.info('Converted Telegram ID to user UUID', { 
+          telegramId: oauthState.userId, 
+          userUuid 
+        });
+      }
       // Exchange code for access token
       const tokenResponse = await axios.post(
         'https://api.twitter.com/2/oauth2/token',
@@ -153,7 +198,7 @@ export class OAuth2Service {
       const existingAccount = await database.query(
         `SELECT id FROM platform_credentials
          WHERE user_id = $1 AND platform = 'twitter' AND account_identifier = $2`,
-        [oauthState.userId, accountIdentifier]
+        [userUuid, accountIdentifier]
       );
 
       if (existingAccount.rows.length > 0) {
@@ -166,7 +211,8 @@ export class OAuth2Service {
         );
 
         logger.info('Twitter account updated', {
-          userId: oauthState.userId,
+          userId: userUuid,
+          telegramId: oauthState.userId,
           accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       } else {
@@ -175,17 +221,18 @@ export class OAuth2Service {
           `INSERT INTO platform_credentials
            (user_id, platform, account_name, account_identifier, credentials, is_active)
            VALUES ($1, 'twitter', $2, $3, $4, true)`,
-          [oauthState.userId, accountName, accountIdentifier, encryptedCredentials]
+          [userUuid, accountName, accountIdentifier, encryptedCredentials]
         );
 
         logger.info('Twitter account connected', {
-          userId: oauthState.userId,
+          userId: userUuid,
+          telegramId: oauthState.userId,
           accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       }
 
       return {
-        userId: oauthState.userId,
+        userId: userUuid,
         returnUrl: oauthState.returnUrl,
         accountInfo: {
           name: accountName,
