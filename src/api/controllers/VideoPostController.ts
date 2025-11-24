@@ -13,8 +13,6 @@ import { multiPlatformPublishService } from '../../services/MultiPlatformPublish
 import multer from 'multer';
 import path from 'path';
 
-const multiPlatformPublishService = new MultiPlatformPublishService();
-
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
