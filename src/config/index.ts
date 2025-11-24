@@ -1,6 +1,6 @@
-
 import dotenv from 'dotenv';
-dotenv.config();
+// Override system environment variables with .env file
+dotenv.config({ override: true });
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
@@ -144,10 +144,4 @@ if (config.env === 'production') {
     process.exit(1);
   }
 }
-
-if (!config.ai || !config.ai.grok) {
-  console.error('FATAL: config.ai or config.ai.grok is undefined!');
-  process.exit(1);
-}
-console.log('DEBUG: Loaded config:', JSON.stringify(config, null, 2));
 
