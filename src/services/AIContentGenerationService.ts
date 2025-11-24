@@ -38,16 +38,21 @@ export class AIContentGenerationService {
   private enabled: boolean;
 
   constructor() {
-    logger.error('DEBUG: FULL config =', JSON.stringify(config, null, 2));
-    logger.error('DEBUG: process.env.XAI_API_KEY =', String(process.env.XAI_API_KEY));
     if (!config.ai || !config.ai.grok) {
-      logger.error('FATAL: config.ai or config.ai.grok is undefined!');
-      process.exit(1);
+      const errorMsg = 'FATAL: config.ai or config.ai.grok is undefined!';
+      logger.error(errorMsg);
+      throw new Error(errorMsg);
     }
     this.apiKey = config.ai.grok.apiKey || '';
     this.baseUrl = config.ai.grok.baseURL || 'https://api.x.ai/v1';
     this.model = config.ai.grok.model || 'grok-beta';
     this.enabled = config.ai.grok.enabled || false;
+
+    logger.info('AIContentGenerationService initialized', {
+      enabled: this.enabled,
+      model: this.model,
+      hasApiKey: !!this.apiKey
+    });
   }
 
   /**
