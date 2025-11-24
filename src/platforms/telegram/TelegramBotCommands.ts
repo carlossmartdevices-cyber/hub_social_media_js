@@ -16,6 +16,20 @@ export class TelegramBotCommands {
     this.setupCommands();
   }
 
+  /**
+   * Safely answer callback query without throwing errors
+   * Prevents "query is too old" errors from being logged
+   */
+  private async safeAnswerCbQuery(ctx: any, text?: string): Promise<void> {
+    try {
+      await ctx.answerCbQuery(text);
+    } catch (error: any) {
+      // Silently ignore callback query errors (query too old, invalid, etc.)
+      // These are expected and don't affect functionality
+      logger.debug('Callback query answer failed (expected):', error.message);
+    }
+  }
+
   private setupCommands() {
     // Start command
     this.bot.command('start', (ctx) => {
@@ -184,6 +198,7 @@ export class TelegramBotCommands {
     // X Accounts Management - List all X accounts
     this.bot.command('xaccounts', async (ctx) => {
       try {
+<<<<<<< HEAD
           const userId = ctx.from?.id;
           if (!userId) {
             ctx.reply('❌ Unable to identify user');
@@ -199,6 +214,24 @@ export class TelegramBotCommands {
             );
             return;
           }
+=======
+        const userId = ctx.from?.id.toString();
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
+
+        if (accounts.length === 0) {
+          ctx.reply(
+            'You don\'t have any X accounts configured yet.\n\n' +
+            'Use /addxaccount to add your first X account!',
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
 
         let message = '🐦 *Your X (Twitter) Accounts*\n\n';
         const keyboard: any[][] = [];
@@ -252,16 +285,50 @@ export class TelegramBotCommands {
     // Set default X account
     this.bot.command('setdefaultx', async (ctx) => {
       try {
+<<<<<<< HEAD
           const userId = ctx.from?.id;
           if (!userId) {
             ctx.reply('❌ Unable to identify user');
             return;
+=======
+        const userId = ctx.from?.id.toString();
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
+
+        if (accounts.length === 0) {
+          ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
+          return;
+        }
+
+        if (accounts.length === 1) {
+          ctx.reply('ℹ️ You only have one X account, and it\'s already the default.');
+          return;
+        }
+
+        const keyboard = accounts.map(account => ([
+          {
+            text: `${account.accountName} (@${account.accountIdentifier})`,
+            callback_data: `set_default_x_${account.id}`
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
           }
           const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
+<<<<<<< HEAD
           if (accounts.length === 0) {
             ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
             return;
+=======
+        ctx.reply(
+          '🐦 *Set Default X Account*\n\n' +
+          'Select which account should be the default for posting:',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboard }
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
           }
 
           if (accounts.length === 1) {
@@ -290,6 +357,7 @@ export class TelegramBotCommands {
     // Delete X account
     this.bot.command('deletexaccount', async (ctx) => {
       try {
+<<<<<<< HEAD
           const userId = ctx.from?.id;
           if (!userId) {
             ctx.reply('❌ Unable to identify user');
@@ -300,6 +368,36 @@ export class TelegramBotCommands {
           if (accounts.length === 0) {
             ctx.reply('❌ You don\'t have any X accounts to delete.');
             return;
+=======
+        const userId = ctx.from?.id.toString();
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId, 'twitter');
+
+        if (accounts.length === 0) {
+          ctx.reply('❌ You don\'t have any X accounts to delete.');
+          return;
+        }
+
+        const keyboard = accounts.map(account => ([
+          {
+            text: `${account.accountName} (@${account.accountIdentifier})`,
+            callback_data: `delete_x_${account.id}`
+          }
+        ]));
+        keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
+
+        ctx.reply(
+          '🐦 *Delete X Account*\n\n' +
+          '⚠️ *Warning:* This action cannot be undone.\n\n' +
+          'Select the account you want to delete:',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboard }
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
           }
 
           const keyboard = accounts.map(account => ([
@@ -334,6 +432,7 @@ export class TelegramBotCommands {
 
     // Handle inline keyboard callbacks
     this.bot.action('stats', async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
         ctx.reply(
@@ -397,11 +496,51 @@ export class TelegramBotCommands {
           logger.error('Error in settings callback:', error);
         }
       }
+=======
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📊 *Statistics*\n\n' +
+        'Total Posts: 0\n' +
+        'Platforms: Twitter, Instagram, Facebook\n' +
+        'Engagement Rate: N/A',
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    this.bot.action('new_post', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📝 *Create New Post*\n\n' +
+        'Please use the web dashboard to create and schedule posts.\n\n' +
+        'Dashboard: https://yourdomain.com/posts/new',
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    this.bot.action('list_posts', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📅 *Scheduled Posts*\n\n' +
+        'You have 0 scheduled posts.\n\n' +
+        'View in dashboard: https://yourdomain.com/posts',
+        { parse_mode: 'Markdown' }
+      );
+    });
+
+    this.bot.action('settings', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '⚙️ *Settings*\n\n' +
+        'Configure your settings in the web dashboard.\n\n' +
+        'Settings: https://yourdomain.com/settings',
+        { parse_mode: 'Markdown' }
+      );
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
     });
 
     // Contact Support callback
-    this.bot.action('contact_support', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('contact_support', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '💬 *Contact Support*\n\n' +
         'Need help? Our support team is here for you!\n\n' +
@@ -436,8 +575,8 @@ export class TelegramBotCommands {
     });
 
     // Open support ticket callback
-    this.bot.action('open_support_ticket', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('open_support_ticket', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       const userId = ctx.from?.id;
       const username = ctx.from?.username;
 
@@ -458,8 +597,8 @@ export class TelegramBotCommands {
     });
 
     // Back to menu callback
-    this.bot.action('back_to_menu', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('back_to_menu', async (ctx) => {
+      await this.safeAnswerCbQuery(ctx);
       ctx.reply(
         '📋 *Main Menu*\n\n' +
         'What would you like to do?',
@@ -487,6 +626,14 @@ export class TelegramBotCommands {
 
     // X Accounts callback - show accounts list
     this.bot.action('x_accounts', async (ctx) => {
+<<<<<<< HEAD
+=======
+      await this.safeAnswerCbQuery(ctx);
+      // Trigger the /xaccounts command logic
+      const userId = ctx.from?.id.toString();
+      if (!userId) return;
+
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
       try {
         await ctx.answerCbQuery();
       } catch (error: any) {
@@ -540,6 +687,7 @@ export class TelegramBotCommands {
 
     // Add X account callback
     this.bot.action('add_x_account', async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
       } catch (error: any) {
@@ -548,6 +696,9 @@ export class TelegramBotCommands {
         }
       }
       
+=======
+      await this.safeAnswerCbQuery(ctx);
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
       const userId = ctx.from?.id;
       if (!userId) return;
 
@@ -563,6 +714,7 @@ export class TelegramBotCommands {
 
     // Set default account callback
     this.bot.action(/^default_x_(.+)$/, async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
       } catch (error: any) {
@@ -571,6 +723,9 @@ export class TelegramBotCommands {
         }
       }
       
+=======
+      await this.safeAnswerCbQuery(ctx);
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -595,6 +750,7 @@ export class TelegramBotCommands {
 
     // Delete account callback
     this.bot.action(/^delete_x_(.+)$/, async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
       } catch (error: any) {
@@ -603,6 +759,9 @@ export class TelegramBotCommands {
         }
       }
       
+=======
+      await this.safeAnswerCbQuery(ctx);
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -632,6 +791,7 @@ export class TelegramBotCommands {
 
     // Confirm delete callback
     this.bot.action(/^confirm_delete_x_(.+)$/, async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
       } catch (error: any) {
@@ -640,6 +800,9 @@ export class TelegramBotCommands {
         }
       }
       
+=======
+      await this.safeAnswerCbQuery(ctx);
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -664,6 +827,7 @@ export class TelegramBotCommands {
 
     // Cancel delete callback
     this.bot.action('cancel_delete', async (ctx) => {
+<<<<<<< HEAD
       try {
         await ctx.answerCbQuery();
         ctx.reply('✅ Deletion cancelled.');
@@ -672,6 +836,10 @@ export class TelegramBotCommands {
           logger.error('Error in cancel_delete callback:', error);
         }
       }
+=======
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply('✅ Deletion cancelled.');
+>>>>>>> 63600e78f6c9ec75bae936968c720d09f6085783
     });
 
     // Handle text messages - including multi-step account creation
