@@ -36,7 +36,8 @@ export class TelegramBotCommands {
       ctx.reply(
         '👋 Welcome to PNPTV Social Media Hub!\n\n' +
         'Manage your content across multiple social media platforms with AI-powered tools.\n\n' +
-        '📱 *Account Management:*\n' +
+        '📱 *Quick Access:*\n' +
+        '/menu - Open main menu\n' +
         '/xaccounts - Manage your X (Twitter) accounts\n' +
         '/help - Show all commands\n\n' +
         '📝 *Content:*\n' +
@@ -70,17 +71,23 @@ export class TelegramBotCommands {
     this.bot.command('help', (ctx) => {
       ctx.reply(
         '📖 *PNPTV Social Media Hub Help*\n\n' +
+        '*Navigation:*\n' +
+        '/start - Start the bot and view welcome message\n' +
+        '/menu - Open main menu with quick actions\n' +
+        '/help - Show this help message\n\n' +
         '*Account Management:*\n' +
         '/xaccounts - View all your X (Twitter) accounts\n' +
         '/addxaccount - Add a new X account\n' +
         '/setdefaultx - Set default X account\n' +
         '/deletexaccount - Delete an X account\n\n' +
         '*Content Management:*\n' +
-        '/start - Start the bot\n' +
-        '/status - Check system status\n' +
-        '/schedule - Access web dashboard for scheduling\n' +
-        '/list - View scheduled posts\n' +
-        '/stats - View statistics\n\n' +
+        '/schedule - Schedule a new post\n' +
+        '/list - List scheduled posts\n' +
+        '/stats - View statistics\n' +
+        '/status - Check system status\n\n' +
+        '*Support:*\n' +
+        '/cancel - Cancel current operation\n' +
+        'Use /menu → Contact Support to get help\n\n' +
         '*Features:*\n' +
         '• Multiple X (Twitter) accounts\n' +
         '• Multi-platform posting (X, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram)\n' +
@@ -167,21 +174,21 @@ export class TelegramBotCommands {
     // X Accounts Management - List all X accounts
     this.bot.command('xaccounts', async (ctx) => {
       try {
-          const userId = ctx.from?.id;
-          if (!userId) {
-            ctx.reply('❌ Unable to identify user');
-            return;
-          }
-          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+        const userId = ctx.from?.id;
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
-          if (accounts.length === 0) {
-            ctx.reply(
-              'You don\'t have any X accounts configured yet.\n\n' +
-              'Use /addxaccount to add your first X account!',
-              { parse_mode: 'Markdown' }
-            );
-            return;
-          }
+        if (accounts.length === 0) {
+          ctx.reply(
+            'You don\'t have any X accounts configured yet.\n\n' +
+            'Use /addxaccount to add your first X account!',
+            { parse_mode: 'Markdown' }
+          );
+          return;
+        }
 
         let message = '🐦 *Your X (Twitter) Accounts*\n\n';
         const keyboard: any[][] = [];
@@ -257,35 +264,39 @@ export class TelegramBotCommands {
     // Set default X account
     this.bot.command('setdefaultx', async (ctx) => {
       try {
-          const userId = ctx.from?.id;
-          if (!userId) {
-            ctx.reply('❌ Unable to identify user');
-            return;
+        const userId = ctx.from?.id;
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+
+        if (accounts.length === 0) {
+          ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
+          return;
+        }
+
+        if (accounts.length === 1) {
+          ctx.reply('ℹ️ You only have one X account, and it\'s already the default.');
+          return;
+        }
+
+        const keyboard = accounts.map(account => ([
+          {
+            text: `${account.accountName} (@${account.accountIdentifier})`,
+            callback_data: `set_default_x_${account.id}`
           }
-          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+        ]));
 
-          if (accounts.length === 0) {
-            ctx.reply('❌ You don\'t have any X accounts. Use /addxaccount first.');
-            return;
+        ctx.reply(
+          '🐦 *Set Default X Account*\n\n' +
+          'Select which account should be the default for posting:',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboard }
           }
-
-          if (accounts.length === 1) {
-            ctx.reply('ℹ️ You only have one X account, and it\'s already the default.');
-            return;
-          }
-
-          const keyboard = accounts.map(account => ([
-            { text: account.accountName, callback_data: `set_default_x_${account.id}` }
-          ]));
-
-          ctx.reply(
-            '🐦 *Set Default X Account*\n\n' +
-            'Select which account should be the default for posting:',
-            {
-              parse_mode: 'Markdown',
-              reply_markup: { inline_keyboard: keyboard }
-            }
-          );
+        );
       } catch (error: any) {
         logger.error('Error in setdefaultx command:', error);
         ctx.reply('❌ Error. Please try again later.');
@@ -295,31 +306,35 @@ export class TelegramBotCommands {
     // Delete X account
     this.bot.command('deletexaccount', async (ctx) => {
       try {
-          const userId = ctx.from?.id;
-          if (!userId) {
-            ctx.reply('❌ Unable to identify user');
-            return;
-          }
-          const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
+        const userId = ctx.from?.id;
+        if (!userId) {
+          ctx.reply('❌ Unable to identify user');
+          return;
+        }
+        const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
 
-          if (accounts.length === 0) {
-            ctx.reply('❌ You don\'t have any X accounts to delete.');
-            return;
-          }
+        if (accounts.length === 0) {
+          ctx.reply('❌ You don\'t have any X accounts to delete.');
+          return;
+        }
 
-          const keyboard = accounts.map(account => ([
-            { text: account.accountName, callback_data: `delete_x_${account.id}` }
-          ]));
-          keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
-          ctx.reply(
-            '🐦 *Delete X Account*\n\n' +
-            '⚠️ *Warning:* This action cannot be undone.\n\n' +
-            'Select the account you want to delete:',
-            {
-              parse_mode: 'Markdown',
-              reply_markup: { inline_keyboard: keyboard }
-            }
-          );
+        const keyboard = accounts.map(account => ([
+          {
+            text: `${account.accountName} (@${account.accountIdentifier})`,
+            callback_data: `delete_x_${account.id}`
+          }
+        ]));
+        keyboard.push([{ text: '❌ Cancel', callback_data: 'cancel_delete' }]);
+
+        ctx.reply(
+          '🐦 *Delete X Account*\n\n' +
+          '⚠️ *Warning:* This action cannot be undone.\n\n' +
+          'Select the account you want to delete:',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: { inline_keyboard: keyboard }
+          }
+        );
       } catch (error: any) {
         logger.error('Error in deletexaccount command:', error);
         ctx.reply('❌ Error. Please try again later.');
@@ -339,69 +354,44 @@ export class TelegramBotCommands {
 
     // Handle inline keyboard callbacks
     this.bot.action('stats', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-        ctx.reply(
-          '📊 *Statistics*\n\n' +
-          'View detailed analytics and performance metrics in the dashboard.\n\n' +
-          'Platforms: X (Twitter), Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram\n\n' +
-          '📈 Analytics: https://pnptv.app/analytics',
-          { parse_mode: 'Markdown' }
-        );
-      } catch (error: any) {
-        // Ignore callback query timeout errors
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error in stats callback:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📊 *Statistics*\n\n' +
+        'View detailed analytics and performance metrics in the dashboard.\n\n' +
+        'Platforms: X (Twitter), Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram\n\n' +
+        '📈 Analytics: https://pnptv.app/analytics',
+        { parse_mode: 'Markdown' }
+      );
     });
 
     this.bot.action('new_post', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-        ctx.reply(
-          '📝 *Create New Post*\n\n' +
-          'Use the web dashboard to create and schedule posts with AI assistance.\n\n' +
-          '🌐 Dashboard: https://pnptv.app/posts/create',
-          { parse_mode: 'Markdown' }
-        );
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error in new_post callback:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📝 *Create New Post*\n\n' +
+        'Use the web dashboard to create and schedule posts with AI assistance.\n\n' +
+        '🌐 Dashboard: https://pnptv.app/posts/new',
+        { parse_mode: 'Markdown' }
+      );
     });
 
     this.bot.action('list_posts', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-        ctx.reply(
-          '📅 *Scheduled Posts*\n\n' +
-          'View and manage your scheduled posts in the dashboard.\n\n' +
-          '📅 Calendar: https://pnptv.app/calendar',
-          { parse_mode: 'Markdown' }
-        );
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error in list_posts callback:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '📅 *Scheduled Posts*\n\n' +
+        'View and manage your scheduled posts in the dashboard.\n\n' +
+        '🌐 Dashboard: https://pnptv.app/posts',
+        { parse_mode: 'Markdown' }
+      );
     });
 
     this.bot.action('settings', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-        ctx.reply(
-          '⚙️ *Settings*\n\n' +
-          'Configure your account and platform settings in the dashboard.\n\n' +
-          '🌐 Settings: https://pnptv.app/settings',
-          { parse_mode: 'Markdown' }
-        );
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error in settings callback:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply(
+        '⚙️ *Settings*\n\n' +
+        'Configure your account and platform settings in the dashboard.\n\n' +
+        '🌐 Settings: https://pnptv.app/settings',
+        { parse_mode: 'Markdown' }
+      );
     });
 
     // Contact Support callback
@@ -492,16 +482,10 @@ export class TelegramBotCommands {
 
     // X Accounts callback - show accounts list
     this.bot.action('x_accounts', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error answering callback query:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
       // Trigger the /xaccounts command logic
-        const userId = ctx.from?.id;
-        if (!userId) return;
+      const userId = ctx.from?.id;
+      if (!userId) return;
 
         try {
           const accounts = await platformAccountService.getUserPlatformAccounts(userId.toString(), 'twitter');
@@ -545,14 +529,7 @@ export class TelegramBotCommands {
 
     // Add X account callback
     this.bot.action('add_x_account', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error answering callback query:', error);
-        }
-      }
-      
+      await this.safeAnswerCbQuery(ctx);
       const userId = ctx.from?.id;
       if (!userId) return;
 
@@ -568,14 +545,7 @@ export class TelegramBotCommands {
 
     // Set default account callback
     this.bot.action(/^default_x_(.+)$/, async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error answering callback query:', error);
-        }
-      }
-      
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -600,14 +570,7 @@ export class TelegramBotCommands {
 
     // Delete account callback
     this.bot.action(/^delete_x_(.+)$/, async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error answering callback query:', error);
-        }
-      }
-      
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -637,14 +600,7 @@ export class TelegramBotCommands {
 
     // Confirm delete callback
     this.bot.action(/^confirm_delete_x_(.+)$/, async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error answering callback query:', error);
-        }
-      }
-      
+      await this.safeAnswerCbQuery(ctx);
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -669,14 +625,8 @@ export class TelegramBotCommands {
 
     // Cancel delete callback
     this.bot.action('cancel_delete', async (ctx) => {
-      try {
-        await ctx.answerCbQuery();
-        ctx.reply('✅ Deletion cancelled.');
-      } catch (error: any) {
-        if (!error.message?.includes('query is too old')) {
-          logger.error('Error in cancel_delete callback:', error);
-        }
-      }
+      await this.safeAnswerCbQuery(ctx);
+      ctx.reply('✅ Deletion cancelled.');
     });
 
     // Handle text messages - including multi-step account creation

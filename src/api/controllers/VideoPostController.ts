@@ -8,8 +8,8 @@ import { geoBlockingService } from '../../services/GeoBlockingService';
 import { twitterVideoAdapter } from '../../platforms/twitter/TwitterVideoAdapter';
 import { MediaType } from '../../core/content/types';
 import aiContentGenerationService from '../../services/AIContentGenerationService';
-import EncryptionService from '../../utils/encryption';
-import { MultiPlatformPublishService } from '../../services/MultiPlatformPublishService';
+import { EncryptionService } from '../../utils/encryption';
+import { multiPlatformPublishService } from '../../services/MultiPlatformPublishService';
 import multer from 'multer';
 import path from 'path';
 
