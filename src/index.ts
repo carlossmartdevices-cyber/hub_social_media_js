@@ -30,28 +30,18 @@ async function startServer() {
     });
 
     // ...existing code...
-    // Initialize Telegram bot BEFORE starting server (webhook needs to be registered before server starts)
+    // Initialize Telegram bot (webhook will be set up after server starts)
     if (config.platforms.telegram.botToken) {
       try {
         const bot = new Telegraf(config.platforms.telegram.botToken);
         telegramBot = new TelegramBotCommands(bot);
 
-        // Usa webhook si está habilitado en la config
-        if (config.platforms.telegram.useWebhook && config.platforms.telegram.webhookUrl) {
-          try {
-            const webhookUrl = `${config.platforms.telegram.webhookUrl}${config.platforms.telegram.webhookPath}`;
-            await telegramBot.setupWebhook(
-              webhookUrl,
-              config.platforms.telegram.webhookSecret || undefined
-            );
-            logger.info('Telegram bot webhook configurado correctamente');
-          } catch (error) {
-            logger.error('Error al configurar el webhook de Telegram:', error);
-            logger.warn('El bot no recibirá actualizaciones por webhook');
-          }
-        } else {
+        // Only start polling if webhook is not enabled
+        if (!config.platforms.telegram.useWebhook) {
           await telegramBot.startPolling();
           logger.info('Telegram bot inicializado en modo polling');
+        } else {
+          logger.info('Telegram bot initialized, waiting for server to start before setting up webhook');
         }
       } catch (error) {
         logger.error('Failed to start Telegram bot:', error);
