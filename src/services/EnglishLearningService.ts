@@ -72,10 +72,10 @@ SPECIALIZED KNOWLEDGE BASE FOR ADULT CONTENT CREATORS:
 `;
 
   constructor() {
-    this.apiKey = config.xai.apiKey || '';
-    this.baseUrl = config.xai.baseUrl || 'https://api.x.ai/v1';
-    this.model = config.xai.model || 'grok-beta';
-    this.enabled = config.xai.enabled || false;
+    this.apiKey = config.ai.grok.apiKey || '';
+    this.baseUrl = config.ai.grok.baseURL || 'https://api.x.ai/v1';
+    this.model = config.ai.grok.model || 'grok-beta';
+    this.enabled = config.ai.grok.enabled || false;
   }
 
   /**
