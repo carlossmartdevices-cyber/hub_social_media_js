@@ -20,15 +20,15 @@ export class TelegramBotCommands {
     // Start command
     this.bot.command('start', (ctx) => {
       ctx.reply(
-        '👋 Welcome to Social Media Content Hub Bot!\n\n' +
-        'I can help you manage your content across multiple social media platforms.\n\n' +
+        '👋 Welcome to PNPTV Social Media Hub!\n\n' +
+        'Manage your content across multiple social media platforms with AI-powered tools.\n\n' +
         '📱 *Account Management:*\n' +
         '/xaccounts - Manage your X (Twitter) accounts\n' +
         '/addxaccount - Add a new X account\n\n' +
         '📝 *Content:*\n' +
-        '/schedule - Schedule a new post\n' +
-        '/list - List your scheduled posts\n' +
-        '/stats - View your posting statistics\n\n' +
+        '/schedule - Schedule posts via web dashboard\n' +
+        '/list - View scheduled posts\n' +
+        '/stats - View posting statistics\n\n' +
         '⚙️ *System:*\n' +
         '/help - Show detailed help\n' +
         '/status - Check bot status',
@@ -53,7 +53,7 @@ export class TelegramBotCommands {
     // Help command
     this.bot.command('help', (ctx) => {
       ctx.reply(
-        '📖 *Content Hub Bot Help*\n\n' +
+        '📖 *PNPTV Social Media Hub Help*\n\n' +
         '*Account Management:*\n' +
         '/xaccounts - View all your X (Twitter) accounts\n' +
         '/addxaccount - Add a new X account\n' +
@@ -62,17 +62,18 @@ export class TelegramBotCommands {
         '*Content Management:*\n' +
         '/start - Start the bot\n' +
         '/status - Check system status\n' +
-        '/schedule - Schedule a new post\n' +
-        '/list - List scheduled posts\n' +
-        '/cancel <id> - Cancel a scheduled post\n' +
+        '/schedule - Access web dashboard for scheduling\n' +
+        '/list - View scheduled posts\n' +
         '/stats - View statistics\n\n' +
         '*Features:*\n' +
         '• Multiple X (Twitter) accounts\n' +
-        '• Multi-platform posting (Instagram, Facebook, etc.)\n' +
-        '• Post scheduling\n' +
+        '• Multi-platform posting (X, Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram)\n' +
+        '• AI-powered content generation (XAI Grok)\n' +
+        '• Post scheduling and automation\n' +
         '• Analytics and statistics\n' +
-        '• Media support (images, videos)\n\n' +
-        'Need more help? Contact support.',
+        '• Video & image support\n\n' +
+        'Web Dashboard: https://pnptv.app\n' +
+        'Need help? Contact support at https://pnptv.app',
         { parse_mode: 'Markdown' }
       );
     });
@@ -94,9 +95,9 @@ export class TelegramBotCommands {
     this.bot.command('schedule', (ctx) => {
       ctx.reply(
         '📝 *Schedule a New Post*\n\n' +
-        'To schedule a post, please use the web dashboard or API.\n\n' +
-        'Web Dashboard: https://yourdomain.com\n' +
-        'API Docs: https://yourdomain.com/api-docs',
+        'To schedule a post, please use the web dashboard.\n\n' +
+        '🌐 Web Dashboard: https://pnptv.app\n' +
+        '📚 API Docs: https://pnptv.app/api-docs',
         { parse_mode: 'Markdown' }
       );
     });
@@ -106,7 +107,7 @@ export class TelegramBotCommands {
       ctx.reply(
         '📅 *Your Scheduled Posts*\n\n' +
         'To view your scheduled posts, please use the web dashboard.\n\n' +
-        'Dashboard: https://yourdomain.com/posts',
+        '🌐 Dashboard: https://pnptv.app/posts',
         { parse_mode: 'Markdown' }
       );
     });
@@ -115,11 +116,9 @@ export class TelegramBotCommands {
     this.bot.command('stats', (ctx) => {
       ctx.reply(
         '📊 *Your Statistics*\n\n' +
-        'Total Posts: 0\n' +
-        'Scheduled: 0\n' +
-        'Published Today: 0\n\n' +
-        'View detailed statistics in the web dashboard.\n\n' +
-        'Dashboard: https://yourdomain.com/analytics',
+        'View detailed statistics and analytics in the web dashboard.\n\n' +
+        '📈 Analytics Dashboard: https://pnptv.app/analytics\n' +
+        '📊 Metrics & Reports: https://pnptv.app/metrics',
         { parse_mode: 'Markdown' }
       );
     });
@@ -276,50 +275,81 @@ export class TelegramBotCommands {
     });
 
     // Handle inline keyboard callbacks
-    this.bot.action('stats', (ctx) => {
-      ctx.answerCbQuery();
-      ctx.reply(
-        '📊 *Statistics*\n\n' +
-        'Total Posts: 0\n' +
-        'Platforms: Twitter, Instagram, Facebook\n' +
-        'Engagement Rate: N/A',
-        { parse_mode: 'Markdown' }
-      );
+    this.bot.action('stats', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        ctx.reply(
+          '📊 *Statistics*\n\n' +
+          'View detailed analytics and performance metrics in the dashboard.\n\n' +
+          'Platforms: X (Twitter), Instagram, Facebook, LinkedIn, YouTube, TikTok, Telegram\n\n' +
+          '📈 Analytics: https://pnptv.app/analytics',
+          { parse_mode: 'Markdown' }
+        );
+      } catch (error: any) {
+        // Ignore callback query timeout errors
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error in stats callback:', error);
+        }
+      }
     });
 
-    this.bot.action('new_post', (ctx) => {
-      ctx.answerCbQuery();
-      ctx.reply(
-        '📝 *Create New Post*\n\n' +
-        'Please use the web dashboard to create and schedule posts.\n\n' +
-        'Dashboard: https://yourdomain.com/posts/new',
-        { parse_mode: 'Markdown' }
-      );
+    this.bot.action('new_post', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        ctx.reply(
+          '📝 *Create New Post*\n\n' +
+          'Use the web dashboard to create and schedule posts with AI assistance.\n\n' +
+          '🌐 Dashboard: https://pnptv.app/posts/new',
+          { parse_mode: 'Markdown' }
+        );
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error in new_post callback:', error);
+        }
+      }
     });
 
-    this.bot.action('list_posts', (ctx) => {
-      ctx.answerCbQuery();
-      ctx.reply(
-        '📅 *Scheduled Posts*\n\n' +
-        'You have 0 scheduled posts.\n\n' +
-        'View in dashboard: https://yourdomain.com/posts',
-        { parse_mode: 'Markdown' }
-      );
+    this.bot.action('list_posts', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        ctx.reply(
+          '📅 *Scheduled Posts*\n\n' +
+          'View and manage your scheduled posts in the dashboard.\n\n' +
+          '🌐 Dashboard: https://pnptv.app/posts',
+          { parse_mode: 'Markdown' }
+        );
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error in list_posts callback:', error);
+        }
+      }
     });
 
-    this.bot.action('settings', (ctx) => {
-      ctx.answerCbQuery();
-      ctx.reply(
-        '⚙️ *Settings*\n\n' +
-        'Configure your settings in the web dashboard.\n\n' +
-        'Settings: https://yourdomain.com/settings',
-        { parse_mode: 'Markdown' }
-      );
+    this.bot.action('settings', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        ctx.reply(
+          '⚙️ *Settings*\n\n' +
+          'Configure your account and platform settings in the dashboard.\n\n' +
+          '🌐 Settings: https://pnptv.app/settings',
+          { parse_mode: 'Markdown' }
+        );
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error in settings callback:', error);
+        }
+      }
     });
 
     // X Accounts callback - show accounts list
     this.bot.action('x_accounts', async (ctx) => {
-      ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error answering callback query:', error);
+        }
+      }
       // Trigger the /xaccounts command logic
         const userId = ctx.from?.id;
         if (!userId) return;
@@ -365,8 +395,15 @@ export class TelegramBotCommands {
     });
 
     // Add X account callback
-    this.bot.action('add_x_account', (ctx) => {
-      ctx.answerCbQuery();
+    this.bot.action('add_x_account', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error answering callback query:', error);
+        }
+      }
+      
       const userId = ctx.from?.id;
       if (!userId) return;
 
@@ -382,7 +419,14 @@ export class TelegramBotCommands {
 
     // Set default account callback
     this.bot.action(/^default_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error answering callback query:', error);
+        }
+      }
+      
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -407,7 +451,14 @@ export class TelegramBotCommands {
 
     // Delete account callback
     this.bot.action(/^delete_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error answering callback query:', error);
+        }
+      }
+      
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -437,7 +488,14 @@ export class TelegramBotCommands {
 
     // Confirm delete callback
     this.bot.action(/^confirm_delete_x_(.+)$/, async (ctx) => {
-      ctx.answerCbQuery();
+      try {
+        await ctx.answerCbQuery();
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error answering callback query:', error);
+        }
+      }
+      
       const accountId = ctx.match?.[1];
       const userId = ctx.from?.id.toString();
 
@@ -461,9 +519,15 @@ export class TelegramBotCommands {
     });
 
     // Cancel delete callback
-    this.bot.action('cancel_delete', (ctx) => {
-      ctx.answerCbQuery();
-      ctx.reply('✅ Deletion cancelled.');
+    this.bot.action('cancel_delete', async (ctx) => {
+      try {
+        await ctx.answerCbQuery();
+        ctx.reply('✅ Deletion cancelled.');
+      } catch (error: any) {
+        if (!error.message?.includes('query is too old')) {
+          logger.error('Error in cancel_delete callback:', error);
+        }
+      }
     });
 
     // Handle text messages - including multi-step account creation
