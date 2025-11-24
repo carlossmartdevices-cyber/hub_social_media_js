@@ -262,24 +262,46 @@ export class TelegramBotCommands {
       }
     });
 
-    // Add X Account
-    this.bot.command('addxaccount', (ctx) => {
+    // Add X Account - OAuth2 Flow
+    this.bot.command('addxaccount', async (ctx) => {
       const userId = ctx.from?.id;
       if (!userId) {
         ctx.reply('❌ Unable to identify user');
         return;
       }
 
-      // Initialize state for this user
-      this.userStates.set(userId, { step: 'account_name', platform: 'twitter' });
+      try {
+        // Generate OAuth URL
+        const { config } = await import('../../config');
+        const authUrl = `${config.apiUrl}/api/oauth/twitter/authorize?userId=${userId}&returnUrl=${encodeURIComponent('/telegram-success')}`;
 
-      ctx.reply(
-        '🐦 *Add New X (Twitter) Account*\n\n' +
-        'Step 1/6: What would you like to name this account?\n' +
-        '(e.g., "Personal", "Business", "Marketing")\n\n' +
-        'Type your answer or /cancel to abort.',
-        { parse_mode: 'Markdown' }
-      );
+        ctx.reply(
+          '🐦 *Add New X (Twitter) Account*\n\n' +
+          '✨ Connect your X account securely with OAuth 2.0!\n\n' +
+          '🔐 *Benefits:*\n' +
+          '• Secure authentication\n' +
+          '• No manual API keys needed\n' +
+          '• Automatic token refresh\n' +
+          '• Connect multiple accounts easily\n\n' +
+          '👉 Click the button below to authorize:',
+          {
+            parse_mode: 'Markdown',
+            reply_markup: {
+              inline_keyboard: [
+                [
+                  { text: '🔗 Connect X Account', url: authUrl }
+                ],
+                [
+                  { text: '❌ Cancel', callback_data: 'cancel_operation' }
+                ]
+              ]
+            }
+          }
+        );
+      } catch (error: any) {
+        logger.error('Error in addxaccount:', error);
+        ctx.reply('❌ Error generating authorization link. Please try again later.');
+      }
     });
 
     // Set default X account
