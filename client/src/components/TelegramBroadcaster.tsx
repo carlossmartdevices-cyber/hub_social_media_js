@@ -26,7 +26,7 @@ export function TelegramBroadcaster() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string>('');
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [telegram FileId, setTelegramFileId] = useState<string>('');
+  const [telegramFileId, setTelegramFileId] = useState<string>('');
 
   const [videoTitle, setVideoTitle] = useState('');
   const [videoDescription, setVideoDescription] = useState('');
