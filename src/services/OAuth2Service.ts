@@ -167,7 +167,7 @@ export class OAuth2Service {
 
         logger.info('Twitter account updated', {
           userId: oauthState.userId,
-          accountIdentifier,
+          accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       } else {
         // Create new account
@@ -180,7 +180,7 @@ export class OAuth2Service {
 
         logger.info('Twitter account connected', {
           userId: oauthState.userId,
-          accountIdentifier,
+          accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       }
 

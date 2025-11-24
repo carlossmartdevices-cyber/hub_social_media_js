@@ -92,6 +92,31 @@ Generate a batch of unique posts in both English and Spanish.
         "links": ["PNPtv.app", "https://t.me/pnptvbot"]
       }
     ],
+    "englishLesson": {
+      "title": "Slang de Fiesta PNP: 'Cloudy', 'Piggy' y más",
+      "explanation": "En estos posts usamos slang gay/PNP que es común en la escena de fiestas. 'Cloudy' significa fumar en grupo, 'piggy' es una persona muy sexual/morbosa, y 'lit' significa increíble o muy bueno.",
+      "examples": [
+        "\"Latino boys getting cloudy\" - Chicos latinos fumando juntos",
+        "\"Piggy vibes all night\" - Energía sexual/morbosa toda la noche"
+      ],
+      "slangTerms": [
+        {
+          "term": "Cloudy/Cloud",
+          "meaning": "Fumar/nublar (sustancia)",
+          "usage": "Ejemplo: We're getting cloudy tonight = Vamos a fumar esta noche"
+        },
+        {
+          "term": "Piggy",
+          "meaning": "Persona muy sexual/morbosa",
+          "usage": "Ejemplo: He's a total piggy = Es muy morboso/sexual"
+        },
+        {
+          "term": "Lit",
+          "meaning": "Increíble/prendido/muy bueno",
+          "usage": "Ejemplo: This party is lit! = ¡Esta fiesta está increíble!"
+        }
+      ]
+    },
     "metadata": {
       "generatedAt": "2025-11-16T10:30:00.000Z",
       "model": "grok-beta",
@@ -245,6 +270,68 @@ Every post includes both links (order varies):
 - https://t.me/pnptvbot
 - PNPtv.app
 
+### English Lessons for Spanish Speakers (NEW!)
+
+**Every AI generation includes educational content!**
+
+After each batch of posts, Grok automatically generates a comprehensive English lesson in Spanish to help Spanish-speaking users understand:
+
+- **Slang terms** used in the posts (piggy, cloudy, slam, etc.)
+- **Cultural context** of LGBTQ+/party terminology
+- **Real examples** from the generated posts
+- **Usage guidelines** for PNPtv brand voice
+- **Pronunciation tips** when helpful
+
+**Example Lesson Structure**:
+
+```markdown
+📚 LECCIÓN DE INGLÉS / ENGLISH LESSON
+
+Slang de Fiesta PNP: 'Cloudy', 'Piggy' y más
+
+✨ Explicación:
+En estos posts usamos slang gay/PNP común en la escena de fiestas...
+
+🎯 Ejemplos de los posts:
+- "Latino boys getting cloudy" - Chicos latinos fumando juntos
+- "Piggy vibes all night" - Energía sexual/morbosa toda la noche
+
+🔥 Slang útil para la marca PNPtv:
+1. Cloudy/Cloud - Fumar/nublar - "Ejemplo: We're getting cloudy tonight"
+2. Piggy - Persona muy sexual/morbosa - "Ejemplo: He's a total piggy"
+3. Lit - Increíble/prendido - "Ejemplo: This party is lit!"
+
+💡 Por qué usamos estas palabras:
+[Explanation of why these terms fit the PNPtv brand]
+
+🌈 Diferencias culturales:
+[Cultural nuances between English and Spanish]
+```
+
+**Common Slang Terms Taught**:
+- **Piggy** (cerdo/morboso) - Very sexual/kinky person
+- **Cloud/Clouding** (fumar/nublar) - Smoking in groups
+- **Slam/Slamming** (inyectar) - Injecting
+- **Kinky** (pervertido/morboso) - Perverted/naughty
+- **Horny** (caliente/cachondo) - Sexually aroused
+- **Trade** (tipo atractivo) - Attractive masculine guy
+- **Vers** (versátil) - Versatile (sexual position)
+- **Twink** (chico joven delgado) - Young, slim guy
+- **Bear** (oso) - Hairy, larger man
+- **Daddy** (papi) - Older, dominant man
+- **Party** (fiesta/sesión) - PNP session
+- **Lit** (increíble/prendido) - Amazing/great
+
+**Why This Feature?**
+
+1. **Educational**: Helps Spanish speakers learn English naturally through context
+2. **Cultural Bridge**: Explains LGBTQ+ party culture terminology
+3. **Brand Consistency**: Ensures users understand the PNPtv voice
+4. **User Requested**: Explains why certain translations were chosen (e.g., "morboso" → "piggy")
+5. **Community Building**: Creates a more informed, engaged audience
+
+The lesson automatically references the actual posts generated, making it contextual and immediately applicable.
+
 ## Architecture
 
 ### AIContentService
@@ -260,6 +347,7 @@ Located at: `src/services/AIContentService.ts`
 **Internal Methods**:
 - `parseGeneratedContent()`: Parse Grok's response into structured format
 - `extractPostDetails()`: Extract text, hashtags, and links from individual posts
+- `extractEnglishLesson()`: Parse the English lesson section for Spanish speakers
 - `createFallbackPosts()`: Provide fallback if parsing fails
 
 ### Configuration
