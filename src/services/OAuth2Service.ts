@@ -87,33 +87,7 @@ export class OAuth2Service {
     return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
   }
 
-  /**
-   * Get or create user from Telegram ID
-   * @param telegramId - Telegram user ID
-   * @returns UUID of the user
-   */
-  private async getOrCreateUserFromTelegram(telegramId: string): Promise<string> {
-    // Check if user exists with this telegram_id
-    const existingUser = await database.query(
-      `SELECT id FROM users WHERE telegram_id = $1`,
-      [telegramId]
-    );
 
-    if (existingUser.rows.length > 0) {
-      return existingUser.rows[0].id;
-    }
-
-    // Create new user
-    const newUser = await database.query(
-      `INSERT INTO users (email, telegram_id, email_verified)
-       VALUES ($1, $2, false)
-       RETURNING id`,
-      [`telegram_${telegramId}@temp.local`, telegramId]
-    );
-
-    logger.info('Created user from Telegram ID', { telegramId });
-    return newUser.rows[0].id;
-  }
 
   /**
    * Handle Twitter OAuth 2.0 callback
@@ -136,16 +110,9 @@ export class OAuth2Service {
     this.stateStore.delete(state);
 
     try {
-      // Get or create user UUID from Telegram ID (if userId is not a UUID)
-      let userUuid = oauthState.userId;
-      // Check if userId is a Telegram ID (numeric string) instead of UUID
-      if (/^\d+$/.test(oauthState.userId)) {
-        userUuid = await this.getOrCreateUserFromTelegram(oauthState.userId);
-        logger.info('Converted Telegram ID to user UUID', { 
-          telegramId: oauthState.userId, 
-          userUuid 
-        });
-      }
+      // Use the user UUID directly from OAuth state
+      const userUuid = oauthState.userId;
+      
       // Exchange code for access token
       const tokenResponse = await axios.post(
         'https://api.twitter.com/2/oauth2/token',
@@ -212,7 +179,6 @@ export class OAuth2Service {
 
         logger.info('Twitter account updated', {
           userId: userUuid,
-          telegramId: oauthState.userId,
           accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       } else {
@@ -226,7 +192,6 @@ export class OAuth2Service {
 
         logger.info('Twitter account connected', {
           userId: userUuid,
-          telegramId: oauthState.userId,
           accountIdentifier: accountIdentifier.substring(0, 3) + '***',
         });
       }

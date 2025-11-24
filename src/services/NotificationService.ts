@@ -70,6 +70,31 @@ export class NotificationService {
   }
 
   /**
+   * Send a direct Telegram message
+   */
+  public async sendTelegramMessage(
+    chatId: string, 
+    message: string, 
+    options?: { parse_mode?: 'Markdown' | 'HTML' }
+  ): Promise<void> {
+    if (!this.telegramBot) {
+      logger.warn('Telegram bot not initialized, skipping message');
+      return;
+    }
+
+    try {
+      await this.telegramBot.telegram.sendMessage(chatId, message, options);
+      logger.info('Telegram message sent successfully', { chatId });
+    } catch (error: any) {
+      logger.error('Failed to send Telegram message', {
+        error: error.message,
+        chatId,
+      });
+      throw error;
+    }
+  }
+
+  /**
    * Send Telegram notification
    */
   private async sendTelegramNotification(chatId: string, message: string): Promise<void> {
