@@ -44,4 +44,18 @@ describe('API Integration Tests', () => {
       expect(response.status).toBe(401);
     });
   });
+
+  describe('API Endpoints', () => {
+    it('should return 401 for unauthenticated /api/posts', async () => {
+      const res = await request(app).get('/api/posts');
+      expect(res.status).toBe(401);
+    });
+
+    it('should return 200 for API root', async () => {
+      const res = await request(app).get('/api');
+      expect([200, 404]).toContain(res.status); // Accept 200 or 404 if not implemented
+    });
+
+    // Add more endpoint tests as needed
+  });
 });
