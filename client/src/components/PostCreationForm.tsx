@@ -94,26 +94,23 @@ export default function PostCreationForm() {
         .filter((tag) => tag.trim())
         .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`));
 
-      // Prepare form data for multipart upload
-      const submitData = new FormData();
-      submitData.append('platforms', JSON.stringify(formData.platforms));
-      submitData.append(
-        'content',
-        JSON.stringify({
+      // Prepare post data
+      const postData: any = {
+        platforms: formData.platforms,
+        content: {
           text: formData.text,
           hashtags: hashtags.length > 0 ? hashtags : undefined,
           link: formData.link || undefined,
-        })
-      );
+        },
+      };
 
+      // Add scheduledAt for draft/scheduled posts
       if (action === 'schedule' && formData.scheduledAt) {
-        submitData.append('scheduledAt', new Date(formData.scheduledAt).toISOString());
+        postData.scheduledAt = new Date(formData.scheduledAt).toISOString();
+      } else if (action === 'draft') {
+        // For drafts, don't set scheduledAt
+        postData.scheduledAt = null;
       }
-
-      // Append media files
-      mediaFiles.forEach((file) => {
-        submitData.append('media', file);
-      });
 
       // Choose endpoint based on action
       let endpoint = '/posts';
@@ -121,11 +118,7 @@ export default function PostCreationForm() {
         endpoint = '/posts/publish-now';
       }
 
-      const response = await api.post(endpoint, submitData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post(endpoint, postData);
 
       // Success! Navigate to posts list
       navigate('/posts');
@@ -238,14 +231,20 @@ export default function PostCreationForm() {
 
           {/* Media Upload */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Media Attachments
-            </label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Media Attachments
+              </label>
+              <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded">
+                Coming Soon
+              </span>
+            </div>
             <div className="space-y-3">
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-6 py-8 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors"
+                disabled
+                className="w-full border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg px-6 py-8 text-center transition-colors opacity-50 cursor-not-allowed"
               >
                 <div className="flex flex-col items-center">
                   <svg
@@ -262,10 +261,10 @@ export default function PostCreationForm() {
                     />
                   </svg>
                   <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                    Click to upload images or videos
+                    Media upload coming soon
                   </span>
                   <span className="text-xs text-gray-500 dark:text-gray-500 mt-1">
-                    PNG, JPG, GIF, MP4 up to 10MB
+                    Feature requires backend support
                   </span>
                 </div>
               </button>

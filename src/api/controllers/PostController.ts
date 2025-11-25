@@ -1,26 +1,95 @@
 import { Response } from 'express';
 import { v4 as uuidv4 } from 'uuid';
+import path from 'path';
+import fs from 'fs/promises';
 import { AuthRequest } from '../middlewares/auth';
 import { HubManager } from '../../core/hub/HubManager';
-import { Post, PostStatus, Platform, Language } from '../../core/content/types';
+import { Post, PostStatus, Platform, Language, MediaFile, MediaType } from '../../core/content/types';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 import database from '../../database/connection';
 import { aiContentService } from '../../services/AIContentService';
+import { config } from '../../config';
 
 const hubManager = new HubManager();
 
 export class PostController {
+  /**
+   * Helper method to process uploaded media files
+   */
+  private async processUploadedFiles(files: Express.Multer.File[]): Promise<MediaFile[]> {
+    const mediaFiles: MediaFile[] = [];
+
+    for (const file of files) {
+      const stats = await fs.stat(file.path);
+
+      // Determine media type based on mimetype
+      let mediaType: MediaType;
+      if (file.mimetype.startsWith('image/')) {
+        mediaType = MediaType.IMAGE;
+      } else if (file.mimetype.startsWith('video/')) {
+        mediaType = MediaType.VIDEO;
+      } else {
+        mediaType = MediaType.DOCUMENT;
+      }
+
+      // Create relative URL path for the file
+      const relativePath = path.relative(config.media.storagePath, file.path);
+      const url = `/uploads/${relativePath.replace(/\\/g, '/')}`;
+
+      mediaFiles.push({
+        id: uuidv4(),
+        type: mediaType,
+        url,
+        mimeType: file.mimetype,
+        size: stats.size,
+      });
+    }
+
+    return mediaFiles;
+  }
+
   async createPost(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const { platforms, content, scheduledAt, recurrence } = req.body;
       const userId = req.user!.id;
+      const files = req.files as Express.Multer.File[] || [];
+
+      // Parse JSON data from multipart form
+      let platforms: string[];
+      let content: any;
+      let scheduledAt: string | undefined;
+      let recurrence: any;
+
+      try {
+        platforms = typeof req.body.platforms === 'string'
+          ? JSON.parse(req.body.platforms)
+          : req.body.platforms;
+        content = typeof req.body.content === 'string'
+          ? JSON.parse(req.body.content)
+          : req.body.content;
+        scheduledAt = req.body.scheduledAt;
+        recurrence = req.body.recurrence ?
+          (typeof req.body.recurrence === 'string' ? JSON.parse(req.body.recurrence) : req.body.recurrence)
+          : undefined;
+      } catch (parseError) {
+        return res.status(400).json({ error: 'Invalid JSON in request body' });
+      }
 
       // Validate platforms
+      if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
+        return res.status(400).json({ error: 'At least one platform is required' });
+      }
+
       for (const platform of platforms) {
         if (!ValidationService.isValidPlatform(platform)) {
           return res.status(400).json({ error: `Invalid platform: ${platform}` });
         }
+      }
+
+      // Process uploaded media files
+      if (files.length > 0) {
+        const mediaFiles = await this.processUploadedFiles(files);
+        content.media = mediaFiles;
       }
 
       // Validate content
@@ -45,7 +114,10 @@ export class PostController {
       // Schedule post
       const postId = await hubManager.schedulePost(post, userId);
 
-      logger.info(`Post created and scheduled: ${postId}`);
+      logger.info(`Post created and scheduled: ${postId}`, {
+        mediaCount: files.length,
+        platforms: platforms.length,
+      });
 
       return res.status(201).json({
         message: 'Post scheduled successfully',
@@ -61,16 +133,32 @@ export class PostController {
    * Publish post immediately without scheduling
    * POST /api/posts/publish-now
    *
-   * Request body:
+   * Request body (FormData):
    * {
    *   "platforms": ["twitter", "telegram"],
-   *   "content": { "text": "...", "media": [...], "hashtags": [...], "links": [...] }
+   *   "content": { "text": "...", "hashtags": [...], "link": "..." }
+   *   "media": [file1, file2, ...]  // Optional files
    * }
    */
   async publishNow(req: AuthRequest, res: Response): Promise<Response> {
     try {
-      const { platforms, content } = req.body;
       const userId = req.user!.id;
+      const files = req.files as Express.Multer.File[] || [];
+
+      // Parse JSON data from multipart form
+      let platforms: string[];
+      let content: any;
+
+      try {
+        platforms = typeof req.body.platforms === 'string'
+          ? JSON.parse(req.body.platforms)
+          : req.body.platforms;
+        content = typeof req.body.content === 'string'
+          ? JSON.parse(req.body.content)
+          : req.body.content;
+      } catch (parseError) {
+        return res.status(400).json({ error: 'Invalid JSON in request body' });
+      }
 
       // Validate platforms
       if (!platforms || !Array.isArray(platforms) || platforms.length === 0) {
@@ -81,6 +169,12 @@ export class PostController {
         if (!ValidationService.isValidPlatform(platform)) {
           return res.status(400).json({ error: `Invalid platform: ${platform}` });
         }
+      }
+
+      // Process uploaded media files
+      if (files.length > 0) {
+        const mediaFiles = await this.processUploadedFiles(files);
+        content.media = mediaFiles;
       }
 
       // Validate content
@@ -104,7 +198,10 @@ export class PostController {
       // Schedule post for immediate execution
       const postId = await hubManager.schedulePost(post, userId);
 
-      logger.info(`Post published immediately: ${postId}`);
+      logger.info(`Post published immediately: ${postId}`, {
+        mediaCount: files.length,
+        platforms: platforms.length,
+      });
 
       return res.status(201).json({
         message: 'Post is being published now',

@@ -1,20 +1,45 @@
 import { Router } from 'express';
 import { body } from 'express-validator';
+import multer from 'multer';
+import path from 'path';
 import PostController from '../controllers/PostController';
 import { authMiddleware } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
+import { config } from '../../config';
+
+// Configure multer for media uploads
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    cb(null, path.join(config.media.storagePath, 'posts'));
+  },
+  filename: (_req, file, cb) => {
+    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+    cb(null, `media-${uniqueSuffix}${path.extname(file.originalname)}`);
+  },
+});
+
+export const mediaUpload = multer({
+  storage,
+  limits: {
+    fileSize: config.media.maxImageSize, // 10MB default
+    files: 10, // Max 10 files per post
+  },
+  fileFilter: (_req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WEBP) and videos (MP4, MOV) are allowed.'));
+    }
+  },
+});
 
 const router = Router();
 
 router.post(
   '/',
   authMiddleware,
-  [
-    body('platforms').isArray({ min: 1 }).withMessage('At least one platform is required'),
-    body('content').isObject().withMessage('Content is required'),
-    body('content.text').notEmpty().withMessage('Content text is required'),
-    validate,
-  ],
+  mediaUpload.array('media', 10),
   PostController.createPost
 );
 
@@ -22,12 +47,7 @@ router.post(
 router.post(
   '/publish-now',
   authMiddleware,
-  [
-    body('platforms').isArray({ min: 1 }).withMessage('At least one platform is required'),
-    body('content').isObject().withMessage('Content is required'),
-    body('content.text').notEmpty().withMessage('Content text is required'),
-    validate,
-  ],
+  mediaUpload.array('media', 10),
   PostController.publishNow
 );
 
