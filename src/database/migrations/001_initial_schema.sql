@@ -10,8 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_is_active ON users(is_active);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_is_active ON users(is_active);
 
 -- Platform credentials table
 CREATE TABLE IF NOT EXISTS platform_credentials (
@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS platform_credentials (
   UNIQUE(user_id, platform)
 );
 
-CREATE INDEX idx_platform_credentials_user_id ON platform_credentials(user_id);
-CREATE INDEX idx_platform_credentials_platform ON platform_credentials(platform);
+CREATE INDEX IF NOT EXISTS idx_platform_credentials_user_id ON platform_credentials(user_id);
+CREATE INDEX IF NOT EXISTS idx_platform_credentials_platform ON platform_credentials(platform);
 
 -- Posts table
 CREATE TABLE IF NOT EXISTS posts (
@@ -44,10 +44,10 @@ CREATE TABLE IF NOT EXISTS posts (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_posts_user_id ON posts(user_id);
-CREATE INDEX idx_posts_status ON posts(status);
-CREATE INDEX idx_posts_scheduled_at ON posts(scheduled_at);
-CREATE INDEX idx_posts_platforms ON posts USING GIN(platforms);
+CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
+CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
+CREATE INDEX IF NOT EXISTS idx_posts_scheduled_at ON posts(scheduled_at);
+CREATE INDEX IF NOT EXISTS idx_posts_platforms ON posts USING GIN(platforms);
 
 -- Platform post mappings
 CREATE TABLE IF NOT EXISTS platform_posts (
@@ -61,8 +61,8 @@ CREATE TABLE IF NOT EXISTS platform_posts (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_platform_posts_post_id ON platform_posts(post_id);
-CREATE INDEX idx_platform_posts_platform ON platform_posts(platform);
+CREATE INDEX IF NOT EXISTS idx_platform_posts_post_id ON platform_posts(post_id);
+CREATE INDEX IF NOT EXISTS idx_platform_posts_platform ON platform_posts(platform);
 
 -- Platform metrics table
 CREATE TABLE IF NOT EXISTS platform_metrics (
@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS platform_metrics (
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_platform_metrics_platform_post_id ON platform_metrics(platform_post_id);
-CREATE INDEX idx_platform_metrics_timestamp ON platform_metrics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_platform_metrics_platform_post_id ON platform_metrics(platform_post_id);
+CREATE INDEX IF NOT EXISTS idx_platform_metrics_timestamp ON platform_metrics(timestamp);
 
 -- Job metrics table
 CREATE TABLE IF NOT EXISTS job_metrics (
@@ -92,10 +92,10 @@ CREATE TABLE IF NOT EXISTS job_metrics (
   timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX idx_job_metrics_job_id ON job_metrics(job_id);
-CREATE INDEX idx_job_metrics_platform ON job_metrics(platform);
-CREATE INDEX idx_job_metrics_status ON job_metrics(status);
-CREATE INDEX idx_job_metrics_timestamp ON job_metrics(timestamp);
+CREATE INDEX IF NOT EXISTS idx_job_metrics_job_id ON job_metrics(job_id);
+CREATE INDEX IF NOT EXISTS idx_job_metrics_platform ON job_metrics(platform);
+CREATE INDEX IF NOT EXISTS idx_job_metrics_status ON job_metrics(status);
+CREATE INDEX IF NOT EXISTS idx_job_metrics_timestamp ON job_metrics(timestamp);
 
 -- Update timestamp trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -106,12 +106,15 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
--- Apply update timestamp triggers
+-- Apply update timestamp triggers (drop if exists first to avoid errors)
+DROP TRIGGER IF EXISTS update_users_updated_at ON users;
 CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_platform_credentials_updated_at ON platform_credentials;
 CREATE TRIGGER update_platform_credentials_updated_at BEFORE UPDATE ON platform_credentials
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_posts_updated_at ON posts;
 CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts
   FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
