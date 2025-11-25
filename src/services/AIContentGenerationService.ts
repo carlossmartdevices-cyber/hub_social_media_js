@@ -423,6 +423,122 @@ Respond ONLY with valid JSON in this exact format:
   }
 
   /**
+   * Generate caption for generic social media post with AI
+   */
+  public async generateCaption(
+    prompt: string,
+    options: {
+      platform?: string;
+      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional';
+      length?: 'short' | 'medium' | 'long';
+      includeHashtags?: boolean;
+      includeEmojis?: boolean;
+      targetAudience?: string;
+    } = {}
+  ): Promise<{ caption: string; hashtags: string[]; alternatives?: string[] }> {
+    const {
+      platform = 'twitter',
+      tone = 'professional',
+      length = 'medium',
+      includeHashtags = true,
+      includeEmojis = true,
+      targetAudience = '',
+    } = options;
+
+    if (!this.enabled || !this.apiKey) {
+      logger.warn('XAI is not enabled or API key is missing');
+      return {
+        caption: prompt.substring(0, 280),
+        hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
+      };
+    }
+
+    try {
+      const charLimits = {
+        twitter: { short: 100, medium: 200, long: 280 },
+        instagram: { short: 500, medium: 1000, long: 2200 },
+        linkedin: { short: 500, medium: 1500, long: 3000 },
+        facebook: { short: 500, medium: 2000, long: 5000 },
+      };
+
+      const platformLimit = charLimits[platform as keyof typeof charLimits] || charLimits.twitter;
+      const maxChars = platformLimit[length];
+
+      const systemPrompt = `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
+
+      const userPrompt = `Create a ${tone} social media caption for ${platform} based on this:
+
+"${prompt}"
+
+Requirements:
+- Tone: ${tone}
+- Length: ${length} (approximately ${maxChars} characters)
+- Platform: ${platform}
+${targetAudience ? `- Target Audience: ${targetAudience}` : ''}
+${includeEmojis ? '- Include relevant emojis to enhance engagement' : '- No emojis'}
+${includeHashtags ? '- Include 3-5 relevant hashtags at the end' : '- No hashtags'}
+- Make it engaging, shareable, and authentic
+- Use appropriate formatting for ${platform}
+- Include a hook in the first line to grab attention
+${platform === 'twitter' ? '- Optimize for Twitter algorithm and engagement' : ''}
+${platform === 'linkedin' ? '- Professional but personable tone' : ''}
+
+Also provide 2 alternative caption variations with different approaches.
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "caption": "Main caption here (without hashtags)",
+  "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+  "alternatives": [
+    "Alternative caption 1",
+    "Alternative caption 2"
+  ]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
+          ],
+          temperature: 0.8,
+          max_tokens: 800,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      const result = this.parseJSON(content);
+
+      return {
+        caption: result.caption || prompt.substring(0, maxChars),
+        hashtags: includeHashtags ? (result.hashtags || []) : [],
+        alternatives: result.alternatives || [],
+      };
+    } catch (error: any) {
+      logger.error('Error generating caption with Grok:', error);
+      return {
+        caption: prompt.substring(0, 280),
+        hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
+      };
+    }
+  }
+
+  /**
    * Fallback metadata generation when AI is not available
    */
   private generateFallbackMetadata(explanation: string): VideoTitleDescription {
