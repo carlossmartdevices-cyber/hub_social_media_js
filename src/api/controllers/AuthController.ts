@@ -221,6 +221,147 @@ export class AuthController {
       return res.status(500).json({ error: 'Failed to logout' });
     }
   }
+
+  /**
+   * Initiate X (Twitter) OAuth login/registration flow
+   * GET /api/auth/x/login
+   */
+  async initiateXLogin(req: Request, res: Response): Promise<void> {
+    try {
+      const OAuth2Service = require('../../services/OAuth2Service').default;
+
+      // Generate OAuth state for CSRF protection
+      const state = await OAuth2Service.generateOAuthState('auth');
+
+      // Generate PKCE code verifier and challenge
+      const { codeVerifier, codeChallenge } = await OAuth2Service.generatePKCE();
+
+      // Store state and code verifier temporarily (in production, use Redis)
+      // For now, we'll pass it via state parameter
+      const stateData = JSON.stringify({
+        state,
+        codeVerifier,
+        purpose: 'auth', // To distinguish from account connection
+      });
+
+      const encodedState = Buffer.from(stateData).toString('base64url');
+
+      // Build authorization URL
+      const authUrl = new URL('https://twitter.com/i/oauth2/authorize');
+      authUrl.searchParams.append('response_type', 'code');
+      authUrl.searchParams.append('client_id', config.platforms.twitter.clientId);
+      authUrl.searchParams.append('redirect_uri', `${config.apiUrl}/api/auth/x/callback`);
+      authUrl.searchParams.append('scope', 'tweet.read tweet.write users.read offline.access');
+      authUrl.searchParams.append('state', encodedState);
+      authUrl.searchParams.append('code_challenge', codeChallenge);
+      authUrl.searchParams.append('code_challenge_method', 'S256');
+
+      res.json({ authUrl: authUrl.toString() });
+    } catch (error) {
+      logger.error('Error initiating X OAuth login:', error);
+      res.status(500).json({ error: 'Failed to initiate X login' });
+    }
+  }
+
+  /**
+   * Handle X (Twitter) OAuth callback and create/login user
+   * GET /api/auth/x/callback?code=...&state=...
+   */
+  async handleXCallback(req: Request, res: Response): Promise<void> {
+    try {
+      const { code, state: encodedState } = req.query;
+
+      if (!code || !encodedState) {
+        res.redirect(`${config.clientUrl}/login?error=missing_parameters`);
+        return;
+      }
+
+      // Decode state
+      const stateData = JSON.parse(Buffer.from(encodedState as string, 'base64url').toString());
+      const { codeVerifier } = stateData;
+
+      // Exchange authorization code for tokens
+      const OAuth2Service = require('../../services/OAuth2Service').default;
+      const tokens = await OAuth2Service.exchangeCodeForToken(
+        code as string,
+        `${config.apiUrl}/api/auth/x/callback`,
+        codeVerifier
+      );
+
+      // Get user info from X/Twitter
+      const TwitterClient = require('twitter-api-v2').TwitterApi;
+      const twitterClient = new TwitterClient(tokens.access_token);
+      const { data: twitterUser } = await twitterClient.v2.me({
+        'user.fields': ['id', 'name', 'username', 'profile_image_url'],
+      });
+
+      // Check if user exists with this X account
+      const existingResult = await database.query(
+        'SELECT id, email, name, role, is_active FROM users WHERE x_user_id = $1',
+        [twitterUser.id]
+      );
+
+      let user;
+
+      if (existingResult.rows.length > 0) {
+        // User exists - login
+        user = existingResult.rows[0];
+
+        if (!user.is_active) {
+          res.redirect(`${config.clientUrl}/login?error=account_disabled`);
+          return;
+        }
+
+        // Update X profile info
+        await database.query(
+          'UPDATE users SET x_username = $1, x_name = $2, x_profile_image = $3, updated_at = NOW() WHERE id = $4',
+          [twitterUser.username, twitterUser.name, twitterUser.profile_image_url, user.id]
+        );
+
+        logger.info(`User logged in via X: ${user.email} (@${twitterUser.username})`);
+      } else {
+        // New user - register
+        const userId = uuidv4();
+        const email = `${twitterUser.username}@x.temp`; // Temporary email
+        const name = twitterUser.name || twitterUser.username;
+
+        const newUserResult = await database.query(
+          `INSERT INTO users (id, email, name, role, is_active, x_user_id, x_username, x_name, x_profile_image, auth_provider)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+           RETURNING id, email, name, role`,
+          [userId, email, name, 'user', true, twitterUser.id, twitterUser.username, twitterUser.name, twitterUser.profile_image_url, 'x']
+        );
+
+        user = newUserResult.rows[0];
+
+        logger.info(`User registered via X: ${email} (@${twitterUser.username})`);
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        config.jwt.secret,
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
+      );
+
+      const refreshToken = jwt.sign(
+        { id: user.id, type: 'refresh' },
+        config.jwt.refreshSecret,
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
+      );
+
+      // Redirect to frontend with tokens
+      const redirectUrl = new URL(`${config.clientUrl}/auth/callback`);
+      redirectUrl.searchParams.append('accessToken', accessToken);
+      redirectUrl.searchParams.append('refreshToken', refreshToken);
+      redirectUrl.searchParams.append('username', twitterUser.username);
+
+      res.redirect(redirectUrl.toString());
+    } catch (error) {
+      logger.error('Error handling X OAuth callback:', error);
+      res.redirect(`${config.clientUrl}/login?error=oauth_failed`);
+    }
+  }
 }
 
 export default new AuthController();

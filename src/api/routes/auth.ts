@@ -89,4 +89,11 @@ router.post(
 
 router.get('/profile', authMiddleware, AuthController.getProfile);
 
+/**
+ * X (Twitter) OAuth Authentication Routes
+ * For user login/registration via X account
+ */
+router.get('/x/login', AuthController.initiateXLogin);
+router.get('/x/callback', AuthController.handleXCallback);
+
 export default router;
