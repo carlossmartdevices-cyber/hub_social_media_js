@@ -226,7 +226,7 @@ export class AuthController {
    * Initiate X (Twitter) OAuth login/registration flow
    * GET /api/auth/x/login
    */
-  async initiateXLogin(req: Request, res: Response): Promise<void> {
+  async initiateXLogin(_req: Request, res: Response): Promise<void> {
     try {
       const OAuth2Service = require('../../services/OAuth2Service').default;
 
