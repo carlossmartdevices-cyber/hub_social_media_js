@@ -658,6 +658,94 @@ export class PostController {
       });
     }
   }
+
+  /**
+   * Bulk delete posts based on time period
+   *
+   * DELETE /api/posts/bulk-delete
+   *
+   * Request body:
+   * {
+   *   "period": "24h" | "7d" | "30d" | "all",
+   *   "platform": "twitter" // Optional: filter by platform
+   * }
+   */
+  async bulkDelete(req: AuthRequest, res: Response): Promise<Response> {
+    try {
+      const userId = req.user!.id;
+      const { period, platform } = req.body;
+
+      if (!period) {
+        return res.status(400).json({ error: 'Period is required' });
+      }
+
+      const validPeriods = ['24h', '7d', '30d', 'all'];
+      if (!validPeriods.includes(period)) {
+        return res.status(400).json({
+          error: `Invalid period. Must be one of: ${validPeriods.join(', ')}`
+        });
+      }
+
+      // Calculate date threshold based on period
+      let dateThreshold: Date | null = null;
+      if (period !== 'all') {
+        dateThreshold = new Date();
+        switch (period) {
+          case '24h':
+            dateThreshold.setHours(dateThreshold.getHours() - 24);
+            break;
+          case '7d':
+            dateThreshold.setDate(dateThreshold.getDate() - 7);
+            break;
+          case '30d':
+            dateThreshold.setDate(dateThreshold.getDate() - 30);
+            break;
+        }
+      }
+
+      // Build query
+      let query = 'DELETE FROM posts WHERE user_id = $1';
+      const params: any[] = [userId];
+      let paramCount = 1;
+
+      if (dateThreshold) {
+        paramCount++;
+        query += ` AND created_at >= $${paramCount}`;
+        params.push(dateThreshold);
+      }
+
+      if (platform) {
+        if (!ValidationService.isValidPlatform(platform)) {
+          return res.status(400).json({ error: `Invalid platform: ${platform}` });
+        }
+        paramCount++;
+        query += ` AND $${paramCount} = ANY(platforms)`;
+        params.push(platform);
+      }
+
+      query += ' RETURNING id';
+
+      const result = await database.query(query, params);
+      const deletedCount = result.rowCount || 0;
+
+      logger.info('Bulk delete posts', {
+        userId,
+        period,
+        platform: platform || 'all',
+        deletedCount,
+      });
+
+      return res.json({
+        message: `Successfully deleted ${deletedCount} post(s)`,
+        deletedCount,
+        period,
+        platform: platform || 'all',
+      });
+    } catch (error) {
+      logger.error('Bulk delete posts error:', error);
+      return res.status(500).json({ error: 'Failed to delete posts' });
+    }
+  }
 }
 
 export default new PostController();

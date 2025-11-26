@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useAuthStore } from '../store/authStore';
+import { useAuthStore } from '@/store/authStore';
 
 // Create axios instance
 export const api = axios.create({
@@ -12,9 +12,9 @@ export const api = axios.create({
 // Track if we're currently refreshing the token
 let isRefreshing = false;
 // Queue of requests waiting for token refresh
-let failedQueue: any[] = [];
+let failedQueue: { resolve: (token: string | null) => void; reject: (error: unknown) => void }[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -72,7 +72,9 @@ api.interceptors.response.use(
       if (!refreshToken) {
         // No refresh token available, logout
         logout();
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
         return Promise.reject(error);
       }
 
@@ -99,7 +101,9 @@ api.interceptors.response.use(
         // Refresh failed, logout user
         processQueue(refreshError, null);
         logout();
-        window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

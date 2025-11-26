@@ -17,6 +17,16 @@ module.exports = {
       env: {
         NODE_ENV: process.env.NODE_ENV || "production"
       }
+    },
+    {
+      name: "clickera-client",
+      script: "npm",
+      args: "start",
+      cwd: "./client",
+      env: {
+        NODE_ENV: "production",
+        PORT: "3000"
+      }
     }
   ]
 };
