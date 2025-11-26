@@ -577,6 +577,334 @@ Respond ONLY with valid JSON in this exact format:
       },
     };
   }
+
+  /**
+   * Generate English lesson for content creators
+   */
+  public async generateEnglishLesson(
+    topic: string,
+    level: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
+    focusArea: 'vocabulary' | 'grammar' | 'phrases' | 'pronunciation' | 'writing' = 'vocabulary'
+  ): Promise<{
+    lesson: {
+      title: string;
+      introduction: string;
+      keyPoints: string[];
+      examples: { english: string; spanish: string; explanation: string }[];
+      practiceExercises: { question: string; answer: string; hint?: string }[];
+      contentCreatorTips: string[];
+      commonMistakes: { wrong: string; correct: string; explanation: string }[];
+    };
+    quiz: { question: string; options: string[]; correctIndex: number; explanation: string }[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return this.generateFallbackEnglishLesson(topic);
+    }
+
+    try {
+      const prompt = `You are an expert English teacher specializing in teaching Spanish-speaking content creators. Create a comprehensive English lesson.
+
+Topic: ${topic}
+Level: ${level}
+Focus Area: ${focusArea}
+
+Create a lesson specifically designed for CONTENT CREATORS who need English for:
+- Social media posts
+- Video scripts
+- Audience engagement
+- Professional communication
+- Marketing copy
+
+Requirements:
+1. Introduction explaining why this topic matters for content creators
+2. 5 key points to learn
+3. 5 practical examples with Spanish translations and explanations
+4. 3 practice exercises
+5. 3 tips specific to content creation
+6. 3 common mistakes Spanish speakers make
+7. 5 quiz questions with 4 options each
+
+Make the content:
+- Practical and immediately usable
+- Focused on social media and content creation contexts
+- Culturally sensitive to Spanish speakers
+- Fun and engaging
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "lesson": {
+    "title": "Engaging lesson title",
+    "introduction": "Why this matters for content creators...",
+    "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+    "examples": [
+      {"english": "English phrase", "spanish": "Spanish translation", "explanation": "When to use it"}
+    ],
+    "practiceExercises": [
+      {"question": "Fill in: ___", "answer": "correct answer", "hint": "optional hint"}
+    ],
+    "contentCreatorTips": ["Tip 1", "Tip 2", "Tip 3"],
+    "commonMistakes": [
+      {"wrong": "incorrect", "correct": "correct", "explanation": "why"}
+    ]
+  },
+  "quiz": [
+    {"question": "Question?", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "Why A is correct"}
+  ]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert English teacher who specializes in teaching Spanish-speaking content creators. Your lessons are practical, engaging, and focused on real-world usage in social media and digital content.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 2500,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      return this.parseJSON(content);
+    } catch (error: any) {
+      logger.error('Error generating English lesson with Grok:', error);
+      return this.generateFallbackEnglishLesson(topic);
+    }
+  }
+
+  /**
+   * Translate and improve content for international audience
+   */
+  public async translateAndImprove(
+    content: string,
+    fromLang: 'en' | 'es',
+    toLang: 'en' | 'es',
+    context: 'social_media' | 'video_script' | 'caption' | 'bio' = 'social_media'
+  ): Promise<{
+    translation: string;
+    improved: string;
+    suggestions: string[];
+    culturalNotes: string[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
+    }
+
+    try {
+      const langNames = { en: 'English', es: 'Spanish' };
+      const prompt = `Translate and improve this ${context.replace('_', ' ')} content:
+
+Original (${langNames[fromLang]}): "${content}"
+
+Tasks:
+1. Translate to ${langNames[toLang]}
+2. Improve the translation for maximum engagement on social media
+3. Provide 3 alternative suggestions
+4. Add cultural notes for ${toLang === 'en' ? 'English-speaking' : 'Spanish-speaking'} audiences
+
+Respond ONLY with valid JSON:
+{
+  "translation": "Direct translation",
+  "improved": "Improved version optimized for engagement",
+  "suggestions": ["Alternative 1", "Alternative 2", "Alternative 3"],
+  "culturalNotes": ["Note about cultural differences", "Tip for the target audience"]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 800,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      return this.parseJSON(response.data.choices[0].message.content);
+    } catch (error: any) {
+      logger.error('Error translating content:', error);
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
+    }
+  }
+
+  /**
+   * Generate scheduled post ideas for a week
+   */
+  public async generateWeeklyPostIdeas(
+    niche: string,
+    platforms: string[],
+    previousPosts?: string[]
+  ): Promise<{
+    posts: {
+      day: string;
+      time: string;
+      platform: string;
+      type: 'text' | 'image' | 'video' | 'thread' | 'story';
+      idea: string;
+      content: string;
+      hashtags: string[];
+      mediaIdea?: string;
+    }[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return { posts: [] };
+    }
+
+    try {
+      const prompt = `You are a social media strategist. Generate a week's worth of post ideas for a content creator.
+
+Niche: ${niche}
+Platforms: ${platforms.join(', ')}
+${previousPosts?.length ? `Previous posts to avoid repeating:\n${previousPosts.slice(0, 5).join('\n')}` : ''}
+
+Create 14 posts (2 per day) for 7 days with:
+- Optimal posting times
+- Mix of content types
+- Engaging content that drives engagement
+- Platform-specific optimization
+- Trending topics when relevant
+
+Respond with JSON:
+{
+  "posts": [
+    {
+      "day": "Monday",
+      "time": "09:00",
+      "platform": "twitter",
+      "type": "text",
+      "idea": "Brief idea description",
+      "content": "Full post content",
+      "hashtags": ["hashtag1", "hashtag2"],
+      "mediaIdea": "Optional media suggestion"
+    }
+  ]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8,
+          max_tokens: 3000,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      return this.parseJSON(response.data.choices[0].message.content);
+    } catch (error: any) {
+      logger.error('Error generating weekly post ideas:', error);
+      return { posts: [] };
+    }
+  }
+
+  /**
+   * Chat with Grok for content assistance
+   */
+  public async chat(
+    message: string,
+    conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
+    context: 'content_creation' | 'english_learning' | 'social_media' | 'general' = 'content_creation'
+  ): Promise<{ response: string; suggestions?: string[] }> {
+    if (!this.enabled || !this.apiKey) {
+      return { response: 'AI assistant is not available at the moment.' };
+    }
+
+    const systemPrompts = {
+      content_creation: 'You are Grok, an AI assistant specialized in helping content creators. You help with post ideas, captions, video scripts, engagement strategies, and growing social media presence. Be creative, helpful, and encouraging.',
+      english_learning: 'You are Grok, an AI English tutor for Spanish-speaking content creators. Help them improve their English for social media, explain grammar, suggest better phrases, and make learning fun and practical.',
+      social_media: 'You are Grok, a social media expert. Help with platform strategies, algorithm tips, engagement tactics, and trending content ideas. Be up-to-date and practical.',
+      general: 'You are Grok, a helpful AI assistant. Be witty, knowledgeable, and helpful.',
+    };
+
+    try {
+      const messages = [
+        { role: 'system' as const, content: systemPrompts[context] },
+        ...conversationHistory,
+        { role: 'user' as const, content: message },
+      ];
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages,
+          temperature: 0.8,
+          max_tokens: 1000,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      return {
+        response: response.data.choices[0].message.content,
+        suggestions: [],
+      };
+    } catch (error: any) {
+      logger.error('Error in Grok chat:', error);
+      return { response: 'Sorry, I encountered an error. Please try again.' };
+    }
+  }
+
+  /**
+   * Fallback English lesson
+   */
+  private generateFallbackEnglishLesson(topic: string) {
+    return {
+      lesson: {
+        title: `English for Content Creators: ${topic}`,
+        introduction: 'AI service temporarily unavailable. Basic lesson structure provided.',
+        keyPoints: ['Practice daily', 'Use real examples', 'Watch content in English', 'Practice writing', 'Get feedback'],
+        examples: [{ english: 'Example coming soon', spanish: 'Ejemplo próximamente', explanation: 'Check back later' }],
+        practiceExercises: [{ question: 'Practice exercise will be available soon', answer: 'N/A' }],
+        contentCreatorTips: ['Be consistent', 'Use simple language', 'Engage with your audience'],
+        commonMistakes: [{ wrong: 'Example', correct: 'Example', explanation: 'Available soon' }],
+      },
+      quiz: [{ question: 'Quiz coming soon', options: ['A', 'B', 'C', 'D'], correctIndex: 0, explanation: 'N/A' }],
+    };
+  }
 }
 
 export default new AIContentGenerationService();
