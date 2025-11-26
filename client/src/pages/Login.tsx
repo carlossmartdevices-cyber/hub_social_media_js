@@ -30,6 +30,15 @@ export default function Login() {
     }
   };
 
+  const handleXLogin = async () => {
+    try {
+      const response = await api.get('/auth/x/login');
+      window.location.href = response.data.authUrl;
+    } catch (err: any) {
+      setError('Failed to initiate X login');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 py-8 px-4 sm:px-6 lg:px-8">
       <div className="absolute top-4 right-4 z-10">
@@ -112,9 +121,37 @@ export default function Login() {
               </button>
             </form>
 
+            {/* Divider */}
+            <div className="mt-6">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                    Or continue with
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Sign in with X Button */}
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={handleXLogin}
+                className="w-full flex justify-center items-center py-3 px-4 border-2 border-gray-300 dark:border-gray-600 text-base font-semibold rounded-lg text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                Sign in with X
+              </button>
+            </div>
+
             <div className="mt-6 text-center">
-              <Link 
-                to="/register" 
+              <Link
+                to="/register"
                 className="text-sm font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"
               >
                 Don't have an account? <span className="underline">Sign up</span>
