@@ -30,7 +30,7 @@ This document describes the new features implemented for managing adult content 
    - Automatic upload to S3 bucket
    - CloudFront CDN distribution
    - **Server-side KMS encryption** for adult content security
-   - KMS Key: `media-x` (ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-...`)
+   - Uses your AWS KMS key for encryption at rest
    - Public URLs: `https://previews.pnptv.app/videos/{filename}`
    - Thumbnail URLs: `https://previews.pnptv.app/thumbnails/{filename}`
 
@@ -93,7 +93,7 @@ This document describes the new features implemented for managing adult content 
      AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
      AWS_S3_BUCKET=pnptv-previews
      CLOUDFRONT_DOMAIN=previews.pnptv.app
-     AWS_KMS_KEY_ARN=arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79
+     AWS_KMS_KEY_ARN=arn:aws:kms:REGION:ACCOUNT_ID:key/KEY_ID
      ```
 
 ### **Frontend (Partial Updates)**
@@ -121,10 +121,11 @@ This will install the new `@aws-sdk/client-s3` package.
 3. Set up CloudFront distribution pointing to `previews.pnptv.app`
 4. Get your AWS credentials (Access Key ID and Secret Access Key)
 5. **KMS Key Setup** (RECOMMENDED for adult content security):
-   - Your KMS key is already created: `media-x`
-   - ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79`
+   - Create or use existing KMS key in AWS Console
+   - Go to AWS KMS → Create Key → Symmetric → Encrypt/Decrypt
    - Region: **us-east-2** (Ohio) - must match S3 bucket region
-   - Ensure your IAM user/role has `kms:Encrypt` and `kms:Decrypt` permissions
+   - Copy the ARN (format: `arn:aws:kms:us-east-2:YOUR_ACCOUNT:key/YOUR_KEY_ID`)
+   - Ensure your IAM user/role has `kms:Encrypt`, `kms:Decrypt`, and `kms:GenerateDataKey` permissions
 
 ### **Step 3: Update Environment Variables**
 
@@ -139,7 +140,8 @@ AWS_S3_BUCKET=pnptv-previews
 CLOUDFRONT_DOMAIN=previews.pnptv.app
 
 # KMS Encryption (RECOMMENDED for adult content)
-AWS_KMS_KEY_ARN=arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79
+# Get this ARN from AWS KMS Console
+AWS_KMS_KEY_ARN=arn:aws:kms:us-east-2:YOUR_ACCOUNT:key/YOUR_KEY_ID
 
 # Video Directories
 VIDEO_UPLOAD_DIR=./uploads/videos
@@ -384,11 +386,11 @@ console.log('Video URL:', videoUrl);
 
 ### **KMS Encryption** (Implemented ✅)
 - All videos and thumbnails are encrypted at rest using AWS KMS
-- KMS Key: `media-x` (ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-...`)
 - Server-side encryption with `aws:kms` algorithm
 - Automatic encryption on upload (no client-side changes needed)
 - IAM permissions required: `kms:Encrypt`, `kms:Decrypt`, `kms:GenerateDataKey`
 - Region must match: S3 bucket and KMS key both in **us-east-2**
+- Configure your KMS key ARN in `.env` file
 
 ### **Content Security**
 - Adult content should be age-gated on pnptv.app
