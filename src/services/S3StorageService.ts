@@ -12,11 +12,15 @@ export class S3StorageService {
   private bucketName: string;
   private cloudFrontDomain: string;
   private region: string;
+  private kmsKeyId?: string;
+  private useKmsEncryption: boolean;
 
   constructor() {
-    this.region = process.env.AWS_REGION || 'us-east-1';
+    this.region = process.env.AWS_REGION || 'us-east-2';
     this.bucketName = process.env.AWS_S3_BUCKET || 'pnptv-previews';
     this.cloudFrontDomain = process.env.CLOUDFRONT_DOMAIN || 'previews.pnptv.app';
+    this.kmsKeyId = process.env.AWS_KMS_KEY_ARN;
+    this.useKmsEncryption = !!this.kmsKeyId;
 
     // Initialize S3 client
     this.s3Client = new S3Client({
@@ -31,6 +35,8 @@ export class S3StorageService {
       region: this.region,
       bucket: this.bucketName,
       domain: this.cloudFrontDomain,
+      kmsEncryption: this.useKmsEncryption,
+      kmsKeyId: this.kmsKeyId ? '***' + this.kmsKeyId.slice(-8) : 'none',
     });
   }
 
@@ -51,8 +57,8 @@ export class S3StorageService {
       // Prepare S3 key (path in bucket)
       const s3Key = `videos/${remoteFileName}`;
 
-      // Upload to S3
-      const command = new PutObjectCommand({
+      // Upload to S3 with KMS encryption
+      const uploadParams: any = {
         Bucket: this.bucketName,
         Key: s3Key,
         Body: fileContent,
@@ -63,7 +69,16 @@ export class S3StorageService {
           'uploaded-at': new Date().toISOString(),
           'content-type': 'adult-preview',
         },
-      });
+      };
+
+      // Add KMS encryption if configured
+      if (this.useKmsEncryption && this.kmsKeyId) {
+        uploadParams.ServerSideEncryption = 'aws:kms';
+        uploadParams.SSEKMSKeyId = this.kmsKeyId;
+        logger.info('Using KMS encryption for video upload', { s3Key });
+      }
+
+      const command = new PutObjectCommand(uploadParams);
 
       await this.s3Client.send(command);
 
@@ -100,8 +115,8 @@ export class S3StorageService {
       // Prepare S3 key
       const s3Key = `thumbnails/${remoteFileName}`;
 
-      // Upload to S3
-      const command = new PutObjectCommand({
+      // Upload to S3 with KMS encryption
+      const uploadParams: any = {
         Bucket: this.bucketName,
         Key: s3Key,
         Body: fileContent,
@@ -112,7 +127,16 @@ export class S3StorageService {
           'uploaded-at': new Date().toISOString(),
           'content-type': 'thumbnail',
         },
-      });
+      };
+
+      // Add KMS encryption if configured
+      if (this.useKmsEncryption && this.kmsKeyId) {
+        uploadParams.ServerSideEncryption = 'aws:kms';
+        uploadParams.SSEKMSKeyId = this.kmsKeyId;
+        logger.info('Using KMS encryption for thumbnail upload', { s3Key });
+      }
+
+      const command = new PutObjectCommand(uploadParams);
 
       await this.s3Client.send(command);
 
