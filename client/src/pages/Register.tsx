@@ -27,6 +27,15 @@ export default function Register() {
     }
   };
 
+  const handleXSignup = async () => {
+    try {
+      const response = await api.get('/auth/x/login');
+      window.location.href = response.data.authUrl;
+    } catch (err: any) {
+      setError('Failed to initiate X signup');
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
       <div className="max-w-md w-full space-y-8">
@@ -72,7 +81,32 @@ export default function Register() {
           >
             {loading ? 'Creating account...' : 'Register'}
           </button>
-          <div className="text-center">
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-gray-50 text-gray-500">
+                Or sign up with
+              </span>
+            </div>
+          </div>
+
+          {/* Sign up with X Button */}
+          <button
+            type="button"
+            onClick={handleXSignup}
+            className="w-full flex justify-center items-center py-3 px-4 border-2 border-gray-300 text-base font-semibold rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 shadow-md hover:shadow-lg transition-all"
+          >
+            <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            Sign up with X
+          </button>
+
+          <div className="text-center mt-4">
             <Link to="/login" className="text-indigo-600 hover:text-indigo-500">
               Already have an account? Sign in
             </Link>
