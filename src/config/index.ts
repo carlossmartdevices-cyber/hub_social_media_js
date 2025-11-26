@@ -6,6 +6,7 @@ export const config = {
   env: process.env.NODE_ENV || 'development',
   port: parseInt(process.env.PORT || '8080', 10),
   apiUrl: process.env.API_URL || 'http://localhost:8080',
+  clientUrl: process.env.CLIENT_URL || 'http://localhost:3001',
 
   database: {
     host: process.env.DB_HOST || 'localhost',

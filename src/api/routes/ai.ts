@@ -24,10 +24,10 @@ router.post('/generate-caption', async (req, res) => {
 
     const result = await aiContentGenerationService.generateCaption(prompt, options || {});
 
-    res.json(result);
+    return res.json(result);
   } catch (error: any) {
     logger.error('Error in /generate-caption:', error);
-    res.status(500).json({
+    return res.status(500).json({
       error: 'Failed to generate caption',
       details: error.message
     });
