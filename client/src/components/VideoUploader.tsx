@@ -18,6 +18,13 @@ interface VideoMetadata {
   voiceSearchQueries: string[];
   category: string;
   targetKeyword: string;
+
+  // Adult content specific fields
+  performers?: string[];
+  niche?: {
+    primary: string;
+    tags: string[];
+  };
 }
 
 interface PostVariant {
@@ -39,8 +46,9 @@ export function VideoUploader() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [postId, setPostId] = useState<string>('');
 
-  // Step 2: User explanation
+  // Step 2: User explanation and performers
   const [userExplanation, setUserExplanation] = useState('');
+  const [performers, setPerformers] = useState<string>(''); // Comma-separated performers
 
   // Step 3: Generated metadata
   const [generatedMetadata, setGeneratedMetadata] = useState<VideoMetadata | null>(null);
