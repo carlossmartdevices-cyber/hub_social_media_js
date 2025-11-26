@@ -26,9 +26,11 @@ This document describes the new features implemented for managing adult content 
    - Long-tail queries: `hot latino guys smoking pnp`, `gay smoking fetish videos latino`
    - Voice search optimization: `where to find latino gay smoking content`
 
-### 4. **AWS S3 Hosting (previews.pnptv.app)**
+### 4. **AWS S3 Hosting (previews.pnptv.app) with KMS Encryption 🔐**
    - Automatic upload to S3 bucket
    - CloudFront CDN distribution
+   - **Server-side KMS encryption** for adult content security
+   - KMS Key: `media-x` (ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-...`)
    - Public URLs: `https://previews.pnptv.app/videos/{filename}`
    - Thumbnail URLs: `https://previews.pnptv.app/thumbnails/{filename}`
 
@@ -60,9 +62,11 @@ This document describes the new features implemented for managing adult content 
 3. **`src/services/S3StorageService.ts`** ⭐ NEW
    - Upload videos to AWS S3
    - Upload thumbnails to AWS S3
+   - **Automatic KMS encryption** (server-side with aws:kms)
    - Generate public CDN URLs
    - Delete operations for cleanup
    - Batch upload support
+   - Region: us-east-2 (Ohio) - matches KMS key location
 
 ### **Database**
 
@@ -82,13 +86,14 @@ This document describes the new features implemented for managing adult content 
    - Added `@aws-sdk/client-s3": "^3.600.0`
 
 6. **`.env.example`** ⭐ UPDATED
-   - Added AWS S3 configuration section:
+   - Added AWS S3 configuration section with KMS encryption:
      ```env
-     AWS_REGION=us-east-1
+     AWS_REGION=us-east-2
      AWS_ACCESS_KEY_ID=your_aws_access_key_here
      AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
      AWS_S3_BUCKET=pnptv-previews
      CLOUDFRONT_DOMAIN=previews.pnptv.app
+     AWS_KMS_KEY_ARN=arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79
      ```
 
 ### **Frontend (Partial Updates)**
@@ -109,24 +114,32 @@ npm install
 
 This will install the new `@aws-sdk/client-s3` package.
 
-### **Step 2: Configure AWS S3**
+### **Step 2: Configure AWS S3 and KMS Encryption**
 
-1. Create an S3 bucket named `pnptv-previews` (or your preferred name)
+1. Create an S3 bucket named `pnptv-previews` (or your preferred name) in **us-east-2** region
 2. Configure bucket for public read access
 3. Set up CloudFront distribution pointing to `previews.pnptv.app`
 4. Get your AWS credentials (Access Key ID and Secret Access Key)
+5. **KMS Key Setup** (RECOMMENDED for adult content security):
+   - Your KMS key is already created: `media-x`
+   - ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79`
+   - Region: **us-east-2** (Ohio) - must match S3 bucket region
+   - Ensure your IAM user/role has `kms:Encrypt` and `kms:Decrypt` permissions
 
 ### **Step 3: Update Environment Variables**
 
 Edit your `.env` file and add:
 
 ```env
-# AWS S3 Configuration
-AWS_REGION=us-east-1
+# AWS S3 Configuration with KMS Encryption
+AWS_REGION=us-east-2
 AWS_ACCESS_KEY_ID=AKIA...your_key_here
 AWS_SECRET_ACCESS_KEY=your_secret_key_here
 AWS_S3_BUCKET=pnptv-previews
 CLOUDFRONT_DOMAIN=previews.pnptv.app
+
+# KMS Encryption (RECOMMENDED for adult content)
+AWS_KMS_KEY_ARN=arn:aws:kms:us-east-2:695296766966:key/7eeed82d-8dda-4dc4-928d-3f9a22156e79
 
 # Video Directories
 VIDEO_UPLOAD_DIR=./uploads/videos
@@ -363,11 +376,24 @@ console.log('Video URL:', videoUrl);
 
 ## 🔐 Security Notes
 
+### **AWS Security**
 - Never commit AWS credentials to Git
 - Use IAM roles in production (not access keys)
 - Ensure S3 bucket has proper CORS configuration
 - CloudFront should have signed URLs for premium content
+
+### **KMS Encryption** (Implemented ✅)
+- All videos and thumbnails are encrypted at rest using AWS KMS
+- KMS Key: `media-x` (ARN: `arn:aws:kms:us-east-2:695296766966:key/7eeed82d-...`)
+- Server-side encryption with `aws:kms` algorithm
+- Automatic encryption on upload (no client-side changes needed)
+- IAM permissions required: `kms:Encrypt`, `kms:Decrypt`, `kms:GenerateDataKey`
+- Region must match: S3 bucket and KMS key both in **us-east-2**
+
+### **Content Security**
 - Adult content should be age-gated on pnptv.app
+- Consider implementing signed URLs for premium content access
+- Monitor S3 access logs for unauthorized access attempts
 
 ---
 
@@ -401,8 +427,10 @@ This implementation provides:
 - ✅ Performer tracking and SEO
 - ✅ Niche-specific AI content generation (gay latino smoking pnp)
 - ✅ AWS S3 hosting with CDN (previews.pnptv.app)
+- ✅ **KMS encryption at rest** for adult content security 🔐
 - ✅ Bulk upload support (up to 6 videos)
 - ✅ Scheduling up to 24 posts
 - ✅ Database schema for adult content metadata
+- ✅ Region: us-east-2 (Ohio) for S3 and KMS
 
-**Status:** ✅ Backend implementation complete. Frontend UI updates pending.
+**Status:** ✅ Backend implementation complete with KMS encryption. Frontend UI updates pending.
