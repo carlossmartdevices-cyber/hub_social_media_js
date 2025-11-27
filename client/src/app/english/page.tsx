@@ -170,7 +170,7 @@ export default function EnglishLearningPage() {
               English for Content Creators
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">
-              Learn English with Grok AI - Tailored for social media creators
+              Learn English with PNP 🤖 - Tu tutor de inglés para creadores
             </p>
           </div>
           
@@ -183,7 +183,7 @@ export default function EnglishLearningPage() {
             }`}
           >
             <MessageCircle className="w-5 h-5" />
-            {chatMode ? 'Back to Lessons' : 'Chat with Tutor'}
+            {chatMode ? 'Back to Lessons' : 'Chat with PNP 🤖'}
           </button>
         </div>
 
@@ -193,9 +193,9 @@ export default function EnglishLearningPage() {
             <div className="p-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white">
               <h2 className="font-semibold flex items-center gap-2">
                 <Sparkles className="w-5 h-5" />
-                Grok English Tutor
+                PNP English Tutor 🚀
               </h2>
-              <p className="text-sm opacity-80">Ask me anything about English for content creation!</p>
+              <p className="text-sm opacity-80">¡Pregúntame lo que quieras, crack! I'm here to help! ✨</p>
             </div>
             
             <div className="h-96 overflow-y-auto p-4 space-y-4">
