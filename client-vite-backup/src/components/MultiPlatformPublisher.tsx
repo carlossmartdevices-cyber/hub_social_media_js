@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
+import AIContentGenerator, { AIGeneratedContent } from './AIContentGenerator';
 
 interface TwitterAccount {
   id: string;
@@ -101,6 +102,15 @@ export const MultiPlatformPublisher: React.FC<MultiPlatformPublisherProps> = ({
     } else {
       setSelectedTelegramChannels([...selectedTelegramChannels, channelId]);
     }
+  };
+
+  const handleAIContentGenerated = (content: AIGeneratedContent) => {
+    // Build caption with AI-generated content and hashtags
+    let newCaption = content.caption;
+    if (content.hashtags.length > 0) {
+      newCaption += '\n\n' + content.hashtags.map(tag => '#' + tag).join(' ');
+    }
+    setCaption(newCaption);
   };
 
   const handlePublish = async () => {
@@ -278,6 +288,17 @@ export const MultiPlatformPublisher: React.FC<MultiPlatformPublisherProps> = ({
             ({caption.length} characters)
           </span>
         </label>
+
+        {/* AI Content Generator */}
+        <div className="mb-3">
+          <AIContentGenerator
+            onContentGenerated={handleAIContentGenerated}
+            context={videoMetadata?.description || caption}
+            mediaDescription={videoMetadata?.title}
+            platform={selectedPlatforms.includes('twitter') ? 'twitter' : selectedPlatforms[0] || 'twitter'}
+          />
+        </div>
+
         <textarea
           value={caption}
           onChange={(e) => setCaption(e.target.value)}
