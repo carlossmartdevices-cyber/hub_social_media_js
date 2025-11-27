@@ -253,7 +253,7 @@ export default function CreatePostPage() {
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-6 mb-6 border border-purple-200 dark:border-purple-800">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
               <Wand2 className="w-5 h-5 text-purple-500" />
-              Generate with Grok AI
+              Generate with PNP 🤖
             </h3>
             
             <div className="space-y-4">

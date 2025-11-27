@@ -14,7 +14,26 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message, ...metadata }) => {
     let msg = `${timestamp} [${level}]: ${message}`;
     if (Object.keys(metadata).length > 0) {
-      msg += ` ${JSON.stringify(metadata)}`;
+      try {
+        // Handle circular references with a replacer function
+        const seen = new WeakSet();
+        const jsonString = JSON.stringify(metadata, (key, value) => {
+          // Skip axios internal objects that cause circular references
+          if (key === 'request' || key === 'config' || key === 'response') {
+            return '[Circular]';
+          }
+          if (typeof value === 'object' && value !== null) {
+            if (seen.has(value)) {
+              return '[Circular]';
+            }
+            seen.add(value);
+          }
+          return value;
+        });
+        msg += ` ${jsonString}`;
+      } catch (error) {
+        msg += ' [Unable to stringify metadata]';
+      }
     }
     return msg;
   })

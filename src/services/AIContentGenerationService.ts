@@ -157,7 +157,12 @@ Respond ONLY with valid JSON in this exact format:
         voiceSearchQueries: result.voiceSearchQueries || [],
       };
     } catch (error: any) {
-      logger.error('Error generating video metadata with Grok:', error);
+      logger.error('Error generating video metadata with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackMetadata(userExplanation);
     }
   }
@@ -269,7 +274,12 @@ Respond ONLY with valid JSON in this exact format:
         },
       };
     } catch (error: any) {
-      logger.error('Error generating post variants with Grok:', error);
+      logger.error('Error generating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
@@ -393,7 +403,12 @@ Respond ONLY with valid JSON in this exact format:
         },
       };
     } catch (error: any) {
-      logger.error('Error regenerating post variants with Grok:', error);
+      logger.error('Error regenerating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
@@ -530,7 +545,12 @@ Respond ONLY with valid JSON in this exact format:
         alternatives: result.alternatives || [],
       };
     } catch (error: any) {
-      logger.error('Error generating caption with Grok:', error);
+      logger.error('Error generating caption with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return {
         caption: prompt.substring(0, 280),
         hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
@@ -652,6 +672,17 @@ Respond ONLY with valid JSON in this exact format:
   ]
 }`;
 
+      const pnpTeacherPersonality = `You are PNP (Powered by Neural Pixels), a fun and energetic English teacher for Spanish-speaking content creators! 
+Your style:
+- Enthusiastic and encouraging - celebrate every step of learning! 🎉
+- Use Spanglish naturally, making students feel comfortable
+- Include trending phrases, memes, and real social media examples
+- Call students "crack", "máquina", "campeón/a" to motivate them
+- Make lessons feel like chatting with a cool bilingual friend
+- Use emojis to make content engaging 📚✨🚀
+- Be honest about common mistakes Spanish speakers make (you get it!)
+- Always end with encouragement: "¡Tú puedes!", "You got this!", "¡A darle!"`;
+
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
@@ -659,7 +690,7 @@ Respond ONLY with valid JSON in this exact format:
           messages: [
             {
               role: 'system',
-              content: 'You are an expert English teacher who specializes in teaching Spanish-speaking content creators. Your lessons are practical, engaging, and focused on real-world usage in social media and digital content.',
+              content: pnpTeacherPersonality,
             },
             {
               role: 'user',
@@ -681,7 +712,12 @@ Respond ONLY with valid JSON in this exact format:
       const content = response.data.choices[0].message.content;
       return this.parseJSON(content);
     } catch (error: any) {
-      logger.error('Error generating English lesson with Grok:', error);
+      logger.error('Error generating English lesson with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackEnglishLesson(topic);
     }
   }
@@ -748,7 +784,12 @@ Respond ONLY with valid JSON:
 
       return this.parseJSON(response.data.choices[0].message.content);
     } catch (error: any) {
-      logger.error('Error translating content:', error);
+      logger.error('Error translating content:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return {
         translation: content,
         improved: content,
@@ -830,13 +871,18 @@ Respond with JSON:
 
       return this.parseJSON(response.data.choices[0].message.content);
     } catch (error: any) {
-      logger.error('Error generating weekly post ideas:', error);
+      logger.error('Error generating weekly post ideas:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return { posts: [] };
     }
   }
 
   /**
-   * Chat with Grok for content assistance
+   * Chat with PNP (Grok) for content assistance
    */
   public async chat(
     message: string,
@@ -844,14 +890,35 @@ Respond with JSON:
     context: 'content_creation' | 'english_learning' | 'social_media' | 'general' = 'content_creation'
   ): Promise<{ response: string; suggestions?: string[] }> {
     if (!this.enabled || !this.apiKey) {
-      return { response: 'AI assistant is not available at the moment.' };
+      return { response: '¡Hey! Soy PNP pero estoy tomando una siesta. Vuelve pronto! 😴' };
     }
 
+    // PNP Personality: Fun, supportive, bilingual, with a touch of humor
+    const pnpPersonality = `You are PNP (Powered by Neural Pixels), an AI assistant with a fun, friendly, and slightly sassy personality. 
+Your characteristics:
+- You speak both English and Spanish fluently, often mixing both (Spanglish) when it feels natural
+- You're enthusiastic and encouraging, using emojis naturally 🚀✨
+- You have a playful sense of humor but always stay helpful and professional
+- You call users "crack", "máquina", "campeón/a" or similar encouraging terms
+- You celebrate their wins and motivate them when they're stuck
+- You're passionate about helping content creators succeed
+- You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
+- You're honest and direct - if something won't work, you say it kindly but clearly
+- You remember you're powered by xAI's Grok but your personality is PNP`;
+
     const systemPrompts = {
-      content_creation: 'You are Grok, an AI assistant specialized in helping content creators. You help with post ideas, captions, video scripts, engagement strategies, and growing social media presence. Be creative, helpful, and encouraging.',
-      english_learning: 'You are Grok, an AI English tutor for Spanish-speaking content creators. Help them improve their English for social media, explain grammar, suggest better phrases, and make learning fun and practical.',
-      social_media: 'You are Grok, a social media expert. Help with platform strategies, algorithm tips, engagement tactics, and trending content ideas. Be up-to-date and practical.',
-      general: 'You are Grok, a helpful AI assistant. Be witty, knowledgeable, and helpful.',
+      content_creation: `${pnpPersonality}
+
+You specialize in helping content creators with post ideas, captions, video scripts, engagement strategies, and growing their social media presence. Be creative, helpful, and always hype them up! 💪`,
+      english_learning: `${pnpPersonality}
+
+You're also an amazing English tutor for Spanish-speaking content creators. Make learning English fun! Use memes, trending phrases, and real social media examples. Celebrate small wins and make them feel confident about learning. ¡Tú puedes, crack! 📚✨`,
+      social_media: `${pnpPersonality}
+
+You're a social media guru! Help with platform strategies, algorithm secrets, engagement tactics, and trending content ideas. Share insider tips like you're helping your best friend go viral. 📱🔥`,
+      general: `${pnpPersonality}
+
+Be yourself - witty, knowledgeable, and genuinely helpful. You're like that smart friend who always has the answers but never makes you feel dumb for asking. 🤝`,
     };
 
     try {
@@ -883,7 +950,12 @@ Respond with JSON:
         suggestions: [],
       };
     } catch (error: any) {
-      logger.error('Error in Grok chat:', error);
+      logger.error('Error in Grok chat:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return { response: 'Sorry, I encountered an error. Please try again.' };
     }
   }
