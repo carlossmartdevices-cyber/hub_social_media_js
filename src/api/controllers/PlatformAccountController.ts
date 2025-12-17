@@ -34,16 +34,50 @@ export class PlatformAccountController {
 
       const result = await database.query(query, params);
 
-      return res.json({
-        success: true,
-        accounts: result.rows,
-      });
+      // Transform data to match frontend expectations
+      const accounts = result.rows.map((row: any) => ({
+        id: row.id,
+        platform: row.platform,
+        accountName: row.account_name,
+        accountId: row.account_identifier,
+        isConnected: row.is_active && row.last_validated !== null,
+        profileUrl: this.getProfileUrl(row.platform, row.account_identifier),
+        lastValidated: row.last_validated,
+        createdAt: row.created_at,
+      }));
+
+      return res.json(accounts);
     } catch (error: any) {
       logger.error('List accounts error:', error);
       return res.status(500).json({
         success: false,
         error: 'Failed to list accounts',
       });
+    }
+  }
+
+  /**
+   * Get profile URL for a platform account
+   */
+  private getProfileUrl(platform: string, accountIdentifier: string): string | undefined {
+    const identifier = accountIdentifier.replace('@', '');
+
+    switch (platform.toLowerCase()) {
+      case 'twitter':
+      case 'x':
+        return `https://twitter.com/${identifier}`;
+      case 'instagram':
+        return `https://instagram.com/${identifier}`;
+      case 'facebook':
+        return `https://facebook.com/${identifier}`;
+      case 'linkedin':
+        return `https://linkedin.com/in/${identifier}`;
+      case 'tiktok':
+        return `https://tiktok.com/@${identifier}`;
+      case 'youtube':
+        return `https://youtube.com/@${identifier}`;
+      default:
+        return undefined;
     }
   }
 
