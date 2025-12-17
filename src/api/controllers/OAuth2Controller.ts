@@ -8,6 +8,45 @@ import { logger } from '../../utils/logger';
  */
 export class OAuth2Controller {
   /**
+   * GET /api/oauth/:platform/auth-url
+   * Get OAuth authorization URL for any platform
+   * Generic endpoint that routes to platform-specific implementations
+   */
+  async getAuthUrl(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      const userId = req.user!.id;
+      const { platform } = req.params;
+      const returnUrl = (req.query.returnUrl as string) || '/accounts';
+
+      logger.info('OAuth auth URL request:', { userId, platform, returnUrl });
+
+      // Route to platform-specific implementation
+      switch (platform.toLowerCase()) {
+        case 'twitter':
+        case 'x':
+          const authUrl = oauth2Service.getTwitterAuthURL(userId, returnUrl);
+          res.json({
+            success: true,
+            authUrl,
+          });
+          break;
+
+        default:
+          res.status(400).json({
+            success: false,
+            error: `OAuth not implemented for platform: ${platform}. Currently only Twitter/X is supported via OAuth2.`,
+          });
+      }
+    } catch (error: any) {
+      logger.error('Get auth URL error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to generate authorization URL',
+      });
+    }
+  }
+
+  /**
    * GET /api/oauth/twitter/authorize
    * Start Twitter OAuth 2.0 flow
    * Supports both JWT auth and direct userId (for Telegram bot)
