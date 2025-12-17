@@ -71,8 +71,10 @@ export default function VideoUploadPage() {
       try {
         const formData = new FormData();
         formData.append('video', file);
-        
-        const response = await api.post('/videos/upload', formData, {
+        formData.append('title', file.name);
+        formData.append('description', '');
+
+        const response = await api.post('/video/upload', formData, {
           headers: {
             'Content-Type': 'multipart/form-data',
           },
