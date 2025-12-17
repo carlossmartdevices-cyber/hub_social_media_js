@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
+import AIContentGenerator, { AIGeneratedContent } from './AIContentGenerator';
 
 // Platform options
 const PLATFORMS = [
@@ -68,6 +69,16 @@ export default function PostCreationForm() {
 
   const removeFile = (index: number) => {
     setMediaFiles(mediaFiles.filter((_, i) => i !== index));
+  };
+
+  const handleAIContentGenerated = (content: AIGeneratedContent) => {
+    // Update the post text with AI-generated caption
+    setFormData({
+      ...formData,
+      text: content.caption,
+      hashtags: content.hashtags.join(' '),
+    });
+    setCharCount(content.caption.length);
   };
 
   const handleSubmit = async (action: 'draft' | 'publish' | 'schedule') => {
@@ -186,6 +197,16 @@ export default function PostCreationForm() {
                 {charCount} characters
               </span>
             </div>
+
+            {/* AI Content Generator Button */}
+            <div className="mb-3">
+              <AIContentGenerator
+                onContentGenerated={handleAIContentGenerated}
+                context={formData.text}
+                platform={formData.platforms.includes('twitter') ? 'twitter' : formData.platforms[0] || 'twitter'}
+              />
+            </div>
+
             <textarea
               value={formData.text}
               onChange={(e) => handleInputChange('text', e.target.value)}

@@ -55,6 +55,18 @@ router.get('/', authMiddleware, PostController.listPosts);
 
 router.get('/:id', authMiddleware, PostController.getPost);
 
+// Bulk delete posts
+router.delete(
+  '/bulk-delete',
+  authMiddleware,
+  [
+    body('period').notEmpty().isIn(['24h', '7d', '30d', 'all']).withMessage('Period must be 24h, 7d, 30d, or all'),
+    body('platform').optional().isString().withMessage('Platform must be a string'),
+    validate,
+  ],
+  PostController.bulkDelete
+);
+
 router.delete('/:id/cancel', authMiddleware, PostController.cancelPost);
 
 router.patch(

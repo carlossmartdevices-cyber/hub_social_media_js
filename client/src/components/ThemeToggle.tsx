@@ -1,8 +1,16 @@
-import { SunIcon, MoonIcon } from '@heroicons/react/24/outline';
-import { useTheme } from '../hooks/useTheme';
+'use client';
+
+import { Sun, Moon } from 'lucide-react';
+import { useTheme } from '@/hooks/useTheme';
 
 export function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, mounted } = useTheme();
+
+  if (!mounted) {
+    return (
+      <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse" />
+    );
+  }
 
   return (
     <button
@@ -17,9 +25,9 @@ export function ThemeToggle() {
       title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? (
-        <MoonIcon className="h-5 w-5 text-gray-700" />
+        <Moon className="h-5 w-5 text-gray-700" />
       ) : (
-        <SunIcon className="h-5 w-5 text-yellow-400" />
+        <Sun className="h-5 w-5 text-yellow-400" />
       )}
     </button>
   );

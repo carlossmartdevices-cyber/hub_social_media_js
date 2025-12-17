@@ -8,8 +8,14 @@ import oauthRoutes from './oauth';
 import videoRoutes from './video';
 import englishLearningRoutes from './englishLearning';
 import telegramRoutes from './telegram';
+import automatedActionsRoutes from './automatedActions';
 
 const router = Router();
+
+// Health check endpoint
+router.get('/', (_req, res) => {
+  res.json({ status: 'ok', message: 'API is running' });
+});
 
 router.use('/auth', authRoutes);
 router.use('/posts', postRoutes);
@@ -20,5 +26,6 @@ router.use('/oauth', oauthRoutes);
 router.use('/video', videoRoutes);
 router.use('/english-learning', englishLearningRoutes);
 router.use('/telegram', telegramRoutes);
+router.use('/automated-actions', automatedActionsRoutes);
 
 export default router;

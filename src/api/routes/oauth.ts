@@ -8,6 +8,13 @@ const router = Router();
  * Twitter OAuth 2.0 routes
  */
 
+// Generic auth URL endpoint (for frontend)
+router.get(
+  '/:platform/auth-url',
+  authMiddleware,
+  oauth2Controller.getAuthUrl.bind(oauth2Controller)
+);
+
 // Start Twitter OAuth flow (optional authentication - supports Telegram bot)
 router.get(
   '/twitter/authorize',

@@ -8,6 +8,7 @@ import { PostWorker } from './jobs/workers/PostWorker';
 import { MetricsWorker } from './jobs/workers/MetricsWorker';
 import { closeQueues } from './jobs/queue';
 import { logPlatformStatus } from './utils/platformConfig';
+import automatedActionsService from './services/AutomatedActionsService';
 
 async function startServer() {
   try {
@@ -26,6 +27,10 @@ async function startServer() {
     const metricsWorker = new MetricsWorker();
     logger.info('Workers initialized');
 
+    // Start automated actions service
+    automatedActionsService.start();
+    logger.info('Automated actions service started');
+
     // Start server
     const server = app.listen(config.port, () => {
       logger.info(`Server running on port ${config.port} in ${config.env} mode`);
@@ -41,6 +46,7 @@ async function startServer() {
         logger.info('HTTP server closed');
       });
 
+      automatedActionsService.stop();
       await postWorker.close();
       await metricsWorker.close();
       await closeQueues();
