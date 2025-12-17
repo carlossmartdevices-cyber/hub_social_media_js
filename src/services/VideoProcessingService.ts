@@ -13,6 +13,16 @@ interface VideoMetadata {
   bitrate: number; // kbps
 }
 
+// Adult content video constraints
+interface AdultContentConstraints {
+  minDuration: number; // 15 seconds
+  maxDuration: number; // 45 seconds
+  targetWidth: number; // 1280 (720p)
+  targetHeight: number; // 720 (720p)
+  targetBitrate: string; // '3000k' for good quality in short videos
+  maxFileSize: number; // 100MB optimized for Twitter/X
+}
+
 interface ProcessingOptions {
   quality?: 'high' | 'medium' | 'low';
   maxWidth?: number;
@@ -20,6 +30,7 @@ interface ProcessingOptions {
   maxDuration?: number; // seconds
   format?: 'mp4' | 'webm';
   generateThumbnail?: boolean;
+  isAdultContent?: boolean; // Enable adult content constraints (15-45s, 720p)
 }
 
 interface ProcessedVideo {
@@ -36,6 +47,16 @@ export class VideoProcessingService {
   private readonly UPLOAD_DIR = process.env.VIDEO_UPLOAD_DIR || './uploads/videos';
   private readonly THUMBNAIL_DIR = process.env.THUMBNAIL_DIR || './uploads/thumbnails';
   private readonly MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB default
+
+  // Adult content video constraints (previews for pnptv.app)
+  private readonly ADULT_CONTENT_CONSTRAINTS: AdultContentConstraints = {
+    minDuration: 15, // Minimum 15 seconds
+    maxDuration: 45, // Maximum 45 seconds
+    targetWidth: 1280, // 720p width
+    targetHeight: 720, // 720p height
+    targetBitrate: '3000k', // 3000 kbps for high quality short videos
+    maxFileSize: 100 * 1024 * 1024, // 100MB target size
+  };
 
   constructor() {
     // Ensure upload directories exist
@@ -81,6 +102,55 @@ export class VideoProcessingService {
   }
 
   /**
+   * Validate video against adult content constraints
+   * Returns validation result and adjusted settings
+   */
+  public validateAdultContentVideo(metadata: VideoMetadata): {
+    isValid: boolean;
+    errors: string[];
+    requiresTrimming: boolean;
+    adjustedDuration?: number;
+  } {
+    const errors: string[] = [];
+    let requiresTrimming = false;
+    let adjustedDuration: number | undefined;
+
+    // Check minimum duration
+    if (metadata.duration < this.ADULT_CONTENT_CONSTRAINTS.minDuration) {
+      errors.push(
+        `Video is too short. Minimum duration is ${this.ADULT_CONTENT_CONSTRAINTS.minDuration}s, got ${Math.floor(metadata.duration)}s`
+      );
+    }
+
+    // Check maximum duration (allow trimming)
+    if (metadata.duration > this.ADULT_CONTENT_CONSTRAINTS.maxDuration) {
+      requiresTrimming = true;
+      adjustedDuration = this.ADULT_CONTENT_CONSTRAINTS.maxDuration;
+      logger.info(
+        `Video exceeds maximum duration. Will trim from ${Math.floor(metadata.duration)}s to ${this.ADULT_CONTENT_CONSTRAINTS.maxDuration}s`
+      );
+    }
+
+    // Note: We'll handle resolution conversion automatically, so no error needed
+    const needsResolutionAdjustment =
+      metadata.width !== this.ADULT_CONTENT_CONSTRAINTS.targetWidth ||
+      metadata.height !== this.ADULT_CONTENT_CONSTRAINTS.targetHeight;
+
+    if (needsResolutionAdjustment) {
+      logger.info(
+        `Video resolution ${metadata.width}x${metadata.height} will be converted to ${this.ADULT_CONTENT_CONSTRAINTS.targetWidth}x${this.ADULT_CONTENT_CONSTRAINTS.targetHeight} (720p)`
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      requiresTrimming,
+      adjustedDuration,
+    };
+  }
+
+  /**
    * Process and optimize video for social media platforms
    */
   public async processVideo(
@@ -89,10 +159,35 @@ export class VideoProcessingService {
     options: ProcessingOptions = {}
   ): Promise<ProcessedVideo> {
     try {
-      logger.info('Starting video processing', { postId, inputPath });
+      logger.info('Starting video processing', { postId, inputPath, isAdultContent: options.isAdultContent });
 
       // Get original metadata
       const originalMetadata = await this.getVideoMetadata(inputPath);
+
+      // Validate adult content constraints if enabled
+      if (options.isAdultContent) {
+        const validation = this.validateAdultContentVideo(originalMetadata);
+
+        if (!validation.isValid) {
+          const errorMsg = `Adult content validation failed: ${validation.errors.join(', ')}`;
+          logger.error(errorMsg, { postId, originalMetadata });
+          throw new Error(errorMsg);
+        }
+
+        // Apply adult content settings
+        if (validation.requiresTrimming && validation.adjustedDuration) {
+          options.maxDuration = validation.adjustedDuration;
+          logger.info('Video will be trimmed', {
+            postId,
+            original: originalMetadata.duration,
+            adjusted: validation.adjustedDuration,
+          });
+        }
+
+        // Force 720p resolution for adult content
+        options.maxWidth = this.ADULT_CONTENT_CONSTRAINTS.targetWidth;
+        options.maxHeight = this.ADULT_CONTENT_CONSTRAINTS.targetHeight;
+      }
 
       // Validate file size
       if (originalMetadata.size > this.MAX_VIDEO_SIZE) {
@@ -107,7 +202,16 @@ export class VideoProcessingService {
       const outputPath = path.join(this.UPLOAD_DIR, outputFilename);
 
       // Determine quality settings
-      const qualitySettings = this.getQualitySettings(options.quality || 'medium');
+      let qualitySettings = this.getQualitySettings(options.quality || 'medium');
+
+      // Override quality settings for adult content (higher quality for short videos)
+      if (options.isAdultContent) {
+        qualitySettings = {
+          videoBitrate: this.ADULT_CONTENT_CONSTRAINTS.targetBitrate,
+          maxWidth: this.ADULT_CONTENT_CONSTRAINTS.targetWidth,
+          maxHeight: this.ADULT_CONTENT_CONSTRAINTS.targetHeight,
+        };
+      }
 
       // Process video
       await this.compressVideo(inputPath, outputPath, {
@@ -133,8 +237,12 @@ export class VideoProcessingService {
 
       logger.info('Video processing completed', {
         postId,
+        isAdultContent: options.isAdultContent,
         originalSize: originalMetadata.size,
         processedSize: processedMetadata.size,
+        originalDuration: originalMetadata.duration,
+        processedDuration: processedMetadata.duration,
+        resolution: `${processedMetadata.width}x${processedMetadata.height}`,
         compressionRatio: `${compressionRatio.toFixed(2)}%`,
       });
 

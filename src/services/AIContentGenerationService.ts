@@ -17,6 +17,13 @@ interface VideoTitleDescription {
   voiceSearchQueries: string[]; // Questions for voice search (2-3)
   category: string; // Main category
   targetKeyword: string; // Primary focus keyword
+
+  // Adult content specific fields
+  performers?: string[]; // Names of performers in the video
+  niche?: {
+    primary: string; // Main niche (e.g., "gay")
+    tags: string[]; // Specific tags (e.g., ["latino", "smoking", "pnp"])
+  };
 }
 
 interface PostVariant {
@@ -53,6 +60,134 @@ export class AIContentGenerationService {
       model: this.model,
       hasApiKey: !!this.apiKey
     });
+  }
+
+  /**
+   * Generate SEO-optimized video metadata for adult content (gay, latino, smoking, pnp niche)
+   */
+  public async generateAdultContentMetadata(
+    userExplanation: string,
+    performers: string[],
+    videoFileName: string
+  ): Promise<VideoTitleDescription> {
+    if (!this.enabled || !this.apiKey) {
+      logger.warn('XAI is not enabled or API key is missing');
+      return this.generateFallbackAdultMetadata(userExplanation, performers);
+    }
+
+    try {
+      const performerList = performers.join(', ');
+      const prompt = `You are an expert in adult content SEO and social media marketing, specializing in the gay latino smoking/pnp niche. Generate comprehensive SEO-optimized metadata for maximum discoverability on Twitter/X and adult content platforms.
+
+Video file: ${videoFileName}
+Performers: ${performerList}
+Description: ${userExplanation}
+
+**TARGET NICHE:** Gay latino content, smoking fetish, party and play (PnP)
+**PRIMARY KEYWORDS:** gay latino smoking, pnp party boys, latino twinks smoking, gay smoking fetish, party and play
+
+Requirements:
+
+**SOCIAL MEDIA CONTENT (Twitter/X optimized):**
+- title: Catchy, engaging title (max 100 characters) that hooks the target audience
+- description: Compelling description (max 3 lines, ~250 characters) mentioning performers and main appeal
+- suggestedHashtags: 5-8 trending hashtags for gay latino smoking/pnp content (without #)
+
+**SEO OPTIMIZATION (for previews.pnptv.app):**
+- seoTitle: Search-optimized title (60-70 characters) with primary niche keywords at the start
+- seoDescription: Meta description (150-160 characters) with niche keywords and value proposition
+- keywords: 8-12 primary keywords focused on: gay, latino, smoking, pnp, twinks, party, fetish
+- tags: 3-5 categorical tags (e.g., "Gay Latino", "Smoking Fetish", "PnP Party", "Twinks")
+- targetKeyword: THE main keyword phrase to rank for (e.g., "gay latino smoking pnp")
+- category: Main category (e.g., "Gay Latino Content", "Smoking Fetish", "Party Content")
+
+**SEARCH DISCOVERY:**
+- searchTerms: 5-7 long-tail search phrases people actually search in this niche
+  Examples: "hot latino guys smoking pnp", "gay smoking fetish videos latino", "pnp party twinks smoking"
+- voiceSearchQueries: 2-3 natural language questions
+  Examples: "where to find latino gay smoking content", "best gay pnp smoking videos"
+
+**PERFORMER INTEGRATION:**
+- Naturally incorporate performer names: ${performerList}
+- Make them searchable and prominent in descriptions
+
+**NICHE-SPECIFIC SEO TACTICS:**
+- Use terms: "latino", "twink", "smoking", "pnp", "party and play", "fetish", "hot"
+- Include power words: "exclusive", "hot", "wild", "steamy", "uncensored", "raw"
+- Front-load most important niche keywords
+- Create curiosity while being descriptive
+- Optimize for adult content search patterns
+
+**IMPORTANT:** Keep descriptions professional but appealing. Focus on searchability and discoverability in the gay latino smoking/pnp niche.
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "title": "Hot Latino Twinks - Smoking Session with ${performerList}",
+  "description": "Watch ${performerList} in this exclusive smoking session. Hot latino action, pnp vibes, and steamy content. 🔥",
+  "suggestedHashtags": ["GayLatino", "SmokingFetish", "PnPParty", "LatinoTwinks", "GaySmoking", "PartyAndPlay"],
+  "seoTitle": "Gay Latino Smoking PnP: ${performerList} - Hot Twink Action",
+  "seoDescription": "Exclusive gay latino smoking content featuring ${performerList}. Watch hot twinks in steamy pnp party sessions. Premium smoking fetish videos at previews.pnptv.app",
+  "keywords": ["gay latino smoking", "pnp party boys", "latino twinks smoking", "gay smoking fetish", "party and play latino", "latino gay content", "smoking fetish videos", "pnp smoking", "gay latino twinks", "hot latino smoking"],
+  "tags": ["Gay Latino", "Smoking Fetish", "PnP Party", "Latino Twinks", "Party Content"],
+  "targetKeyword": "gay latino smoking pnp",
+  "category": "Gay Latino Smoking",
+  "searchTerms": ["hot latino guys smoking pnp", "gay smoking fetish videos latino", "pnp party twinks smoking", "latino gay smoking content", "party and play smoking videos"],
+  "voiceSearchQueries": ["where to find latino gay smoking content", "best gay pnp smoking videos with latinos"],
+  "performers": ["${performerList}"],
+  "niche": {
+    "primary": "gay",
+    "tags": ["latino", "smoking", "pnp", "twink", "party", "fetish"]
+  }
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an expert in adult content SEO, social media marketing for gay latino content, and niche audience targeting. You specialize in smoking fetish and party and play (pnp) content optimization.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1500,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      const result = this.parseJSON(content);
+
+      return {
+        title: result.title || `${performerList} - Latino Smoking Session`,
+        description: result.description || userExplanation.substring(0, 250),
+        suggestedHashtags: result.suggestedHashtags || ['GayLatino', 'Smoking', 'PnP'],
+        seoTitle: result.seoTitle || `Gay Latino Smoking: ${performerList}`,
+        seoDescription: result.seoDescription || userExplanation.substring(0, 160),
+        keywords: result.keywords || ['gay latino', 'smoking', 'pnp'],
+        tags: result.tags || ['Gay Latino', 'Smoking'],
+        targetKeyword: result.targetKeyword || 'gay latino smoking',
+        category: result.category || 'Gay Latino Content',
+        searchTerms: result.searchTerms || ['gay latino smoking'],
+        voiceSearchQueries: result.voiceSearchQueries || ['latino gay smoking content'],
+        performers: performers,
+        niche: result.niche || { primary: 'gay', tags: ['latino', 'smoking', 'pnp'] },
+      };
+    } catch (error: any) {
+      logger.error('Error generating adult content metadata with Grok:', error);
+      return this.generateFallbackAdultMetadata(userExplanation, performers);
+    }
   }
 
   /**
@@ -168,7 +303,8 @@ Respond ONLY with valid JSON in this exact format:
   }
 
   /**
-   * Generate SEO-optimized post variations in English and Spanish based on user goal
+   * Generate X/Twitter-optimized post variations in English and Spanish
+   * Optimized specifically for X algorithm and engagement
    */
   public async generatePostVariants(
     videoTitle: string,
@@ -182,51 +318,63 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     try {
-      const prompt = `You are a bilingual social media marketing and SEO expert. Create TWO SEO-optimized post variations (one in English, one in Spanish) for a video.
+      const prompt = `You are Grok, X's AI expert in viral content creation and engagement optimization. Create TWO high-performing post variations (English and Spanish) for X/Twitter.
 
-Video Title: ${videoTitle}
-Video Description: ${videoDescription}
+**VIDEO CONTEXT:**
+Title: ${videoTitle}
+Description: ${videoDescription}
 User Goal: ${userGoal}
 ${targetAudience ? `Target Audience: ${targetAudience}` : ''}
 
-Requirements:
-- Create ONE post in ENGLISH and ONE post in SPANISH
-- Each post should be optimized for:
-  * Twitter algorithm (max 250 characters to leave room for media)
-  * Search discoverability (include relevant keywords naturally)
-  * Engagement (questions, hooks, power words)
-  * Click-through rate (value proposition, FOMO, curiosity)
-- Posts should be DIFFERENT from each other (not direct translations) - use different angles
-- Each should align with the user's goal
-- Include 3-5 SEO-optimized hashtags per post:
-  * Mix of high-volume and niche hashtags
-  * Trending hashtags when relevant
-  * Branded hashtags if applicable
-- Add a compelling call-to-action (CTA) that drives the desired action
-- Make them engaging, shareable, and searchable
+**X/TWITTER OPTIMIZATION REQUIREMENTS:**
 
-**SEO OPTIMIZATION TACTICS:**
-- Front-load important keywords in the first 100 characters
-- Use power words and emotional triggers
-- Include numbers/stats when possible
-- Create curiosity gaps
-- Address user pain points or desires
+🎯 **Content Strategy:**
+- Max 250 characters (leave room for media/links)
+- Hook in first 50 characters (visible before "show more")
+- Use conversational, authentic tone
+- Create FOMO, curiosity, or value proposition
+- Posts should be DIFFERENT (not translations) - different angles/hooks
 
-IMPORTANT: The English and Spanish posts should have different angles/approaches to avoid being flagged as spam.
+📊 **X Algorithm Optimization:**
+- Front-load keywords for search/discovery
+- Use power words: "exclusive", "limited", "secret", "first", "revealed"
+- Include questions or statements that trigger replies
+- Add controversy or hot takes (when appropriate)
+- Create emotional resonance
 
-Respond ONLY with valid JSON in this exact format:
+💬 **Engagement Tactics:**
+- Ask questions to drive comments
+- Use cliffhangers or open loops
+- Include relatable moments
+- Add personality and humor when fitting
+- Use emojis strategically (2-3 max)
+
+#️⃣ **Hashtag Strategy (3-5 per post):**
+- 1-2 trending/high-volume hashtags
+- 2-3 niche-specific hashtags
+- Mix English/Spanish appropriately
+- Avoid spam hashtags
+
+🚀 **Call-to-Action:**
+- Natural, not salesy
+- Create urgency when appropriate
+- Align with user goal
+
+**CRITICAL:** English and Spanish posts MUST have different angles to avoid spam detection and maximize reach.
+
+Respond with JSON:
 {
   "english": {
     "language": "en",
-    "content": "Your SEO-optimized engaging English post here",
-    "hashtags": ["SEOHashtag1", "TrendingTag2", "NicheTag3"],
-    "cta": "Strong call to action"
+    "content": "Engaging hook + value + CTA (max 250 chars)",
+    "hashtags": ["Trending1", "Niche2", "Specific3"],
+    "cta": "Watch now 👀"
   },
   "spanish": {
     "language": "es",
-    "content": "Tu post optimizado para SEO en español aquí",
-    "hashtags": ["HashtagSEO1", "TagTendencia2", "TagNicho3"],
-    "cta": "Llamada a la acción convincente"
+    "content": "Hook diferente + valor + CTA (max 250 chars)",
+    "hashtags": ["Tendencia1", "Nicho2", "Especifico3"],
+    "cta": "Míralo ya 🔥"
   }
 }`;
 
@@ -237,14 +385,14 @@ Respond ONLY with valid JSON in this exact format:
           messages: [
             {
               role: 'system',
-              content: 'You are an expert in bilingual SEO, social media marketing, and content optimization. You understand how to create content that ranks well in search and performs well on social platforms.',
+              content: 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.',
             },
             {
               role: 'user',
               content: prompt,
             },
           ],
-          temperature: 0.8,
+          temperature: 0.9,
           max_tokens: 900,
         },
         {
@@ -479,34 +627,50 @@ Respond ONLY with valid JSON in this exact format:
       const platformLimit = charLimits[platform as keyof typeof charLimits] || charLimits.twitter;
       const maxChars = platformLimit[length];
 
-      const systemPrompt = `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
+      // X/Twitter-specific optimization
+      const isXPlatform = platform === 'twitter';
+      const systemPrompt = isXPlatform
+        ? `You are Grok, X's AI expert in viral content creation. You understand the X algorithm, what drives engagement, and how to craft posts that get maximum reach and interaction. You know the power of hooks, curiosity gaps, and emotional triggers.`
+        : `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
 
-      const userPrompt = `Create a ${tone} social media caption for ${platform} based on this:
+      const xOptimizations = isXPlatform ? `
+🔥 **X-SPECIFIC OPTIMIZATION:**
+- Hook in first 50 chars (visible before "show more")
+- Use power words: "secret", "revealed", "exclusive", "banned"
+- Create curiosity or controversy when appropriate
+- Questions that trigger replies
+- Thread-starter potential (cliffhangers)
+- Emoji strategy: 2-3 max, placed strategically
+- Avoid spam patterns
+- Optimize for Retweets AND replies` : '';
+
+      const userPrompt = `Create ${isXPlatform ? 'a high-engagement' : `a ${tone}`} ${platform === 'twitter' ? 'X' : platform} post based on this:
 
 "${prompt}"
 
 Requirements:
 - Tone: ${tone}
-- Length: ${length} (approximately ${maxChars} characters)
-- Platform: ${platform}
+- Length: ${length} (≈${maxChars} chars)
+- Platform: ${platform === 'twitter' ? 'X/Twitter' : platform}
 ${targetAudience ? `- Target Audience: ${targetAudience}` : ''}
-${includeEmojis ? '- Include relevant emojis to enhance engagement' : '- No emojis'}
-${includeHashtags ? '- Include 3-5 relevant hashtags at the end' : '- No hashtags'}
-- Make it engaging, shareable, and authentic
-- Use appropriate formatting for ${platform}
-- Include a hook in the first line to grab attention
-${platform === 'twitter' ? '- Optimize for Twitter algorithm and engagement' : ''}
-${platform === 'linkedin' ? '- Professional but personable tone' : ''}
+${includeEmojis ? '- Include emojis strategically' : '- No emojis'}
+${includeHashtags ? '- Include 3-5 high-performing hashtags' : '- No hashtags'}
+- Make it engaging, shareable, authentic
+- Strong hook to grab attention${xOptimizations}
 
-Also provide 2 alternative caption variations with different approaches.
+Provide 3 alternative variations with DIFFERENT approaches (not just rewording):
+- Alternative 1: Question-based hook
+- Alternative 2: Statement/controversial angle
+- Alternative 3: Story/emotional angle
 
-Respond ONLY with valid JSON in this exact format:
+JSON format:
 {
-  "caption": "Main caption here (without hashtags)",
-  "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+  "caption": "Main post (no hashtags in caption)",
+  "hashtags": ["Hashtag1", "Hashtag2", "Hashtag3"],
   "alternatives": [
-    "Alternative caption 1",
-    "Alternative caption 2"
+    "Alternative 1 - question approach",
+    "Alternative 2 - statement approach",
+    "Alternative 3 - story approach"
   ]
 }`;
 
@@ -524,8 +688,8 @@ Respond ONLY with valid JSON in this exact format:
               content: userPrompt,
             },
           ],
-          temperature: 0.8,
-          max_tokens: 800,
+          temperature: isXPlatform ? 0.9 : 0.8,
+          max_tokens: 1000,
         },
         {
           headers: {
@@ -574,6 +738,28 @@ Respond ONLY with valid JSON in this exact format:
       category: 'General',
       searchTerms: ['video content', 'social media video'],
       voiceSearchQueries: ['How to create video content?'],
+    };
+  }
+
+  /**
+   * Fallback adult content metadata when AI is not available
+   */
+  private generateFallbackAdultMetadata(explanation: string, performers: string[]): VideoTitleDescription {
+    const performerList = performers.join(', ');
+    return {
+      title: `${performerList} - Latino Smoking Session`,
+      description: explanation.substring(0, 250),
+      suggestedHashtags: ['GayLatino', 'Smoking', 'PnP', 'LatinoTwinks', 'PartyAndPlay'],
+      seoTitle: `Gay Latino Smoking: ${performerList} - Hot Content`,
+      seoDescription: `Watch ${performerList} in exclusive gay latino smoking content. Premium pnp party videos.`,
+      keywords: ['gay latino smoking', 'pnp party', 'latino twinks', 'smoking fetish', 'party and play'],
+      tags: ['Gay Latino', 'Smoking Fetish', 'PnP Party'],
+      targetKeyword: 'gay latino smoking pnp',
+      category: 'Gay Latino Content',
+      searchTerms: ['gay latino smoking', 'pnp party boys smoking', 'latino twinks smoking content'],
+      voiceSearchQueries: ['where to find gay latino smoking videos'],
+      performers: performers,
+      niche: { primary: 'gay', tags: ['latino', 'smoking', 'pnp', 'twink', 'party'] },
     };
   }
 
