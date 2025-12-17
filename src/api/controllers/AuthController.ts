@@ -267,6 +267,155 @@ export class AuthController {
   }
 
   /**
+   * Telegram Login Widget authentication
+   * POST /api/auth/telegram/callback
+   * Body: Telegram auth data from widget (id, first_name, last_name, username, photo_url, auth_date, hash)
+   */
+  async handleTelegramCallback(req: Request, res: Response): Promise<Response> {
+    try {
+      const { id, first_name, last_name, username, photo_url, auth_date, hash } = req.body;
+
+      if (!id || !hash || !auth_date) {
+        return res.status(400).json({ error: 'Missing required Telegram auth data' });
+      }
+
+      // Verify Telegram auth data
+      const crypto = require('crypto');
+      const botToken = config.platforms.telegram.botToken;
+
+      if (!botToken) {
+        return res.status(500).json({ error: 'Telegram bot not configured' });
+      }
+
+      // Create data check string
+      const checkData: { [key: string]: string } = {};
+      if (auth_date) checkData.auth_date = auth_date;
+      if (first_name) checkData.first_name = first_name;
+      if (id) checkData.id = id.toString();
+      if (last_name) checkData.last_name = last_name;
+      if (photo_url) checkData.photo_url = photo_url;
+      if (username) checkData.username = username;
+
+      const dataCheckString = Object.keys(checkData)
+        .sort()
+        .map(key => `${key}=${checkData[key]}`)
+        .join('\n');
+
+      // Generate secret key
+      const secretKey = crypto.createHash('sha256').update(botToken).digest();
+
+      // Calculate hash
+      const calculatedHash = crypto
+        .createHmac('sha256', secretKey)
+        .update(dataCheckString)
+        .digest('hex');
+
+      // Verify hash
+      if (calculatedHash !== hash) {
+        return res.status(401).json({ error: 'Invalid Telegram authentication data' });
+      }
+
+      // Check if auth data is not too old (1 day)
+      const authTimestamp = parseInt(auth_date, 10);
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (currentTimestamp - authTimestamp > 86400) {
+        return res.status(401).json({ error: 'Telegram authentication data is too old' });
+      }
+
+      // Check if user exists with this Telegram account
+      const existingResult = await database.query(
+        'SELECT id, email, name, role, is_active FROM users WHERE telegram_id = $1',
+        [id.toString()]
+      );
+
+      let user;
+
+      if (existingResult.rows.length > 0) {
+        // User exists - login
+        user = existingResult.rows[0];
+
+        if (!user.is_active) {
+          return res.status(401).json({ error: 'Account is disabled' });
+        }
+
+        // Update Telegram profile info
+        await database.query(
+          `UPDATE users SET
+            telegram_username = $1,
+            telegram_first_name = $2,
+            telegram_last_name = $3,
+            telegram_photo_url = $4,
+            updated_at = NOW()
+          WHERE id = $5`,
+          [username || null, first_name, last_name || null, photo_url || null, user.id]
+        );
+
+        logger.info(`User logged in via Telegram: ${user.email} (@${username || id})`);
+      } else {
+        // New user - register
+        const userId = uuidv4();
+        const email = username ? `${username}@telegram.temp` : `${id}@telegram.temp`;
+        const name = first_name + (last_name ? ` ${last_name}` : '');
+
+        const newUserResult = await database.query(
+          `INSERT INTO users (
+            id, email, name, role, is_active,
+            telegram_id, telegram_username, telegram_first_name, telegram_last_name, telegram_photo_url,
+            auth_provider, avatar_url
+          )
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          RETURNING id, email, name, role`,
+          [
+            userId,
+            email,
+            name,
+            'user',
+            true,
+            id.toString(),
+            username || null,
+            first_name,
+            last_name || null,
+            photo_url || null,
+            'telegram',
+            photo_url || null
+          ]
+        );
+
+        user = newUserResult.rows[0];
+        logger.info(`User registered via Telegram: ${email} (@${username || id})`);
+      }
+
+      // Generate JWT tokens
+      const accessToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role },
+        config.jwt.secret,
+        { expiresIn: config.jwt.accessTokenExpiresIn } as jwt.SignOptions
+      );
+
+      const refreshToken = jwt.sign(
+        { id: user.id, type: 'refresh' },
+        config.jwt.refreshSecret,
+        { expiresIn: config.jwt.refreshTokenExpiresIn } as jwt.SignOptions
+      );
+
+      return res.json({
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+        accessToken,
+        refreshToken,
+        token: accessToken, // Backward compatibility
+      });
+    } catch (error) {
+      logger.error('Error handling Telegram auth callback:', error);
+      return res.status(500).json({ error: 'Failed to authenticate with Telegram' });
+    }
+  }
+
+  /**
    * Handle X (Twitter) OAuth callback and create/login user
    * GET /api/auth/x/callback?code=...&state=...
    */

@@ -9,6 +9,7 @@ import videoRoutes from './video';
 import englishLearningRoutes from './englishLearning';
 import telegramRoutes from './telegram';
 import automatedActionsRoutes from './automatedActions';
+import webhookRoutes from './webhook';
 
 const router = Router();
 
@@ -27,5 +28,6 @@ router.use('/video', videoRoutes);
 router.use('/english-learning', englishLearningRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/automated-actions', automatedActionsRoutes);
+router.use('/webhook', webhookRoutes);
 
 export default router;

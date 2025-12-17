@@ -96,4 +96,11 @@ router.get('/profile', authMiddleware, AuthController.getProfile);
 router.get('/x/login', AuthController.initiateXLogin);
 router.get('/x/callback', AuthController.handleXCallback);
 
+/**
+ * Telegram Login Widget Authentication Routes
+ * For user login/registration via Telegram
+ * The frontend uses Telegram Login Widget which POSTs data to /telegram/callback
+ */
+router.post('/telegram/callback', AuthController.handleTelegramCallback);
+
 export default router;

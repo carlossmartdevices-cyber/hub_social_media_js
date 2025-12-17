@@ -1,52 +1,26 @@
-# 🟢 MEDIUM: Optimized multi-stage Docker build
-# Stage 1: Dependencies
-FROM node:18 AS dependencies
+# Simplified Docker build for Node.js application
+FROM node:18-alpine
 
 WORKDIR /app
 
+# Copy package files
 COPY package*.json ./
-RUN npm ci --only=production && \
-    npm cache clean --force
 
-# Stage 2: Builder
-FROM node:18 AS builder
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY tsconfig.json ./
-
-# Install all dependencies (including dev)
+# Install all dependencies (including dev for build)
 RUN npm ci
 
-# Copy source code
+# Copy source files
 COPY src ./src
+COPY tsconfig.json ./
 
 # Build TypeScript
 RUN npm run build
 
-# Stage 3: Production
-FROM node:18
-
-
-
-WORKDIR /app
-
-# Copy production dependencies from dependencies stage
-COPY --from=dependencies /app/node_modules ./node_modules
-
-# Copy built application from builder stage
-COPY --from=builder /app/dist ./dist
-COPY package*.json ./
+# Remove dev dependencies
+RUN npm ci --only=production && npm cache clean --force
 
 # Create necessary directories
-RUN mkdir -p logs uploads && \
-    addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001 && \
-    chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
+RUN mkdir -p logs uploads
 
 # Set environment
 ENV NODE_ENV=production
@@ -57,8 +31,6 @@ EXPOSE 8080
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
   CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
-
-ENTRYPOINT ["tini", "--"]
 
 # Start application
 CMD ["node", "dist/index.js"]

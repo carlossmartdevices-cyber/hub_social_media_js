@@ -589,3 +589,7 @@ After EVERY batch of posts, you MUST include an English lesson section for Spani
 
 // Export singleton instance
 export const aiContentService = new AIContentService();
+
+// Re-export AIContentGenerationService methods for backward compatibility
+import aiContentGenerationService from './AIContentGenerationService';
+export { aiContentGenerationService };

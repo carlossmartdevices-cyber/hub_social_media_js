@@ -19,8 +19,8 @@ export function createApp(): Application {
 
   // 🟡 HIGH: Restrictive CORS configuration
   const allowedOrigins = config.env === 'production'
-    ? [config.apiUrl, 'https://pnptv.app']
-    : ['http://localhost:3010', 'https://pnptv.app'];
+    ? [config.apiUrl, 'https://pnptv.app', 'https://clickera.app']
+    : ['http://localhost:3010', 'https://pnptv.app', 'https://clickera.app'];
 
   app.use(cors({
     origin: (origin, callback) => {

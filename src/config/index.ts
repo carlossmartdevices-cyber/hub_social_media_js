@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
-// Override system environment variables with .env file
-dotenv.config({ override: true });
+// Load .env file but don't override existing environment variables
+// This allows PM2 environment variables to take precedence
+dotenv.config({ override: false });
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
@@ -85,6 +86,16 @@ export const config = {
     maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10),
     maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '104857600', 10),
     storagePath: process.env.MEDIA_STORAGE_PATH || './uploads',
+  },
+
+  storage: {
+    s3: {
+      enabled: process.env.AWS_S3_ENABLED === 'true',
+      region: process.env.AWS_REGION || 'us-east-1',
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+      bucket: process.env.AWS_S3_BUCKET || '',
+    },
   },
 
   rateLimit: {
