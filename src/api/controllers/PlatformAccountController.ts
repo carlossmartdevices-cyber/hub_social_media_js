@@ -40,7 +40,7 @@ export class PlatformAccountController {
         platform: row.platform,
         accountName: row.account_name,
         accountId: row.account_identifier,
-        isConnected: row.is_active && row.last_validated !== null,
+        isConnected: row.is_active,
         profileUrl: this.getProfileUrl(row.platform, row.account_identifier),
         lastValidated: row.last_validated,
         createdAt: row.created_at,
@@ -60,25 +60,18 @@ export class PlatformAccountController {
    * Get profile URL for a platform account
    */
   private getProfileUrl(platform: string, accountIdentifier: string): string | undefined {
-    const identifier = accountIdentifier.replace('@', '');
+    const urlMap: Record<string, (id: string) => string> = {
+      twitter: (id) => `https://twitter.com/${id.replace('@', '')}`,
+      instagram: (id) => `https://instagram.com/${id.replace('@', '')}`,
+      facebook: (id) => `https://facebook.com/${id}`,
+      linkedin: (id) => `https://linkedin.com/in/${id}`,
+      youtube: (id) => `https://youtube.com/${id}`,
+      tiktok: (id) => `https://tiktok.com/@${id.replace('@', '')}`,
+      telegram: (id) => `https://t.me/${id.replace('@', '')}`,
+    };
 
-    switch (platform.toLowerCase()) {
-      case 'twitter':
-      case 'x':
-        return `https://twitter.com/${identifier}`;
-      case 'instagram':
-        return `https://instagram.com/${identifier}`;
-      case 'facebook':
-        return `https://facebook.com/${identifier}`;
-      case 'linkedin':
-        return `https://linkedin.com/in/${identifier}`;
-      case 'tiktok':
-        return `https://tiktok.com/@${identifier}`;
-      case 'youtube':
-        return `https://youtube.com/@${identifier}`;
-      default:
-        return undefined;
-    }
+    const urlBuilder = urlMap[platform.toLowerCase()];
+    return urlBuilder ? urlBuilder(accountIdentifier) : undefined;
   }
 
   /**
