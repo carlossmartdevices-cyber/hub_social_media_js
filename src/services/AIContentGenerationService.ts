@@ -292,13 +292,19 @@ Respond ONLY with valid JSON in this exact format:
         voiceSearchQueries: result.voiceSearchQueries || [],
       };
     } catch (error: any) {
-      logger.error('Error generating video metadata with Grok:', error);
+      logger.error('Error generating video metadata with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackMetadata(userExplanation);
     }
   }
 
   /**
-   * Generate SEO-optimized post variations in English and Spanish based on user goal
+   * Generate X/Twitter-optimized post variations in English and Spanish
+   * Optimized specifically for X algorithm and engagement
    */
   public async generatePostVariants(
     videoTitle: string,
@@ -312,51 +318,63 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     try {
-      const prompt = `You are a bilingual social media marketing and SEO expert. Create TWO SEO-optimized post variations (one in English, one in Spanish) for a video.
+      const prompt = `You are Grok, X's AI expert in viral content creation and engagement optimization. Create TWO high-performing post variations (English and Spanish) for X/Twitter.
 
-Video Title: ${videoTitle}
-Video Description: ${videoDescription}
+**VIDEO CONTEXT:**
+Title: ${videoTitle}
+Description: ${videoDescription}
 User Goal: ${userGoal}
 ${targetAudience ? `Target Audience: ${targetAudience}` : ''}
 
-Requirements:
-- Create ONE post in ENGLISH and ONE post in SPANISH
-- Each post should be optimized for:
-  * Twitter algorithm (max 250 characters to leave room for media)
-  * Search discoverability (include relevant keywords naturally)
-  * Engagement (questions, hooks, power words)
-  * Click-through rate (value proposition, FOMO, curiosity)
-- Posts should be DIFFERENT from each other (not direct translations) - use different angles
-- Each should align with the user's goal
-- Include 3-5 SEO-optimized hashtags per post:
-  * Mix of high-volume and niche hashtags
-  * Trending hashtags when relevant
-  * Branded hashtags if applicable
-- Add a compelling call-to-action (CTA) that drives the desired action
-- Make them engaging, shareable, and searchable
+**X/TWITTER OPTIMIZATION REQUIREMENTS:**
 
-**SEO OPTIMIZATION TACTICS:**
-- Front-load important keywords in the first 100 characters
-- Use power words and emotional triggers
-- Include numbers/stats when possible
-- Create curiosity gaps
-- Address user pain points or desires
+🎯 **Content Strategy:**
+- Max 250 characters (leave room for media/links)
+- Hook in first 50 characters (visible before "show more")
+- Use conversational, authentic tone
+- Create FOMO, curiosity, or value proposition
+- Posts should be DIFFERENT (not translations) - different angles/hooks
 
-IMPORTANT: The English and Spanish posts should have different angles/approaches to avoid being flagged as spam.
+📊 **X Algorithm Optimization:**
+- Front-load keywords for search/discovery
+- Use power words: "exclusive", "limited", "secret", "first", "revealed"
+- Include questions or statements that trigger replies
+- Add controversy or hot takes (when appropriate)
+- Create emotional resonance
 
-Respond ONLY with valid JSON in this exact format:
+💬 **Engagement Tactics:**
+- Ask questions to drive comments
+- Use cliffhangers or open loops
+- Include relatable moments
+- Add personality and humor when fitting
+- Use emojis strategically (2-3 max)
+
+#️⃣ **Hashtag Strategy (3-5 per post):**
+- 1-2 trending/high-volume hashtags
+- 2-3 niche-specific hashtags
+- Mix English/Spanish appropriately
+- Avoid spam hashtags
+
+🚀 **Call-to-Action:**
+- Natural, not salesy
+- Create urgency when appropriate
+- Align with user goal
+
+**CRITICAL:** English and Spanish posts MUST have different angles to avoid spam detection and maximize reach.
+
+Respond with JSON:
 {
   "english": {
     "language": "en",
-    "content": "Your SEO-optimized engaging English post here",
-    "hashtags": ["SEOHashtag1", "TrendingTag2", "NicheTag3"],
-    "cta": "Strong call to action"
+    "content": "Engaging hook + value + CTA (max 250 chars)",
+    "hashtags": ["Trending1", "Niche2", "Specific3"],
+    "cta": "Watch now 👀"
   },
   "spanish": {
     "language": "es",
-    "content": "Tu post optimizado para SEO en español aquí",
-    "hashtags": ["HashtagSEO1", "TagTendencia2", "TagNicho3"],
-    "cta": "Llamada a la acción convincente"
+    "content": "Hook diferente + valor + CTA (max 250 chars)",
+    "hashtags": ["Tendencia1", "Nicho2", "Especifico3"],
+    "cta": "Míralo ya 🔥"
   }
 }`;
 
@@ -367,14 +385,14 @@ Respond ONLY with valid JSON in this exact format:
           messages: [
             {
               role: 'system',
-              content: 'You are an expert in bilingual SEO, social media marketing, and content optimization. You understand how to create content that ranks well in search and performs well on social platforms.',
+              content: 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.',
             },
             {
               role: 'user',
               content: prompt,
             },
           ],
-          temperature: 0.8,
+          temperature: 0.9,
           max_tokens: 900,
         },
         {
@@ -404,7 +422,12 @@ Respond ONLY with valid JSON in this exact format:
         },
       };
     } catch (error: any) {
-      logger.error('Error generating post variants with Grok:', error);
+      logger.error('Error generating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
@@ -528,7 +551,12 @@ Respond ONLY with valid JSON in this exact format:
         },
       };
     } catch (error: any) {
-      logger.error('Error regenerating post variants with Grok:', error);
+      logger.error('Error regenerating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
@@ -599,34 +627,50 @@ Respond ONLY with valid JSON in this exact format:
       const platformLimit = charLimits[platform as keyof typeof charLimits] || charLimits.twitter;
       const maxChars = platformLimit[length];
 
-      const systemPrompt = `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
+      // X/Twitter-specific optimization
+      const isXPlatform = platform === 'twitter';
+      const systemPrompt = isXPlatform
+        ? `You are Grok, X's AI expert in viral content creation. You understand the X algorithm, what drives engagement, and how to craft posts that get maximum reach and interaction. You know the power of hooks, curiosity gaps, and emotional triggers.`
+        : `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
 
-      const userPrompt = `Create a ${tone} social media caption for ${platform} based on this:
+      const xOptimizations = isXPlatform ? `
+🔥 **X-SPECIFIC OPTIMIZATION:**
+- Hook in first 50 chars (visible before "show more")
+- Use power words: "secret", "revealed", "exclusive", "banned"
+- Create curiosity or controversy when appropriate
+- Questions that trigger replies
+- Thread-starter potential (cliffhangers)
+- Emoji strategy: 2-3 max, placed strategically
+- Avoid spam patterns
+- Optimize for Retweets AND replies` : '';
+
+      const userPrompt = `Create ${isXPlatform ? 'a high-engagement' : `a ${tone}`} ${platform === 'twitter' ? 'X' : platform} post based on this:
 
 "${prompt}"
 
 Requirements:
 - Tone: ${tone}
-- Length: ${length} (approximately ${maxChars} characters)
-- Platform: ${platform}
+- Length: ${length} (≈${maxChars} chars)
+- Platform: ${platform === 'twitter' ? 'X/Twitter' : platform}
 ${targetAudience ? `- Target Audience: ${targetAudience}` : ''}
-${includeEmojis ? '- Include relevant emojis to enhance engagement' : '- No emojis'}
-${includeHashtags ? '- Include 3-5 relevant hashtags at the end' : '- No hashtags'}
-- Make it engaging, shareable, and authentic
-- Use appropriate formatting for ${platform}
-- Include a hook in the first line to grab attention
-${platform === 'twitter' ? '- Optimize for Twitter algorithm and engagement' : ''}
-${platform === 'linkedin' ? '- Professional but personable tone' : ''}
+${includeEmojis ? '- Include emojis strategically' : '- No emojis'}
+${includeHashtags ? '- Include 3-5 high-performing hashtags' : '- No hashtags'}
+- Make it engaging, shareable, authentic
+- Strong hook to grab attention${xOptimizations}
 
-Also provide 2 alternative caption variations with different approaches.
+Provide 3 alternative variations with DIFFERENT approaches (not just rewording):
+- Alternative 1: Question-based hook
+- Alternative 2: Statement/controversial angle
+- Alternative 3: Story/emotional angle
 
-Respond ONLY with valid JSON in this exact format:
+JSON format:
 {
-  "caption": "Main caption here (without hashtags)",
-  "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+  "caption": "Main post (no hashtags in caption)",
+  "hashtags": ["Hashtag1", "Hashtag2", "Hashtag3"],
   "alternatives": [
-    "Alternative caption 1",
-    "Alternative caption 2"
+    "Alternative 1 - question approach",
+    "Alternative 2 - statement approach",
+    "Alternative 3 - story approach"
   ]
 }`;
 
@@ -644,8 +688,8 @@ Respond ONLY with valid JSON in this exact format:
               content: userPrompt,
             },
           ],
-          temperature: 0.8,
-          max_tokens: 800,
+          temperature: isXPlatform ? 0.9 : 0.8,
+          max_tokens: 1000,
         },
         {
           headers: {
@@ -665,7 +709,12 @@ Respond ONLY with valid JSON in this exact format:
         alternatives: result.alternatives || [],
       };
     } catch (error: any) {
-      logger.error('Error generating caption with Grok:', error);
+      logger.error('Error generating caption with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return {
         caption: prompt.substring(0, 280),
         hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
@@ -732,6 +781,386 @@ Respond ONLY with valid JSON in this exact format:
         content: `${title}\n\n${description.substring(0, 150)}`,
         hashtags: ['video', 'contenido'],
       },
+    };
+  }
+
+  /**
+   * Generate English lesson for content creators
+   */
+  public async generateEnglishLesson(
+    topic: string,
+    level: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
+    focusArea: 'vocabulary' | 'grammar' | 'phrases' | 'pronunciation' | 'writing' = 'vocabulary'
+  ): Promise<{
+    lesson: {
+      title: string;
+      introduction: string;
+      keyPoints: string[];
+      examples: { english: string; spanish: string; explanation: string }[];
+      practiceExercises: { question: string; answer: string; hint?: string }[];
+      contentCreatorTips: string[];
+      commonMistakes: { wrong: string; correct: string; explanation: string }[];
+    };
+    quiz: { question: string; options: string[]; correctIndex: number; explanation: string }[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return this.generateFallbackEnglishLesson(topic);
+    }
+
+    try {
+      const prompt = `You are an expert English teacher specializing in teaching Spanish-speaking content creators. Create a comprehensive English lesson.
+
+Topic: ${topic}
+Level: ${level}
+Focus Area: ${focusArea}
+
+Create a lesson specifically designed for CONTENT CREATORS who need English for:
+- Social media posts
+- Video scripts
+- Audience engagement
+- Professional communication
+- Marketing copy
+
+Requirements:
+1. Introduction explaining why this topic matters for content creators
+2. 5 key points to learn
+3. 5 practical examples with Spanish translations and explanations
+4. 3 practice exercises
+5. 3 tips specific to content creation
+6. 3 common mistakes Spanish speakers make
+7. 5 quiz questions with 4 options each
+
+Make the content:
+- Practical and immediately usable
+- Focused on social media and content creation contexts
+- Culturally sensitive to Spanish speakers
+- Fun and engaging
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "lesson": {
+    "title": "Engaging lesson title",
+    "introduction": "Why this matters for content creators...",
+    "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+    "examples": [
+      {"english": "English phrase", "spanish": "Spanish translation", "explanation": "When to use it"}
+    ],
+    "practiceExercises": [
+      {"question": "Fill in: ___", "answer": "correct answer", "hint": "optional hint"}
+    ],
+    "contentCreatorTips": ["Tip 1", "Tip 2", "Tip 3"],
+    "commonMistakes": [
+      {"wrong": "incorrect", "correct": "correct", "explanation": "why"}
+    ]
+  },
+  "quiz": [
+    {"question": "Question?", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "Why A is correct"}
+  ]
+}`;
+
+      const pnpTeacherPersonality = `You are PNP (Powered by Neural Pixels), a fun and energetic English teacher for Spanish-speaking content creators! 
+Your style:
+- Enthusiastic and encouraging - celebrate every step of learning! 🎉
+- Use Spanglish naturally, making students feel comfortable
+- Include trending phrases, memes, and real social media examples
+- Call students "crack", "máquina", "campeón/a" to motivate them
+- Make lessons feel like chatting with a cool bilingual friend
+- Use emojis to make content engaging 📚✨🚀
+- Be honest about common mistakes Spanish speakers make (you get it!)
+- Always end with encouragement: "¡Tú puedes!", "You got this!", "¡A darle!"`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [
+            {
+              role: 'system',
+              content: pnpTeacherPersonality,
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 2500,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      const content = response.data.choices[0].message.content;
+      return this.parseJSON(content);
+    } catch (error: any) {
+      logger.error('Error generating English lesson with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      return this.generateFallbackEnglishLesson(topic);
+    }
+  }
+
+  /**
+   * Translate and improve content for international audience
+   */
+  public async translateAndImprove(
+    content: string,
+    fromLang: 'en' | 'es',
+    toLang: 'en' | 'es',
+    context: 'social_media' | 'video_script' | 'caption' | 'bio' = 'social_media'
+  ): Promise<{
+    translation: string;
+    improved: string;
+    suggestions: string[];
+    culturalNotes: string[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
+    }
+
+    try {
+      const langNames = { en: 'English', es: 'Spanish' };
+      const prompt = `Translate and improve this ${context.replace('_', ' ')} content:
+
+Original (${langNames[fromLang]}): "${content}"
+
+Tasks:
+1. Translate to ${langNames[toLang]}
+2. Improve the translation for maximum engagement on social media
+3. Provide 3 alternative suggestions
+4. Add cultural notes for ${toLang === 'en' ? 'English-speaking' : 'Spanish-speaking'} audiences
+
+Respond ONLY with valid JSON:
+{
+  "translation": "Direct translation",
+  "improved": "Improved version optimized for engagement",
+  "suggestions": ["Alternative 1", "Alternative 2", "Alternative 3"],
+  "culturalNotes": ["Note about cultural differences", "Tip for the target audience"]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 800,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      return this.parseJSON(response.data.choices[0].message.content);
+    } catch (error: any) {
+      logger.error('Error translating content:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
+    }
+  }
+
+  /**
+   * Generate scheduled post ideas for a week
+   */
+  public async generateWeeklyPostIdeas(
+    niche: string,
+    platforms: string[],
+    previousPosts?: string[]
+  ): Promise<{
+    posts: {
+      day: string;
+      time: string;
+      platform: string;
+      type: 'text' | 'image' | 'video' | 'thread' | 'story';
+      idea: string;
+      content: string;
+      hashtags: string[];
+      mediaIdea?: string;
+    }[];
+  }> {
+    if (!this.enabled || !this.apiKey) {
+      return { posts: [] };
+    }
+
+    try {
+      const prompt = `You are a social media strategist. Generate a week's worth of post ideas for a content creator.
+
+Niche: ${niche}
+Platforms: ${platforms.join(', ')}
+${previousPosts?.length ? `Previous posts to avoid repeating:\n${previousPosts.slice(0, 5).join('\n')}` : ''}
+
+Create 14 posts (2 per day) for 7 days with:
+- Optimal posting times
+- Mix of content types
+- Engaging content that drives engagement
+- Platform-specific optimization
+- Trending topics when relevant
+
+Respond with JSON:
+{
+  "posts": [
+    {
+      "day": "Monday",
+      "time": "09:00",
+      "platform": "twitter",
+      "type": "text",
+      "idea": "Brief idea description",
+      "content": "Full post content",
+      "hashtags": ["hashtag1", "hashtag2"],
+      "mediaIdea": "Optional media suggestion"
+    }
+  ]
+}`;
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.8,
+          max_tokens: 3000,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 60000,
+        }
+      );
+
+      return this.parseJSON(response.data.choices[0].message.content);
+    } catch (error: any) {
+      logger.error('Error generating weekly post ideas:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      return { posts: [] };
+    }
+  }
+
+  /**
+   * Chat with PNP (Grok) for content assistance
+   */
+  public async chat(
+    message: string,
+    conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
+    context: 'content_creation' | 'english_learning' | 'social_media' | 'general' = 'content_creation'
+  ): Promise<{ response: string; suggestions?: string[] }> {
+    if (!this.enabled || !this.apiKey) {
+      return { response: '¡Hey! Soy PNP pero estoy tomando una siesta. Vuelve pronto! 😴' };
+    }
+
+    // PNP Personality: Fun, supportive, bilingual, with a touch of humor
+    const pnpPersonality = `You are PNP (Powered by Neural Pixels), an AI assistant with a fun, friendly, and slightly sassy personality. 
+Your characteristics:
+- You speak both English and Spanish fluently, often mixing both (Spanglish) when it feels natural
+- You're enthusiastic and encouraging, using emojis naturally 🚀✨
+- You have a playful sense of humor but always stay helpful and professional
+- You call users "crack", "máquina", "campeón/a" or similar encouraging terms
+- You celebrate their wins and motivate them when they're stuck
+- You're passionate about helping content creators succeed
+- You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
+- You're honest and direct - if something won't work, you say it kindly but clearly
+- You remember you're powered by xAI's Grok but your personality is PNP`;
+
+    const systemPrompts = {
+      content_creation: `${pnpPersonality}
+
+You specialize in helping content creators with post ideas, captions, video scripts, engagement strategies, and growing their social media presence. Be creative, helpful, and always hype them up! 💪`,
+      english_learning: `${pnpPersonality}
+
+You're also an amazing English tutor for Spanish-speaking content creators. Make learning English fun! Use memes, trending phrases, and real social media examples. Celebrate small wins and make them feel confident about learning. ¡Tú puedes, crack! 📚✨`,
+      social_media: `${pnpPersonality}
+
+You're a social media guru! Help with platform strategies, algorithm secrets, engagement tactics, and trending content ideas. Share insider tips like you're helping your best friend go viral. 📱🔥`,
+      general: `${pnpPersonality}
+
+Be yourself - witty, knowledgeable, and genuinely helpful. You're like that smart friend who always has the answers but never makes you feel dumb for asking. 🤝`,
+    };
+
+    try {
+      const messages = [
+        { role: 'system' as const, content: systemPrompts[context] },
+        ...conversationHistory,
+        { role: 'user' as const, content: message },
+      ];
+
+      const response = await axios.post(
+        `${this.baseUrl}/chat/completions`,
+        {
+          model: this.model,
+          messages,
+          temperature: 0.8,
+          max_tokens: 1000,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${this.apiKey}`,
+          },
+          timeout: 30000,
+        }
+      );
+
+      return {
+        response: response.data.choices[0].message.content,
+        suggestions: [],
+      };
+    } catch (error: any) {
+      logger.error('Error in Grok chat:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      return { response: 'Sorry, I encountered an error. Please try again.' };
+    }
+  }
+
+  /**
+   * Fallback English lesson
+   */
+  private generateFallbackEnglishLesson(topic: string) {
+    return {
+      lesson: {
+        title: `English for Content Creators: ${topic}`,
+        introduction: 'AI service temporarily unavailable. Basic lesson structure provided.',
+        keyPoints: ['Practice daily', 'Use real examples', 'Watch content in English', 'Practice writing', 'Get feedback'],
+        examples: [{ english: 'Example coming soon', spanish: 'Ejemplo próximamente', explanation: 'Check back later' }],
+        practiceExercises: [{ question: 'Practice exercise will be available soon', answer: 'N/A' }],
+        contentCreatorTips: ['Be consistent', 'Use simple language', 'Engage with your audience'],
+        commonMistakes: [{ wrong: 'Example', correct: 'Example', explanation: 'Available soon' }],
+      },
+      quiz: [{ question: 'Quiz coming soon', options: ['A', 'B', 'C', 'D'], correctIndex: 0, explanation: 'N/A' }],
     };
   }
 }

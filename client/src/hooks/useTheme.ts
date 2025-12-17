@@ -1,41 +1,62 @@
-import { useEffect, useState } from 'react';
+'use client';
 
-type Theme = 'light' | 'dark';
+import { useEffect, useState, useCallback } from 'react';
+
+type Theme = 'light' | 'dark' | 'system';
 
 /**
  * Custom hook to manage dark/light theme with localStorage persistence
  */
 export function useTheme() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Check localStorage first
-    const savedTheme = localStorage.getItem('theme') as Theme | null;
-    if (savedTheme) {
-      return savedTheme;
-    }
+  const [theme, setThemeState] = useState<Theme>('system');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [mounted, setMounted] = useState(false);
 
-    // Check system preference
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-
-    return 'light';
-  });
-
-  useEffect(() => {
+  const applyTheme = useCallback((newTheme: Theme) => {
     const root = window.document.documentElement;
-
-    // Remove both classes
     root.classList.remove('light', 'dark');
 
-    // Add current theme class
-    root.classList.add(theme);
+    let effectiveTheme: 'light' | 'dark' = 'light';
+    if (newTheme === 'system') {
+      effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else {
+      effectiveTheme = newTheme;
+    }
 
-    // Save to localStorage
-    localStorage.setItem('theme', theme);
-  }, [theme]);
+    root.classList.add(effectiveTheme);
+    setResolvedTheme(effectiveTheme);
+  }, []);
+
+  useEffect(() => {
+    setMounted(true);
+    const savedTheme = localStorage.getItem('theme') as Theme | null;
+    if (savedTheme) {
+      setThemeState(savedTheme);
+      applyTheme(savedTheme);
+    } else {
+      applyTheme('system');
+    }
+
+    // Listen for system theme changes
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      const current = localStorage.getItem('theme') as Theme | null;
+      if (current === 'system' || !current) {
+        applyTheme('system');
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [applyTheme]);
+
+  const setTheme = useCallback((newTheme: Theme) => {
+    setThemeState(newTheme);
+    localStorage.setItem('theme', newTheme);
+    applyTheme(newTheme);
+  }, [applyTheme]);
 
   const toggleTheme = () => {
-    setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
+    setTheme(resolvedTheme === 'light' ? 'dark' : 'light');
   };
 
   const setLightTheme = () => setTheme('light');
@@ -43,9 +64,12 @@ export function useTheme() {
 
   return {
     theme,
+    setTheme,
     toggleTheme,
     setLightTheme,
     setDarkTheme,
-    isDark: theme === 'dark',
+    isDark: resolvedTheme === 'dark',
+    resolvedTheme,
+    mounted,
   };
 }

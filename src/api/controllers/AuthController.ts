@@ -228,16 +228,19 @@ export class AuthController {
    */
   async initiateXLogin(_req: Request, res: Response): Promise<void> {
     try {
-      const OAuth2Service = require('../../services/OAuth2Service').default;
-
-      // Generate OAuth state for CSRF protection
-      const state = await OAuth2Service.generateOAuthState('auth');
+      const crypto = require('crypto');
 
       // Generate PKCE code verifier and challenge
-      const { codeVerifier, codeChallenge } = await OAuth2Service.generatePKCE();
+      const codeVerifier = crypto.randomBytes(32).toString('base64url');
+      const codeChallenge = crypto
+        .createHash('sha256')
+        .update(codeVerifier)
+        .digest('base64url');
 
-      // Store state and code verifier temporarily (in production, use Redis)
-      // For now, we'll pass it via state parameter
+      // Generate random state
+      const state = crypto.randomBytes(32).toString('hex');
+
+      // Store state and code verifier in the state parameter (encoded)
       const stateData = JSON.stringify({
         state,
         codeVerifier,
@@ -281,12 +284,27 @@ export class AuthController {
       const { codeVerifier } = stateData;
 
       // Exchange authorization code for tokens
-      const OAuth2Service = require('../../services/OAuth2Service').default;
-      const tokens = await OAuth2Service.exchangeCodeForToken(
-        code as string,
-        `${config.apiUrl}/api/auth/x/callback`,
-        codeVerifier
+      const axios = require('axios');
+      const tokenResponse = await axios.post(
+        'https://api.twitter.com/2/oauth2/token',
+        new URLSearchParams({
+          code: code as string,
+          grant_type: 'authorization_code',
+          client_id: config.platforms.twitter.clientId,
+          redirect_uri: `${config.apiUrl}/api/auth/x/callback`,
+          code_verifier: codeVerifier,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${Buffer.from(
+              `${config.platforms.twitter.clientId}:${config.platforms.twitter.clientSecret}`
+            ).toString('base64')}`,
+          },
+        }
       );
+
+      const tokens = tokenResponse.data;
 
       // Get user info from X/Twitter
       const TwitterClient = require('twitter-api-v2').TwitterApi;
