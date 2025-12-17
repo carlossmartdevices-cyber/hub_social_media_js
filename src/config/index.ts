@@ -122,6 +122,26 @@ export const config = {
       enabled: process.env.XAI_ENABLED === 'true',
     },
   },
+
+  aws: {
+    region: process.env.AWS_REGION || 'us-east-2',
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+    s3: {
+      bucket: process.env.AWS_S3_BUCKET || 'pnptv-previews',
+      kmsKeyArn: process.env.AWS_KMS_KEY_ARN || '',
+    },
+    cloudfront: {
+      domain: process.env.CLOUDFRONT_DOMAIN || '',
+    },
+  },
+
+  video: {
+    uploadDir: process.env.VIDEO_UPLOAD_DIR || './uploads/videos',
+    thumbnailDir: process.env.THUMBNAIL_DIR || './uploads/thumbnails',
+    maxSizeMB: parseInt(process.env.MAX_VIDEO_SIZE_MB || '500', 10),
+    allowedFormats: (process.env.ALLOWED_VIDEO_FORMATS || 'mp4,mov,avi').split(','),
+  },
 };
 
 // 🔴 CRITICAL: Validate secrets in production
