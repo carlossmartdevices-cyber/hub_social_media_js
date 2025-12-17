@@ -34,10 +34,19 @@ export class PlatformAccountController {
 
       const result = await database.query(query, params);
 
-      return res.json({
-        success: true,
-        accounts: result.rows,
-      });
+      // Transform data to match frontend expectations
+      const accounts = result.rows.map((row: any) => ({
+        id: row.id,
+        platform: row.platform,
+        accountName: row.account_name,
+        accountId: row.account_identifier,
+        isConnected: row.is_active,
+        profileUrl: this.getProfileUrl(row.platform, row.account_identifier),
+        lastValidated: row.last_validated,
+        createdAt: row.created_at,
+      }));
+
+      return res.json(accounts);
     } catch (error: any) {
       logger.error('List accounts error:', error);
       return res.status(500).json({
@@ -45,6 +54,24 @@ export class PlatformAccountController {
         error: 'Failed to list accounts',
       });
     }
+  }
+
+  /**
+   * Get profile URL for a platform account
+   */
+  private getProfileUrl(platform: string, accountIdentifier: string): string | undefined {
+    const urlMap: Record<string, (id: string) => string> = {
+      twitter: (id) => `https://twitter.com/${id.replace('@', '')}`,
+      instagram: (id) => `https://instagram.com/${id.replace('@', '')}`,
+      facebook: (id) => `https://facebook.com/${id}`,
+      linkedin: (id) => `https://linkedin.com/in/${id}`,
+      youtube: (id) => `https://youtube.com/${id}`,
+      tiktok: (id) => `https://tiktok.com/@${id.replace('@', '')}`,
+      telegram: (id) => `https://t.me/${id.replace('@', '')}`,
+    };
+
+    const urlBuilder = urlMap[platform.toLowerCase()];
+    return urlBuilder ? urlBuilder(accountIdentifier) : undefined;
   }
 
   /**
