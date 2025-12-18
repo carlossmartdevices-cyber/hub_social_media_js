@@ -142,7 +142,40 @@ export const config = {
     maxSizeMB: parseInt(process.env.MAX_VIDEO_SIZE_MB || '500', 10),
     allowedFormats: (process.env.ALLOWED_VIDEO_FORMATS || 'mp4,mov,avi').split(','),
   },
+
+  upload: {
+    chunkSizeMb: parseInt(process.env.CHUNK_SIZE_MB || '5', 10),
+    maxUploadSizeMb: parseInt(process.env.MAX_UPLOAD_SIZE_MB || '5120', 10),
+    maxConcurrentChunks: parseInt(process.env.MAX_CONCURRENT_CHUNKS || '4', 10),
+    sessionTtlHours: parseInt(process.env.UPLOAD_SESSION_TTL_HOURS || '24', 10),
+    tempChunkDir: process.env.TEMP_CHUNK_DIR || './uploads/temp/chunks',
+    maxConcurrentUploads: parseInt(process.env.MAX_CONCURRENT_UPLOADS || '2', 10),
+    maxQueuedUploads: parseInt(process.env.MAX_QUEUED_UPLOADS || '10', 10),
+  },
+
+  processing: {
+    videoConcurrency: parseInt(process.env.VIDEO_PROCESSING_CONCURRENCY || '2', 10),
+    videoTimeoutMinutes: parseInt(process.env.VIDEO_PROCESSING_TIMEOUT_MINUTES || '30', 10),
+  },
+
+  bandwidth: {
+    maxUploadSpeedMbps: parseInt(process.env.MAX_UPLOAD_SPEED_MBPS || '0', 10),
+    minUploadSpeedMbps: parseInt(process.env.MIN_UPLOAD_SPEED_MBPS || '1', 10),
+  },
 };
+
+// Expose frequently used config values at root level
+export const CHUNK_SIZE_MB = config.upload.chunkSizeMb;
+export const MAX_UPLOAD_SIZE_MB = config.upload.maxUploadSizeMb;
+export const MAX_CONCURRENT_CHUNKS = config.upload.maxConcurrentChunks;
+export const UPLOAD_SESSION_TTL_HOURS = config.upload.sessionTtlHours;
+export const TEMP_CHUNK_DIR = config.upload.tempChunkDir;
+export const VIDEO_PROCESSING_CONCURRENCY = config.processing.videoConcurrency;
+export const AWS_S3_ENABLED = config.storage.s3.enabled;
+export const AWS_REGION = config.storage.s3.region;
+export const AWS_ACCESS_KEY_ID = config.storage.s3.accessKeyId;
+export const AWS_SECRET_ACCESS_KEY = config.storage.s3.secretAccessKey;
+export const AWS_S3_BUCKET = config.storage.s3.bucket;
 
 // 🔴 CRITICAL: Validate secrets in production
 if (config.env === 'production') {

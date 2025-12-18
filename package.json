@@ -39,13 +39,9 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-<<<<<<< HEAD
     "@aws-sdk/client-s3": "^3.946.0",
     "@aws-sdk/s3-request-presigner": "^3.946.0",
-=======
-    "@aws-sdk/client-s3": "^3.940.0",
     "@aws-sdk/lib-storage": "^3.940.0",
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
     "@types/fluent-ffmpeg": "^2.1.28",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
