@@ -5,6 +5,17 @@ import { oauth2Controller } from '../controllers/OAuth2Controller';
 const router = Router();
 
 /**
+ * Generic OAuth routes
+ */
+
+// Get OAuth authorization URL for any platform (requires JWT authentication)
+router.get(
+  '/:platform/auth-url',
+  authMiddleware,
+  oauth2Controller.getAuthUrl.bind(oauth2Controller)
+);
+
+/**
  * Twitter OAuth 2.0 routes
  */
 

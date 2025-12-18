@@ -1,78 +1,156 @@
-# OAuth2 Setup Guide for X (Twitter)
+# OAuth2 Social Media Integration Guide
 
-This guide explains how to set up and use OAuth2 authentication to allow users to connect their X (Twitter) accounts to the platform.
+This guide explains how to set up OAuth2 authentication for connecting social media accounts, primarily X (Twitter).
 
 ## Overview
 
-The OAuth2 implementation allows users to:
-- Connect multiple X/Twitter accounts
-- Securely store account credentials
-- Post to X on behalf of connected accounts
-- Manage and disconnect accounts
+The application supports OAuth2 authentication for connecting multiple social media accounts. Currently, **X/Twitter OAuth 2.0** is fully implemented with PKCE (Proof Key for Code Exchange) for enhanced security.
+
+## Features
+
+- ✅ **OAuth 2.0 with PKCE** for X/Twitter
+- ✅ **Multiple account support** - Connect multiple X accounts per user
+- ✅ **Secure token storage** - Encrypted credentials in PostgreSQL
+- ✅ **Automatic token refresh** - Handles token expiration
+- ✅ **User-friendly UI** - Modern account management interface
 
 ## Architecture
 
-### Backend Components
+```
+┌─────────────┐      ┌──────────────┐      ┌─────────────┐
+│   Frontend  │─────▶│   Backend    │─────▶│  X OAuth    │
+│   (Next.js) │      │  (Node.js)   │      │  Provider   │
+└─────────────┘      └──────────────┘      └─────────────┘
+       │                     │                      │
+       │                     ▼                      │
+       │            ┌─────────────────┐             │
+       │            │   PostgreSQL    │             │
+       │            │  (Encrypted     │             │
+       │            │   Credentials)  │             │
+       │            └─────────────────┘             │
+       │                                            │
+       └────────────────────────────────────────────┘
+                   (OAuth Callback)
+```
 
-1. **OAuth2Controller** (`src/api/controllers/OAuth2Controller.ts`)
-   - Handles OAuth authorization flow
-   - Manages callback processing
-   - Token refresh functionality
+## Setup Instructions
 
-2. **OAuth2Service** (`src/services/OAuth2Service.ts`)
-   - Generates OAuth URLs with PKCE
-   - Exchanges authorization codes for tokens
-   - Manages state validation
-   - Stores credentials securely
+### 1. Create X/Twitter Developer App
 
-3. **PlatformAccountController** (`src/api/controllers/PlatformAccountController.ts`)
-   - Lists connected accounts
-   - Manages account lifecycle (add/update/delete)
-   - Tests account credentials
+1. Go to [X Developer Portal](https://developer.x.com/en/portal/dashboard)
+2. Create a new **OAuth 2.0** app (not OAuth 1.0a)
+3. Configure the following settings:
 
-### Frontend Components
+   **App Settings:**
+   - App name: Your app name
+   - App description: Brief description
+   - Website: Your production URL (e.g., `https://pnptv.app`)
 
-1. **Accounts Page** (`client/src/app/accounts/page.tsx`)
-   - Displays all connected social media accounts
-   - Provides "Add Account" buttons for each platform
-   - Shows connection status
-   - Allows disconnecting accounts
+   **OAuth 2.0 Settings:**
+   - OAuth 2.0 Client ID: (will be generated)
+   - OAuth 2.0 Client Secret: (will be generated)
+   - Callback URL / Redirect URI: `https://your-domain.com/api/oauth/twitter/callback`
+     - For local dev: `http://localhost:33010/api/oauth/twitter/callback`
+     - For production: `https://pnptv.app/hub/api/oauth/twitter/callback`
+
+   **Scopes Required:**
+   - `tweet.read` - Read tweets
+   - `tweet.write` - Post tweets
+   - `users.read` - Read user profile
+   - `offline.access` - Get refresh tokens
+
+4. Save your **Client ID** and **Client Secret**
+
+### 2. Configure Environment Variables
+
+Add the following to your `.env` file:
+
+```bash
+# OAuth 2.0 (User Authentication - for connecting multiple accounts)
+TWITTER_CLIENT_ID=your_client_id_here
+TWITTER_CLIENT_SECRET=your_client_secret_here
+TWITTER_REDIRECT_URI=https://your-domain.com/api/oauth/twitter/callback
+```
+
+**Important Notes:**
+- The `TWITTER_REDIRECT_URI` must **exactly match** the callback URL configured in the X Developer Portal
+- For production, use your production domain
+- For local development, use `http://localhost:33010/api/oauth/twitter/callback`
+
+### 3. Database Setup
+
+The database schema is already configured with the necessary tables:
+
+- `platform_credentials` - Stores encrypted OAuth tokens
+- Supports multiple accounts per platform
+- Automatic encryption/decryption of sensitive credentials
+
+If you haven't run migrations yet:
+
+```bash
+npm run migrate
+```
+
+### 4. Start the Application
+
+```bash
+# Backend
+npm run dev
+
+# Frontend (in another terminal)
+cd client
+npm run dev
+```
+
+### 5. Test OAuth Flow
+
+1. Navigate to `/accounts` in your web app
+2. Click **"Add"** next to X (Twitter)
+3. You'll be redirected to X's authorization page
+4. Approve the app
+5. You'll be redirected back with your account connected
 
 ## API Endpoints
 
-### 1. Get OAuth Authorization URL
-```
-GET /api/oauth/:platform/auth-url
-```
-**Headers:** `Authorization: Bearer <token>`
+### Get OAuth Authorization URL
 
-**Query Parameters:**
-- `returnUrl` (optional): URL to redirect after OAuth completion
+```http
+GET /api/oauth/:platform/auth-url
+Authorization: Bearer {jwt_token}
+```
+
+**Example:**
+```bash
+curl -X GET "http://localhost:33010/api/oauth/twitter/auth-url" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
 
 **Response:**
 ```json
 {
   "success": true,
-  "authUrl": "https://twitter.com/i/oauth2/authorize?...",
-  "message": "Redirect user to this URL to authorize"
+  "authUrl": "https://twitter.com/i/oauth2/authorize?..."
 }
 ```
 
-### 2. OAuth Callback (Twitter redirects here)
-```
-GET /api/oauth/twitter/callback
-```
-**Query Parameters:**
-- `code`: Authorization code from Twitter
-- `state`: CSRF protection token
+### OAuth Callback (Handled by backend)
 
-**Response:** Redirects to frontend with success/error parameters
-
-### 3. List Connected Accounts
+```http
+GET /api/oauth/twitter/callback?code={code}&state={state}
 ```
+
+This endpoint is called by X after user authorization. It:
+1. Exchanges the authorization code for access/refresh tokens
+2. Retrieves user profile information
+3. Stores encrypted credentials in the database
+4. Redirects to frontend with success/error message
+
+### List Connected Accounts
+
+```http
 GET /api/platform-accounts
+Authorization: Bearer {jwt_token}
 ```
-**Headers:** `Authorization: Bearer <token>`
 
 **Response:**
 ```json
@@ -80,274 +158,208 @@ GET /api/platform-accounts
   {
     "id": "uuid",
     "platform": "twitter",
-    "accountName": "My Twitter Account",
-    "accountId": "@username",
+    "accountName": "John Doe",
+    "accountId": "@johndoe",
     "isConnected": true,
-    "profileUrl": "https://twitter.com/username",
+    "profileUrl": "https://twitter.com/johndoe",
     "lastValidated": "2025-01-15T10:30:00Z",
     "createdAt": "2025-01-10T08:00:00Z"
   }
 ]
 ```
 
-### 4. Delete Account
-```
-DELETE /api/platform-accounts/:id
-```
-**Headers:** `Authorization: Bearer <token>`
+### Disconnect Account
 
-**Response:**
-```json
-{
-  "success": true,
-  "message": "Account deleted successfully"
-}
+```http
+DELETE /api/platform-accounts/:accountId
+Authorization: Bearer {jwt_token}
 ```
 
-### 5. Refresh Token
-```
+### Refresh Token
+
+```http
 POST /api/oauth/twitter/refresh/:accountId
+Authorization: Bearer {jwt_token}
 ```
-**Headers:** `Authorization: Bearer <token>`
-
-## Environment Configuration
-
-### Required Environment Variables
-
-```bash
-# OAuth 2.0 credentials from Twitter Developer Portal
-TWITTER_CLIENT_ID=your_client_id_here
-TWITTER_CLIENT_SECRET=your_client_secret_here
-TWITTER_REDIRECT_URI=https://yourdomain.com/api/oauth/twitter/callback
-
-# API URL (used for OAuth redirects)
-API_URL=https://yourdomain.com
-```
-
-### Getting Twitter OAuth Credentials
-
-1. Go to [Twitter Developer Portal](https://developer.twitter.com/en/portal/dashboard)
-2. Create a new app or select existing app
-3. Navigate to "User authentication settings"
-4. Set up OAuth 2.0:
-   - **App permissions**: Read and Write
-   - **Type of App**: Web App
-   - **Callback URLs**: Add your redirect URI (e.g., `https://yourdomain.com/api/oauth/twitter/callback`)
-   - **Website URL**: Your application URL
-5. Copy the **Client ID** and **Client Secret**
-6. Add them to your `.env` file
-
-### Important Notes
-
-- The `TWITTER_REDIRECT_URI` must match **exactly** what's configured in Twitter Developer Portal
-- For local development, use: `http://localhost:33010/api/oauth/twitter/callback`
-- For production, use your actual domain: `https://clickera.app/api/oauth/twitter/callback`
-- You may need to add both URLs to Twitter's allowed callback URLs
-
-## OAuth Flow
-
-### Step-by-Step Process
-
-1. **User clicks "Add Account"** on the frontend
-   ```javascript
-   // Frontend calls
-   GET /api/oauth/twitter/auth-url
-   ```
-
-2. **Backend generates OAuth URL** with PKCE
-   - Creates code verifier and challenge
-   - Generates state token for CSRF protection
-   - Stores state temporarily (10 min expiry)
-   - Returns authorization URL
-
-3. **User is redirected to Twitter**
-   - User logs into Twitter (if not already)
-   - Reviews app permissions
-   - Authorizes the application
-
-4. **Twitter redirects back to callback**
-   ```
-   GET /api/oauth/twitter/callback?code=xxx&state=yyy
-   ```
-
-5. **Backend processes callback**
-   - Validates state token
-   - Exchanges code for access token
-   - Fetches user info from Twitter
-   - Encrypts and stores credentials
-   - Redirects user back to frontend
-
-6. **Frontend shows success**
-   - Account appears in connected accounts list
-   - User can now post to this account
 
 ## Security Features
 
-### PKCE (Proof Key for Code Exchange)
-- Protects against authorization code interception
-- Uses SHA-256 code challenge
-- No client secret exposed to frontend
+### 1. PKCE (Proof Key for Code Exchange)
+- Generates random code verifier and challenge
+- Prevents authorization code interception attacks
+- Required for public clients (SPAs, mobile apps)
 
-### State Validation
-- Random state token prevents CSRF attacks
-- State expires after 10 minutes
-- Validated before token exchange
+### 2. State Parameter
+- CSRF protection
+- Validates OAuth callback authenticity
+- Expires after 10 minutes
 
-### Credential Encryption
-- All tokens encrypted before storage
-- Uses AES-256-GCM encryption
-- Encryption key from `ENCRYPTION_KEY` env var
+### 3. Encrypted Storage
+- All OAuth tokens encrypted with AES-256
+- Encryption key from environment variable
+- Decrypted only when needed
 
-### Multi-Account Support
-- Users can connect multiple X accounts
-- Each account stored separately
-- Unique constraint on (user_id, platform, account_identifier)
-
-## Database Schema
-
-```sql
-CREATE TABLE platform_credentials (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  platform VARCHAR(50) NOT NULL,
-  account_name VARCHAR(255) NOT NULL,
-  account_identifier VARCHAR(255) NOT NULL,
-  credentials TEXT NOT NULL, -- Encrypted JSON
-  is_active BOOLEAN DEFAULT true,
-  is_default BOOLEAN DEFAULT false,
-  last_validated TIMESTAMP,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW(),
-  UNIQUE(user_id, platform, account_identifier)
-);
-```
-
-### Encrypted Credentials Format (Twitter)
-
-```json
-{
-  "accessToken": "xxx",
-  "refreshToken": "yyy",
-  "expiresAt": "2025-01-20T10:30:00Z",
-  "userId": "twitter_user_id",
-  "username": "twitter_username"
-}
-```
+### 4. Secure Redirect URIs
+- Whitelist-based redirect validation
+- No open redirects
+- HTTPS required in production
 
 ## Frontend Integration
 
-### Using the Accounts Page
-
-1. Navigate to `/accounts` in your application
-2. Find the X (Twitter) card
-3. Click "Add" button
-4. Complete OAuth flow
-5. Account appears in the list
-
-### Example Frontend Code
+### Connecting an Account
 
 ```typescript
-// Get OAuth URL
+import api from '@/lib/api';
+
 const connectTwitter = async () => {
-  const response = await api.get('/oauth/twitter/auth-url');
-  window.location.href = response.data.authUrl;
-};
+  try {
+    // Get authorization URL
+    const response = await api.get('/oauth/twitter/auth-url');
 
-// List accounts
+    // Redirect to X
+    window.location.href = response.data.authUrl;
+  } catch (error) {
+    console.error('Failed to connect:', error);
+  }
+};
+```
+
+### Listing Accounts
+
+```typescript
+import api from '@/lib/api';
+
 const fetchAccounts = async () => {
-  const accounts = await api.get('/platform-accounts');
-  setAccounts(accounts.data);
+  try {
+    const response = await api.get('/platform-accounts');
+    console.log(response.data); // Array of connected accounts
+  } catch (error) {
+    console.error('Failed to fetch accounts:', error);
+  }
 };
+```
 
-// Disconnect account
+### Disconnecting an Account
+
+```typescript
+import api from '@/lib/api';
+
 const disconnectAccount = async (accountId: string) => {
-  await api.delete(`/platform-accounts/${accountId}`);
-  fetchAccounts(); // Refresh list
+  try {
+    await api.delete(`/platform-accounts/${accountId}`);
+    console.log('Account disconnected');
+  } catch (error) {
+    console.error('Failed to disconnect:', error);
+  }
 };
 ```
 
 ## Troubleshooting
 
-### "Invalid redirect URI" error
-- Check `TWITTER_REDIRECT_URI` matches Twitter Developer Portal settings exactly
-- Ensure protocol (http/https) matches
-- Verify no trailing slash differences
-
 ### "Invalid or expired state parameter"
-- State tokens expire after 10 minutes
-- User may have taken too long to authorize
-- Try the flow again
+
+**Problem:** The OAuth state has expired or is invalid.
+
+**Solution:**
+- The state expires after 10 minutes. Try the authorization flow again.
+- Clear your browser cookies and cache.
+- Ensure your system clock is synchronized.
 
 ### "Failed to connect Twitter account"
-- Check Twitter API credentials are correct
-- Verify Twitter app has correct permissions (Read and Write)
-- Check network connectivity
-- Review server logs for detailed error
 
-### Tokens expiring
-- Access tokens expire (usually 2 hours)
-- Use the refresh endpoint to get new tokens
-- Refresh tokens are long-lived (but can be revoked)
+**Problem:** Token exchange failed.
 
-## Testing
+**Solutions:**
+- Verify `TWITTER_CLIENT_ID` and `TWITTER_CLIENT_SECRET` are correct
+- Ensure `TWITTER_REDIRECT_URI` matches the callback URL in X Developer Portal
+- Check that your app has the required scopes enabled
+- Review backend logs for detailed error messages
 
-### Manual Testing
+### "OAuth not implemented for platform"
 
-1. Create a test user account
-2. Navigate to `/accounts` page
-3. Click "Add" on X (Twitter)
-4. Complete OAuth flow
-5. Verify account appears in list
-6. Try posting with the connected account
-7. Test disconnecting the account
+**Problem:** Trying to connect a platform that doesn't support OAuth yet.
 
-### Automated Testing
+**Solution:**
+Currently, only X/Twitter supports OAuth2. Other platforms will be added in future updates.
 
-```bash
-# Run integration tests
-npm run test:integration
+### Callback URL Mismatch
 
-# Test OAuth endpoints specifically
-npm test -- oauth
-```
+**Problem:** "Invalid redirect_uri" error from X.
 
-## Extending to Other Platforms
+**Solution:**
+1. Go to X Developer Portal
+2. Navigate to your app's settings
+3. Update the Callback URL to match your `TWITTER_REDIRECT_URI` exactly
+4. Include the protocol (http/https)
+5. Save changes and try again
 
-The OAuth system is designed to be extensible. To add another platform:
+## Adding More Platforms
 
-1. **Update OAuth2Service**
+To add OAuth support for other platforms (Facebook, LinkedIn, etc.):
+
+1. **Create OAuth Service Method** in `src/services/OAuth2Service.ts`:
    ```typescript
-   public getInstagramAuthURL(userId: string, returnUrl?: string): string {
-     // Similar to Twitter implementation
+   public getLinkedInAuthURL(userId: string, returnUrl?: string): string {
+     // Implementation
    }
    ```
 
-2. **Add Controller Methods**
+2. **Add Controller Method** in `src/api/controllers/OAuth2Controller.ts`:
    ```typescript
-   async authorizeInstagram(req: AuthRequest, res: Response) {
-     // Platform-specific implementation
+   case 'linkedin':
+     const authUrl = oauth2Service.getLinkedInAuthURL(userId, returnUrl);
+     res.json({ success: true, authUrl });
+     break;
+   ```
+
+3. **Add Callback Handler**:
+   ```typescript
+   async linkedInCallback(req: Request, res: Response): Promise<void> {
+     // Handle callback
    }
    ```
 
-3. **Add Routes**
-   ```typescript
-   router.get('/instagram/authorize', ...);
-   router.get('/instagram/callback', ...);
-   ```
+4. **Update Routes** in `src/api/routes/oauth.ts`
 
-4. **Update Frontend**
-   - Platform will automatically appear in accounts page
-   - "Add" button will call `/oauth/instagram/auth-url`
+5. **Add Environment Variables** to `.env.example` and config
+
+## Best Practices
+
+1. **Always use HTTPS in production** - OAuth requires secure connections
+2. **Rotate secrets regularly** - Update client secrets periodically
+3. **Monitor token expiration** - Implement automatic refresh before expiry
+4. **Log OAuth events** - Track authorization attempts and failures
+5. **Handle errors gracefully** - Provide clear user feedback
+6. **Test callback URLs** - Verify redirects work in all environments
+
+## Production Checklist
+
+- [ ] X Developer app created and approved
+- [ ] OAuth 2.0 credentials configured
+- [ ] Callback URL set to production domain
+- [ ] Environment variables set in production
+- [ ] HTTPS enabled and configured
+- [ ] Encryption key is strong (32+ characters)
+- [ ] Database migrations applied
+- [ ] Error monitoring configured (Sentry)
+- [ ] Rate limiting enabled
+- [ ] CORS configured correctly
+
+## Resources
+
+- [X OAuth 2.0 Documentation](https://developer.x.com/en/docs/authentication/oauth-2-0)
+- [OAuth 2.0 RFC](https://datatracker.ietf.org/doc/html/rfc6749)
+- [PKCE RFC](https://datatracker.ietf.org/doc/html/rfc7636)
 
 ## Support
 
 For issues or questions:
-- Check server logs: `docker-compose logs -f api`
-- Review Twitter API documentation
-- Open a GitHub issue
+- Check backend logs: `tail -f logs/app.log`
+- Review X Developer Portal console
+- Open an issue on GitHub
+- Contact the development team
 
-## Resources
+---
 
-- [Twitter OAuth 2.0 Documentation](https://developer.twitter.com/en/docs/authentication/oauth-2-0)
-- [OAuth 2.0 with PKCE](https://oauth.net/2/pkce/)
-- [Twitter API v2](https://developer.twitter.com/en/docs/twitter-api)
+**Last Updated:** 2025-12-17
+**Version:** 1.0.0

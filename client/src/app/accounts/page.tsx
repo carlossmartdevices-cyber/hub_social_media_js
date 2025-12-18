@@ -34,6 +34,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   useEffect(() => {
     if (!accessToken) {
@@ -41,6 +42,32 @@ export default function AccountsPage() {
       return;
     }
     fetchAccounts();
+
+    // Check for OAuth callback params
+    const urlParams = new URLSearchParams(window.location.search);
+    const oauthSuccess = urlParams.get('oauth_success');
+    const oauthError = urlParams.get('oauth_error');
+    const account = urlParams.get('account');
+
+    if (oauthSuccess === 'true') {
+      setNotification({
+        type: 'success',
+        message: account ? `Successfully connected @${account}!` : 'Account connected successfully!',
+      });
+      // Clear URL params
+      window.history.replaceState({}, '', '/accounts');
+      // Auto-dismiss after 5 seconds
+      setTimeout(() => setNotification(null), 5000);
+    } else if (oauthError) {
+      setNotification({
+        type: 'error',
+        message: decodeURIComponent(oauthError),
+      });
+      // Clear URL params
+      window.history.replaceState({}, '', '/accounts');
+      // Auto-dismiss after 8 seconds
+      setTimeout(() => setNotification(null), 8000);
+    }
   }, [accessToken, router]);
 
   const fetchAccounts = async () => {
@@ -86,6 +113,34 @@ export default function AccountsPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        {/* Notification Banner */}
+        {notification && (
+          <div
+            className={`p-4 rounded-lg ${
+              notification.type === 'success'
+                ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800'
+                : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 border border-red-200 dark:border-red-800'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {notification.type === 'success' ? (
+                  <Check className="w-5 h-5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5" />
+                )}
+                <p className="font-medium">{notification.message}</p>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="text-current opacity-70 hover:opacity-100 transition-opacity"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Connected Accounts</h1>
           <span className="text-sm text-gray-500 dark:text-gray-400">
