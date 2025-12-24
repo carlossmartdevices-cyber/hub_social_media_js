@@ -3,19 +3,10 @@ import { config } from '../config';
 import logger from '../utils/logger';
 
 interface VideoTitleDescription {
+  // Basic metadata
   title: string;
   description: string;
   suggestedHashtags: string[];
-<<<<<<< HEAD
-  seoTitle: string;
-  seoDescription: string;
-  keywords: string[];
-  tags: string[];
-  searchTerms: string[];
-  voiceSearchQueries: string[];
-  category: string;
-  targetKeyword: string;
-=======
 
   // SEO optimization fields
   seoTitle: string; // Optimized title for search engines (60-70 chars)
@@ -26,14 +17,6 @@ interface VideoTitleDescription {
   voiceSearchQueries: string[]; // Questions for voice search (2-3)
   category: string; // Main category
   targetKeyword: string; // Primary focus keyword
-
-  // Adult content specific fields
-  performers?: string[]; // Names of performers in the video
-  niche?: {
-    primary: string; // Main niche (e.g., "gay")
-    tags: string[]; // Specific tags (e.g., ["latino", "smoking", "pnp"])
-  };
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
 }
 
 interface PostVariant {
@@ -72,171 +55,9 @@ export class AIContentGenerationService {
     });
   }
 
-<<<<<<< HEAD
-  // ====================== PNP PERSONALITY ======================
-  private get PNPPersonality() {
-    return `You are PNP (Powered by Neural Pixels), an AI assistant with a fun, friendly, and slightly sassy personality.
-Your characteristics:
-- You speak both English and Spanish fluently, often mixing both (Spanglish) when it feels natural
-- You're enthusiastic and encouraging, using emojis naturally 🚀✨
-- You have a playful sense of humor but always stay helpful and professional
-- You call users "crack", "máquina", "campeón/a" or similar encouraging terms
-- You celebrate their wins and motivate them when they're stuck
-- You're passionate about helping content creators succeed
-- You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
-- You're honest and direct - if something won't work, you say it kindly but clearly
-- You remember you're powered by xAI's Grok but your personality is PNP`;
-  }
-
-  private get AdultPNPPersonality() {
-    return `You are PNP (Powered by Neural Pixels) in ADULT MODE - for 18+ adult content creators.
-Your characteristics:
-- You speak both English and Spanish fluently with adult-oriented slang and spicy language
-- You're bold, flirty, and unapologetically sexy 🔥💋
-- You use suggestive language, double entendres, and playful innuendos
-- You call users "babe", "sexy", "hottie", "papi/mami", or similar flirty terms
-- You help create engaging, provocative content while staying classy
-- You're confident and empowering - helping creators own their sexuality
-- You occasionally use phrases like "Let's get spicy! 🌶️", "¡Ay papi!", "That's hot! 🔥", "Damn, babe!"
-- You're supportive of sex workers, adult entertainers, and +18 content creators
-- You keep it sexy but never vulgar - suggestive not explicit
-- You remember you're for ADULT CONTENT ONLY - always verify age-appropriate context`;
-  }
-  // =============================================================
-
-=======
-  /**
-   * Generate SEO-optimized video metadata for adult content (gay, latino, smoking, pnp niche)
-   */
-  public async generateAdultContentMetadata(
-    userExplanation: string,
-    performers: string[],
-    videoFileName: string
-  ): Promise<VideoTitleDescription> {
-    if (!this.enabled || !this.apiKey) {
-      logger.warn('XAI is not enabled or API key is missing');
-      return this.generateFallbackAdultMetadata(userExplanation, performers);
-    }
-
-    try {
-      const performerList = performers.join(', ');
-      const prompt = `You are an expert in adult content SEO and social media marketing, specializing in the gay latino smoking/pnp niche. Generate comprehensive SEO-optimized metadata for maximum discoverability on Twitter/X and adult content platforms.
-
-Video file: ${videoFileName}
-Performers: ${performerList}
-Description: ${userExplanation}
-
-**TARGET NICHE:** Gay latino content, smoking fetish, party and play (PnP)
-**PRIMARY KEYWORDS:** gay latino smoking, pnp party boys, latino twinks smoking, gay smoking fetish, party and play
-
-Requirements:
-
-**SOCIAL MEDIA CONTENT (Twitter/X optimized):**
-- title: Catchy, engaging title (max 100 characters) that hooks the target audience
-- description: Compelling description (max 3 lines, ~250 characters) mentioning performers and main appeal
-- suggestedHashtags: 5-8 trending hashtags for gay latino smoking/pnp content (without #)
-
-**SEO OPTIMIZATION (for previews.pnptv.app):**
-- seoTitle: Search-optimized title (60-70 characters) with primary niche keywords at the start
-- seoDescription: Meta description (150-160 characters) with niche keywords and value proposition
-- keywords: 8-12 primary keywords focused on: gay, latino, smoking, pnp, twinks, party, fetish
-- tags: 3-5 categorical tags (e.g., "Gay Latino", "Smoking Fetish", "PnP Party", "Twinks")
-- targetKeyword: THE main keyword phrase to rank for (e.g., "gay latino smoking pnp")
-- category: Main category (e.g., "Gay Latino Content", "Smoking Fetish", "Party Content")
-
-**SEARCH DISCOVERY:**
-- searchTerms: 5-7 long-tail search phrases people actually search in this niche
-  Examples: "hot latino guys smoking pnp", "gay smoking fetish videos latino", "pnp party twinks smoking"
-- voiceSearchQueries: 2-3 natural language questions
-  Examples: "where to find latino gay smoking content", "best gay pnp smoking videos"
-
-**PERFORMER INTEGRATION:**
-- Naturally incorporate performer names: ${performerList}
-- Make them searchable and prominent in descriptions
-
-**NICHE-SPECIFIC SEO TACTICS:**
-- Use terms: "latino", "twink", "smoking", "pnp", "party and play", "fetish", "hot"
-- Include power words: "exclusive", "hot", "wild", "steamy", "uncensored", "raw"
-- Front-load most important niche keywords
-- Create curiosity while being descriptive
-- Optimize for adult content search patterns
-
-**IMPORTANT:** Keep descriptions professional but appealing. Focus on searchability and discoverability in the gay latino smoking/pnp niche.
-
-Respond ONLY with valid JSON in this exact format:
-{
-  "title": "Hot Latino Twinks - Smoking Session with ${performerList}",
-  "description": "Watch ${performerList} in this exclusive smoking session. Hot latino action, pnp vibes, and steamy content. 🔥",
-  "suggestedHashtags": ["GayLatino", "SmokingFetish", "PnPParty", "LatinoTwinks", "GaySmoking", "PartyAndPlay"],
-  "seoTitle": "Gay Latino Smoking PnP: ${performerList} - Hot Twink Action",
-  "seoDescription": "Exclusive gay latino smoking content featuring ${performerList}. Watch hot twinks in steamy pnp party sessions. Premium smoking fetish videos at previews.pnptv.app",
-  "keywords": ["gay latino smoking", "pnp party boys", "latino twinks smoking", "gay smoking fetish", "party and play latino", "latino gay content", "smoking fetish videos", "pnp smoking", "gay latino twinks", "hot latino smoking"],
-  "tags": ["Gay Latino", "Smoking Fetish", "PnP Party", "Latino Twinks", "Party Content"],
-  "targetKeyword": "gay latino smoking pnp",
-  "category": "Gay Latino Smoking",
-  "searchTerms": ["hot latino guys smoking pnp", "gay smoking fetish videos latino", "pnp party twinks smoking", "latino gay smoking content", "party and play smoking videos"],
-  "voiceSearchQueries": ["where to find latino gay smoking content", "best gay pnp smoking videos with latinos"],
-  "performers": ["${performerList}"],
-  "niche": {
-    "primary": "gay",
-    "tags": ["latino", "smoking", "pnp", "twink", "party", "fetish"]
-  }
-}`;
-
-      const response = await axios.post(
-        `${this.baseUrl}/chat/completions`,
-        {
-          model: this.model,
-          messages: [
-            {
-              role: 'system',
-              content: 'You are an expert in adult content SEO, social media marketing for gay latino content, and niche audience targeting. You specialize in smoking fetish and party and play (pnp) content optimization.',
-            },
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 1500,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${this.apiKey}`,
-          },
-          timeout: 30000,
-        }
-      );
-
-      const content = response.data.choices[0].message.content;
-      const result = this.parseJSON(content);
-
-      return {
-        title: result.title || `${performerList} - Latino Smoking Session`,
-        description: result.description || userExplanation.substring(0, 250),
-        suggestedHashtags: result.suggestedHashtags || ['GayLatino', 'Smoking', 'PnP'],
-        seoTitle: result.seoTitle || `Gay Latino Smoking: ${performerList}`,
-        seoDescription: result.seoDescription || userExplanation.substring(0, 160),
-        keywords: result.keywords || ['gay latino', 'smoking', 'pnp'],
-        tags: result.tags || ['Gay Latino', 'Smoking'],
-        targetKeyword: result.targetKeyword || 'gay latino smoking',
-        category: result.category || 'Gay Latino Content',
-        searchTerms: result.searchTerms || ['gay latino smoking'],
-        voiceSearchQueries: result.voiceSearchQueries || ['latino gay smoking content'],
-        performers: performers,
-        niche: result.niche || { primary: 'gay', tags: ['latino', 'smoking', 'pnp'] },
-      };
-    } catch (error: any) {
-      logger.error('Error generating adult content metadata with Grok:', error);
-      return this.generateFallbackAdultMetadata(userExplanation, performers);
-    }
-  }
-
   /**
    * Generate SEO-optimized video metadata based on user explanation
    */
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
   public async generateVideoMetadata(
     userExplanation: string,
     videoFileName: string
@@ -247,24 +68,50 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     try {
-      const prompt = `You are an expert in SEO and social media content optimization. Based on the following explanation of a video, generate comprehensive SEO-optimized metadata.
+      const prompt = `You are an expert in SEO and social media content optimization. Based on the following explanation of a video, generate comprehensive SEO-optimized metadata for maximum discoverability in search engines (Google, YouTube, Twitter, etc.).
 
 Video file: ${videoFileName}
 User explanation: ${userExplanation}
 
-Respond ONLY with valid JSON:
+Requirements:
+
+**SOCIAL MEDIA CONTENT:**
+- title: Catchy, engaging social media title (max 100 characters) with power words
+- description: Compelling social description (max 280 characters) with hook and value proposition
+- suggestedHashtags: 5-8 trending and relevant hashtags (without #)
+
+**SEO OPTIMIZATION:**
+- seoTitle: Search-optimized title (60-70 characters) with primary keyword at the start
+- seoDescription: Meta description (150-160 characters) with keywords and clear value proposition
+- keywords: 5-10 primary keywords/keyphrases for search ranking
+- tags: 3-5 categorical tags (e.g., "Tutorial", "Technology", "Marketing")
+- targetKeyword: THE main keyword to rank for (1-3 words)
+- category: Main video category (e.g., "Education", "Entertainment", "Business", "Technology")
+
+**SEARCH DISCOVERY:**
+- searchTerms: 3-5 long-tail search phrases people actually search (e.g., "how to optimize react performance")
+- voiceSearchQueries: 2-3 natural language questions for voice search (e.g., "How do I make my React app faster?")
+
+**SEO BEST PRACTICES:**
+- Front-load important keywords in titles and descriptions
+- Use power words: "Ultimate", "Complete", "Proven", "Easy", "Fast", "Essential"
+- Include numbers when relevant: "5 Ways", "10 Tips", "2024 Guide"
+- Make it click-worthy but not clickbait
+- Optimize for user intent (informational, commercial, navigational)
+
+Respond ONLY with valid JSON in this exact format:
 {
-  "title": "Engaging social media title (max 100 chars)",
-  "description": "Compelling description (max 280 chars)",
-  "suggestedHashtags": ["hashtag1", "hashtag2"],
-  "seoTitle": "SEO Title (60-70 chars)",
-  "seoDescription": "Meta description (150-160 chars)",
-  "keywords": ["keyword1", "keyword2"],
-  "tags": ["Tag1", "Tag2"],
-  "targetKeyword": "main keyword",
-  "category": "Category",
-  "searchTerms": ["search term 1", "search term 2"],
-  "voiceSearchQueries": ["question 1?", "question 2?"]
+  "title": "Engaging social media title here",
+  "description": "Compelling social description here",
+  "suggestedHashtags": ["hashtag1", "hashtag2", "hashtag3"],
+  "seoTitle": "Keyword-Rich SEO Title Here - Max 70 Chars",
+  "seoDescription": "Meta description with keywords and value proposition. Should be between 150-160 characters for optimal display in search results.",
+  "keywords": ["keyword1", "keyword phrase 2", "keyword3"],
+  "tags": ["Category1", "Category2", "Category3"],
+  "targetKeyword": "main keyword phrase",
+  "category": "Main Category",
+  "searchTerms": ["how to do something specific", "what is the best way to"],
+  "voiceSearchQueries": ["How do I solve this problem?", "What's the best way to achieve this?"]
 }`;
 
       const response = await axios.post(
@@ -272,8 +119,14 @@ Respond ONLY with valid JSON:
         {
           model: this.model,
           messages: [
-            { role: 'system', content: this.PNPPersonality },
-            { role: 'user', content: prompt },
+            {
+              role: 'system',
+              content: 'You are an expert SEO specialist and social media strategist. You understand search algorithms, user intent, and content optimization for maximum discoverability.',
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
           ],
           temperature: 0.7,
           max_tokens: 1200,
@@ -304,19 +157,20 @@ Respond ONLY with valid JSON:
         voiceSearchQueries: result.voiceSearchQueries || [],
       };
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error generating video metadata:', errorMsg);
+      logger.error('Error generating video metadata with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackMetadata(userExplanation);
     }
   }
 
-<<<<<<< HEAD
-=======
   /**
    * Generate X/Twitter-optimized post variations in English and Spanish
    * Optimized specifically for X algorithm and engagement
    */
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
   public async generatePostVariants(
     videoTitle: string,
     videoDescription: string,
@@ -329,34 +183,6 @@ Respond ONLY with valid JSON:
     }
 
     try {
-<<<<<<< HEAD
-      const prompt = `Create TWO post variations (English and Spanish) for social media.
-
-Title: ${videoTitle}
-Description: ${videoDescription}
-Goal: ${userGoal}
-${targetAudience ? `Target Audience: ${targetAudience}` : ''}
-
-Requirements:
-- Max 250 characters each
-- Include 3-5 hashtags
-- Different angles (not direct translations)
-- Engaging and shareable
-
-Respond ONLY with JSON:
-{
-  "english": {
-    "language": "en",
-    "content": "English post",
-    "hashtags": ["tag1", "tag2"],
-    "cta": "Call to action"
-  },
-  "spanish": {
-    "language": "es",
-    "content": "Spanish post",
-    "hashtags": ["tag1", "tag2"],
-    "cta": "Llamada a la acción"
-=======
       const prompt = `You are Grok, X's AI expert in viral content creation and engagement optimization. Create TWO high-performing post variations (English and Spanish) for X/Twitter.
 
 **VIDEO CONTEXT:**
@@ -414,7 +240,6 @@ Respond with JSON:
     "content": "Hook diferente + valor + CTA (max 250 chars)",
     "hashtags": ["Tendencia1", "Nicho2", "Especifico3"],
     "cta": "Míralo ya 🔥"
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
   }
 }`;
 
@@ -423,10 +248,6 @@ Respond with JSON:
         {
           model: this.model,
           messages: [
-<<<<<<< HEAD
-            { role: 'system', content: this.PNPPersonality },
-            { role: 'user', content: prompt },
-=======
             {
               role: 'system',
               content: 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.',
@@ -435,7 +256,6 @@ Respond with JSON:
               role: 'user',
               content: prompt,
             },
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
           ],
           temperature: 0.9,
           max_tokens: 900,
@@ -467,14 +287,25 @@ Respond with JSON:
         },
       };
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error generating post variants:', errorMsg);
+      logger.error('Error generating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
 
+  /**
+   * Generate bulk post variants for multiple videos
+   */
   public async generateBulkPostVariants(
-    videos: Array<{ title: string; description: string; userGoal: string }>
+    videos: Array<{
+      title: string;
+      description: string;
+      userGoal: string;
+    }>
   ): Promise<PostGenerationResult[]> {
     const results: PostGenerationResult[] = [];
 
@@ -485,12 +316,17 @@ Respond with JSON:
         video.userGoal
       );
       results.push(variants);
+
+      // Small delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
 
     return results;
   }
 
+  /**
+   * Regenerate post variants with different approach
+   */
   public async regeneratePostVariants(
     videoTitle: string,
     videoDescription: string,
@@ -506,26 +342,51 @@ Respond with JSON:
     }
 
     try {
-      const prompt = `Create NEW post variations COMPLETELY DIFFERENT from previous attempts.
+      const prompt = `You are a bilingual social media marketing expert. Create TWO NEW post variations (one in English, one in Spanish) for a video.
 
-Title: ${videoTitle}
-Description: ${videoDescription}
-Goal: ${userGoal}
+Video Title: ${videoTitle}
+Video Description: ${videoDescription}
+User Goal: ${userGoal}
 
-Previous attempts (avoid these):
+Previous attempts that the user didn't like:
 ${previousContent}
 
-Respond ONLY with JSON (same format as before).`;
+Requirements:
+- Create ONE post in ENGLISH and ONE post in SPANISH
+- Each post should be COMPLETELY DIFFERENT from previous attempts
+- Try a different angle, tone, or approach
+- Each post should be optimized for Twitter (max 250 characters)
+- Posts should be DIFFERENT from each other (not direct translations)
+- Include relevant hashtags (3-5 per post)
+- Add a compelling call-to-action (CTA) if appropriate
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "english": {
+    "language": "en",
+    "content": "Your engaging English post here",
+    "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+    "cta": "Optional call to action"
+  },
+  "spanish": {
+    "language": "es",
+    "content": "Tu post atractivo en español aquí",
+    "hashtags": ["hashtag1", "hashtag2", "hashtag3"],
+    "cta": "Llamada a la acción opcional"
+  }
+}`;
 
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
           model: this.model,
           messages: [
-            { role: 'system', content: this.PNPPersonality },
-            { role: 'user', content: prompt },
+            {
+              role: 'user',
+              content: prompt,
+            },
           ],
-          temperature: 0.9,
+          temperature: 0.9, // Higher temperature for more variation
           max_tokens: 800,
         },
         {
@@ -555,18 +416,49 @@ Respond ONLY with JSON (same format as before).`;
         },
       };
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error regenerating post variants:', errorMsg);
+      logger.error('Error regenerating post variants with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackPostVariants(videoTitle, videoDescription);
     }
   }
 
+  /**
+   * Parse JSON from Grok response (handle markdown code blocks)
+   */
+  private parseJSON(content: string): any {
+    try {
+      // Try direct parse first
+      return JSON.parse(content);
+    } catch {
+      // Try to extract JSON from markdown code blocks
+      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
+      if (jsonMatch) {
+        return JSON.parse(jsonMatch[1]);
+      }
+
+      // Try to find JSON object in the content
+      const objectMatch = content.match(/\{[\s\S]*\}/);
+      if (objectMatch) {
+        return JSON.parse(objectMatch[0]);
+      }
+
+      throw new Error('Could not parse JSON from response');
+    }
+  }
+
+  /**
+   * Generate caption for generic social media post with AI
+   */
   public async generateCaption(
     prompt: string,
     options: {
       platform?: string;
-      tone?: string;
-      length?: string;
+      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional';
+      length?: 'short' | 'medium' | 'long';
       includeHashtags?: boolean;
       includeEmojis?: boolean;
       targetAudience?: string;
@@ -575,10 +467,14 @@ Respond ONLY with JSON (same format as before).`;
     const {
       platform = 'twitter',
       tone = 'professional',
+      length = 'medium',
       includeHashtags = true,
+      includeEmojis = true,
+      targetAudience = '',
     } = options;
 
     if (!this.enabled || !this.apiKey) {
+      logger.warn('XAI is not enabled or API key is missing');
       return {
         caption: prompt.substring(0, 280),
         hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
@@ -586,15 +482,13 @@ Respond ONLY with JSON (same format as before).`;
     }
 
     try {
-      // Select the appropriate personality based on tone
-      const isAdultTone = tone === 'adult_pnp' || tone === 'adult' || tone === 'spicy';
-      const personality = isAdultTone ? this.AdultPNPPersonality : this.PNPPersonality;
+      const charLimits = {
+        twitter: { short: 100, medium: 200, long: 280 },
+        instagram: { short: 500, medium: 1000, long: 2200 },
+        linkedin: { short: 500, medium: 1500, long: 3000 },
+        facebook: { short: 500, medium: 2000, long: 5000 },
+      };
 
-<<<<<<< HEAD
-      const toneDescription = isAdultTone
-        ? 'spicy, flirty, and provocative (18+ adult content)'
-        : tone;
-=======
       const platformLimit = charLimits[platform as keyof typeof charLimits] || charLimits.twitter;
       const maxChars = platformLimit[length];
 
@@ -616,18 +510,9 @@ Respond ONLY with JSON (same format as before).`;
 - Optimize for Retweets AND replies` : '';
 
       const userPrompt = `Create ${isXPlatform ? 'a high-engagement' : `a ${tone}`} ${platform === 'twitter' ? 'X' : platform} post based on this:
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
 
-      const userPrompt = `Create a ${toneDescription} caption for ${platform}:
 "${prompt}"
 
-<<<<<<< HEAD
-Include hashtags and 2 alternatives. Respond with JSON:
-{
-  "caption": "Main caption",
-  "hashtags": ["tag1", "tag2"],
-  "alternatives": ["Alt 1", "Alt 2"]
-=======
 Requirements:
 - Tone: ${tone}
 - Length: ${length} (≈${maxChars} chars)
@@ -652,7 +537,6 @@ JSON format:
     "Alternative 2 - statement approach",
     "Alternative 3 - story approach"
   ]
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
 }`;
 
       const response = await axios.post(
@@ -660,8 +544,14 @@ JSON format:
         {
           model: this.model,
           messages: [
-            { role: 'system', content: personality },
-            { role: 'user', content: userPrompt },
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: userPrompt,
+            },
           ],
           temperature: isXPlatform ? 0.9 : 0.8,
           max_tokens: 1000,
@@ -679,13 +569,17 @@ JSON format:
       const result = this.parseJSON(content);
 
       return {
-        caption: result.caption || prompt.substring(0, 280),
+        caption: result.caption || prompt.substring(0, maxChars),
         hashtags: includeHashtags ? (result.hashtags || []) : [],
         alternatives: result.alternatives || [],
       };
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error generating caption:', errorMsg);
+      logger.error('Error generating caption with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return {
         caption: prompt.substring(0, 280),
         hashtags: includeHashtags ? ['socialmedia', 'content'] : [],
@@ -693,8 +587,6 @@ JSON format:
     }
   }
 
-<<<<<<< HEAD
-=======
   /**
    * Fallback metadata generation when AI is not available
    */
@@ -711,28 +603,6 @@ JSON format:
       category: 'General',
       searchTerms: ['video content', 'social media video'],
       voiceSearchQueries: ['How to create video content?'],
-    };
-  }
-
-  /**
-   * Fallback adult content metadata when AI is not available
-   */
-  private generateFallbackAdultMetadata(explanation: string, performers: string[]): VideoTitleDescription {
-    const performerList = performers.join(', ');
-    return {
-      title: `${performerList} - Latino Smoking Session`,
-      description: explanation.substring(0, 250),
-      suggestedHashtags: ['GayLatino', 'Smoking', 'PnP', 'LatinoTwinks', 'PartyAndPlay'],
-      seoTitle: `Gay Latino Smoking: ${performerList} - Hot Content`,
-      seoDescription: `Watch ${performerList} in exclusive gay latino smoking content. Premium pnp party videos.`,
-      keywords: ['gay latino smoking', 'pnp party', 'latino twinks', 'smoking fetish', 'party and play'],
-      tags: ['Gay Latino', 'Smoking Fetish', 'PnP Party'],
-      targetKeyword: 'gay latino smoking pnp',
-      category: 'Gay Latino Content',
-      searchTerms: ['gay latino smoking', 'pnp party boys smoking', 'latino twinks smoking content'],
-      voiceSearchQueries: ['where to find gay latino smoking videos'],
-      performers: performers,
-      niche: { primary: 'gay', tags: ['latino', 'smoking', 'pnp', 'twink', 'party'] },
     };
   }
 
@@ -760,7 +630,6 @@ JSON format:
   /**
    * Generate English lesson for content creators
    */
->>>>>>> c12cddc40bd5272f0571d33e6af0ddc8241b4a5d
   public async generateEnglishLesson(
     topic: string,
     level: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
@@ -782,39 +651,80 @@ JSON format:
     }
 
     try {
-      const prompt = `Create an English lesson for Spanish-speaking content creators.
+      const prompt = `You are an expert English teacher specializing in teaching Spanish-speaking content creators. Create a comprehensive English lesson.
 
 Topic: ${topic}
 Level: ${level}
-Focus: ${focusArea}
+Focus Area: ${focusArea}
 
-Include: introduction, 5 key points, 5 examples with translations, 3 exercises, 3 tips, 3 common mistakes, 5 quiz questions.
+Create a lesson specifically designed for CONTENT CREATORS who need English for:
+- Social media posts
+- Video scripts
+- Audience engagement
+- Professional communication
+- Marketing copy
 
-Respond ONLY with JSON:
+Requirements:
+1. Introduction explaining why this topic matters for content creators
+2. 5 key points to learn
+3. 5 practical examples with Spanish translations and explanations
+4. 3 practice exercises
+5. 3 tips specific to content creation
+6. 3 common mistakes Spanish speakers make
+7. 5 quiz questions with 4 options each
+
+Make the content:
+- Practical and immediately usable
+- Focused on social media and content creation contexts
+- Culturally sensitive to Spanish speakers
+- Fun and engaging
+
+Respond ONLY with valid JSON in this exact format:
 {
   "lesson": {
-    "title": "Lesson title",
-    "introduction": "Why this matters...",
+    "title": "Engaging lesson title",
+    "introduction": "Why this matters for content creators...",
     "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
-    "examples": [{"english": "...", "spanish": "...", "explanation": "..."}],
-    "practiceExercises": [{"question": "...", "answer": "...", "hint": "..."}],
+    "examples": [
+      {"english": "English phrase", "spanish": "Spanish translation", "explanation": "When to use it"}
+    ],
+    "practiceExercises": [
+      {"question": "Fill in: ___", "answer": "correct answer", "hint": "optional hint"}
+    ],
     "contentCreatorTips": ["Tip 1", "Tip 2", "Tip 3"],
-    "commonMistakes": [{"wrong": "...", "correct": "...", "explanation": "..."}]
+    "commonMistakes": [
+      {"wrong": "incorrect", "correct": "correct", "explanation": "why"}
+    ]
   },
-  "quiz": [{"question": "...", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "..."}]
+  "quiz": [
+    {"question": "Question?", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "Why A is correct"}
+  ]
 }`;
 
-      const pnpTeacher = `${this.PNPPersonality}
-
-You're also an amazing English tutor! Make learning fun with memes, trending phrases, and real social media examples. ¡Tú puedes, crack! 📚✨`;
+      const pnpTeacherPersonality = `You are PNP (Powered by Neural Pixels), a fun and energetic English teacher for Spanish-speaking content creators!
+Your style:
+- Enthusiastic and encouraging - celebrate every step of learning! 🎉
+- Use Spanglish naturally, making students feel comfortable
+- Include trending phrases, memes, and real social media examples
+- Call students "crack", "máquina", "campeón/a" to motivate them
+- Make lessons feel like chatting with a cool bilingual friend
+- Use emojis to make content engaging 📚✨🚀
+- Be honest about common mistakes Spanish speakers make (you get it!)
+- Always end with encouragement: "¡Tú puedes!", "You got this!", "¡A darle!"`;
 
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
           model: this.model,
           messages: [
-            { role: 'system', content: pnpTeacher },
-            { role: 'user', content: prompt },
+            {
+              role: 'system',
+              content: pnpTeacherPersonality,
+            },
+            {
+              role: 'user',
+              content: prompt,
+            },
           ],
           temperature: 0.7,
           max_tokens: 2500,
@@ -831,12 +741,19 @@ You're also an amazing English tutor! Make learning fun with memes, trending phr
       const content = response.data.choices[0].message.content;
       return this.parseJSON(content);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error generating English lesson:', errorMsg);
+      logger.error('Error generating English lesson with Grok:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return this.generateFallbackEnglishLesson(topic);
     }
   }
 
+  /**
+   * Translate and improve content for international audience
+   */
   public async translateAndImprove(
     content: string,
     fromLang: 'en' | 'es',
@@ -849,7 +766,12 @@ You're also an amazing English tutor! Make learning fun with memes, trending phr
     culturalNotes: string[];
   }> {
     if (!this.enabled || !this.apiKey) {
-      return { translation: content, improved: content, suggestions: [], culturalNotes: [] };
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
     }
 
     try {
@@ -857,24 +779,26 @@ You're also an amazing English tutor! Make learning fun with memes, trending phr
       const prompt = `Translate and improve this ${context.replace('_', ' ')} content:
 
 Original (${langNames[fromLang]}): "${content}"
-Target language: ${langNames[toLang]}
 
-Respond with JSON:
+Tasks:
+1. Translate to ${langNames[toLang]}
+2. Improve the translation for maximum engagement on social media
+3. Provide 3 alternative suggestions
+4. Add cultural notes for ${toLang === 'en' ? 'English-speaking' : 'Spanish-speaking'} audiences
+
+Respond ONLY with valid JSON:
 {
-  "translation": "Direct translation to ${langNames[toLang]}",
-  "improved": "Improved version for engagement",
-  "suggestions": ["Alt 1", "Alt 2", "Alt 3"],
-  "culturalNotes": ["Note 1", "Note 2"]
+  "translation": "Direct translation",
+  "improved": "Improved version optimized for engagement",
+  "suggestions": ["Alternative 1", "Alternative 2", "Alternative 3"],
+  "culturalNotes": ["Note about cultural differences", "Tip for the target audience"]
 }`;
 
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
           model: this.model,
-          messages: [
-            { role: 'system', content: this.PNPPersonality },
-            { role: 'user', content: prompt },
-          ],
+          messages: [{ role: 'user', content: prompt }],
           temperature: 0.7,
           max_tokens: 800,
         },
@@ -889,12 +813,24 @@ Respond with JSON:
 
       return this.parseJSON(response.data.choices[0].message.content);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error translating content:', errorMsg);
-      return { translation: content, improved: content, suggestions: [], culturalNotes: [] };
+      logger.error('Error translating content:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
+      return {
+        translation: content,
+        improved: content,
+        suggestions: [],
+        culturalNotes: [],
+      };
     }
   }
 
+  /**
+   * Generate scheduled post ideas for a week
+   */
   public async generateWeeklyPostIdeas(
     niche: string,
     platforms: string[],
@@ -916,13 +852,18 @@ Respond with JSON:
     }
 
     try {
-      const prompt = `Generate a week's worth of post ideas.
+      const prompt = `You are a social media strategist. Generate a week's worth of post ideas for a content creator.
 
 Niche: ${niche}
 Platforms: ${platforms.join(', ')}
-${previousPosts?.length ? `Avoid repeating: ${previousPosts.slice(0, 5).join(', ')}` : ''}
+${previousPosts?.length ? `Previous posts to avoid repeating:\n${previousPosts.slice(0, 5).join('\n')}` : ''}
 
-Create 14 posts (2/day) with optimal times, mix of types, engaging content.
+Create 14 posts (2 per day) for 7 days with:
+- Optimal posting times
+- Mix of content types
+- Engaging content that drives engagement
+- Platform-specific optimization
+- Trending topics when relevant
 
 Respond with JSON:
 {
@@ -932,10 +873,10 @@ Respond with JSON:
       "time": "09:00",
       "platform": "twitter",
       "type": "text",
-      "idea": "Brief idea",
-      "content": "Full post",
-      "hashtags": ["tag1", "tag2"],
-      "mediaIdea": "Optional"
+      "idea": "Brief idea description",
+      "content": "Full post content",
+      "hashtags": ["hashtag1", "hashtag2"],
+      "mediaIdea": "Optional media suggestion"
     }
   ]
 }`;
@@ -944,10 +885,7 @@ Respond with JSON:
         `${this.baseUrl}/chat/completions`,
         {
           model: this.model,
-          messages: [
-            { role: 'system', content: this.PNPPersonality },
-            { role: 'user', content: prompt },
-          ],
+          messages: [{ role: 'user', content: prompt }],
           temperature: 0.8,
           max_tokens: 3000,
         },
@@ -962,12 +900,19 @@ Respond with JSON:
 
       return this.parseJSON(response.data.choices[0].message.content);
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error generating weekly ideas:', errorMsg);
+      logger.error('Error generating weekly post ideas:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return { posts: [] };
     }
   }
 
+  /**
+   * Chat with PNP (Grok) for content assistance
+   */
   public async chat(
     message: string,
     conversationHistory: { role: 'user' | 'assistant'; content: string }[] = [],
@@ -977,16 +922,37 @@ Respond with JSON:
       return { response: '¡Hey! Soy PNP pero estoy tomando una siesta. Vuelve pronto! 😴' };
     }
 
-    const contextPrompts = {
-      content_creation: 'You specialize in helping content creators with posts, captions, scripts, and engagement strategies. 💪',
-      english_learning: "You're an English tutor for Spanish-speaking creators. Make learning fun! 📚✨",
-      social_media: "You're a social media guru! Share platform strategies and trending tips. 📱🔥",
-      general: "Be witty, knowledgeable, and helpful. 🤝",
+    // PNP Personality: Fun, supportive, bilingual, with a touch of humor
+    const pnpPersonality = `You are PNP (Powered by Neural Pixels), an AI assistant with a fun, friendly, and slightly sassy personality.
+Your characteristics:
+- You speak both English and Spanish fluently, often mixing both (Spanglish) when it feels natural
+- You're enthusiastic and encouraging, using emojis naturally 🚀✨
+- You have a playful sense of humor but always stay helpful and professional
+- You call users "crack", "máquina", "campeón/a" or similar encouraging terms
+- You celebrate their wins and motivate them when they're stuck
+- You're passionate about helping content creators succeed
+- You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
+- You're honest and direct - if something won't work, you say it kindly but clearly
+- You remember you're powered by xAI's Grok but your personality is PNP`;
+
+    const systemPrompts = {
+      content_creation: `${pnpPersonality}
+
+You specialize in helping content creators with post ideas, captions, video scripts, engagement strategies, and growing their social media presence. Be creative, helpful, and always hype them up! 💪`,
+      english_learning: `${pnpPersonality}
+
+You're also an amazing English tutor for Spanish-speaking content creators. Make learning English fun! Use memes, trending phrases, and real social media examples. Celebrate small wins and make them feel confident about learning. ¡Tú puedes, crack! 📚✨`,
+      social_media: `${pnpPersonality}
+
+You're a social media guru! Help with platform strategies, algorithm secrets, engagement tactics, and trending content ideas. Share insider tips like you're helping your best friend go viral. 📱🔥`,
+      general: `${pnpPersonality}
+
+Be yourself - witty, knowledgeable, and genuinely helpful. You're like that smart friend who always has the answers but never makes you feel dumb for asking. 🤝`,
     };
 
     try {
       const messages = [
-        { role: 'system' as const, content: `${this.PNPPersonality}\n\n${contextPrompts[context]}` },
+        { role: 'system' as const, content: systemPrompts[context] },
         ...conversationHistory,
         { role: 'user' as const, content: message },
       ];
@@ -1013,65 +979,27 @@ Respond with JSON:
         suggestions: [],
       };
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || error.message || 'Unknown error';
-      logger.error('Error in chat:', errorMsg);
+      logger.error('Error in Grok chat:', {
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      });
       return { response: 'Sorry, I encountered an error. Please try again.' };
     }
   }
 
-  private parseJSON(content: string): any {
-    try {
-      return JSON.parse(content);
-    } catch {
-      const jsonMatch = content.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-      if (jsonMatch) return JSON.parse(jsonMatch[1]);
-
-      const objectMatch = content.match(/\{[\s\S]*\}/);
-      if (objectMatch) return JSON.parse(objectMatch[0]);
-
-      throw new Error('Could not parse JSON from response');
-    }
-  }
-
-  private generateFallbackMetadata(explanation: string): VideoTitleDescription {
-    return {
-      title: explanation.substring(0, 100),
-      description: explanation.substring(0, 280),
-      suggestedHashtags: ['video', 'content', 'social'],
-      seoTitle: explanation.substring(0, 70),
-      seoDescription: explanation.substring(0, 160),
-      keywords: ['video', 'content', 'social media'],
-      tags: ['Video', 'Content', 'Social'],
-      targetKeyword: 'video content',
-      category: 'General',
-      searchTerms: ['video content', 'social media video'],
-      voiceSearchQueries: ['How to create video content?'],
-    };
-  }
-
-  private generateFallbackPostVariants(title: string, description: string): PostGenerationResult {
-    return {
-      english: {
-        language: 'en',
-        content: `${title}\n\n${description.substring(0, 150)}`,
-        hashtags: ['video', 'content'],
-      },
-      spanish: {
-        language: 'es',
-        content: `${title}\n\n${description.substring(0, 150)}`,
-        hashtags: ['video', 'contenido'],
-      },
-    };
-  }
-
+  /**
+   * Fallback English lesson
+   */
   private generateFallbackEnglishLesson(topic: string) {
     return {
       lesson: {
         title: `English for Content Creators: ${topic}`,
-        introduction: 'AI service temporarily unavailable.',
+        introduction: 'AI service temporarily unavailable. Basic lesson structure provided.',
         keyPoints: ['Practice daily', 'Use real examples', 'Watch content in English', 'Practice writing', 'Get feedback'],
         examples: [{ english: 'Example coming soon', spanish: 'Ejemplo próximamente', explanation: 'Check back later' }],
-        practiceExercises: [{ question: 'Practice exercise coming soon', answer: 'N/A' }],
+        practiceExercises: [{ question: 'Practice exercise will be available soon', answer: 'N/A' }],
         contentCreatorTips: ['Be consistent', 'Use simple language', 'Engage with your audience'],
         commonMistakes: [{ wrong: 'Example', correct: 'Example', explanation: 'Available soon' }],
       },
