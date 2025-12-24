@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { config } from '../config';
 import logger from '../utils/logger';
@@ -22,7 +22,7 @@ export interface UploadProgress {
 }
 
 export class S3Service {
-  private s3Client: S3Client;
+  private s3Client!: S3Client;
   private bucket: string;
   private kmsKeyArn: string;
   private cloudfrontDomain: string;

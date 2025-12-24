@@ -30,7 +30,7 @@ const upload = multer({
   limits: {
     fileSize: 6 * 1024 * 1024, // 6MB per chunk (slightly larger than 5MB default)
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, _file, cb) => {
     // Accept chunk uploads from any content type
     cb(null, true)
   },

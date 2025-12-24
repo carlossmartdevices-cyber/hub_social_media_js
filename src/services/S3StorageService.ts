@@ -1,6 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { promises as fs } from 'fs';
-import path from 'path';
 import { logger } from '../utils/logger';
 
 /**

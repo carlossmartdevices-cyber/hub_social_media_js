@@ -6,7 +6,6 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
-import Redis from 'redis'
 import { v4 as uuidv4 } from 'uuid'
 import {
   UploadInitRequest,
@@ -14,7 +13,6 @@ import {
   UploadChunkResponse,
   UploadStatusResponse,
   UploadSession,
-  ChunkInfo,
 } from '../types/upload.types'
 import { logger } from '../utils/logger'
 

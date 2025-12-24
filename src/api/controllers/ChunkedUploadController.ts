@@ -10,7 +10,6 @@ import { ChunkedUploadService } from '../../services/ChunkedUploadService'
 import { UploadInitRequest } from '../../types/upload.types'
 import { logger } from '../../utils/logger'
 import database from '../../database/connection'
-import { videoProcessingQueue } from '../../jobs/queue'
 
 export class ChunkedUploadController {
   constructor(
@@ -155,7 +154,7 @@ export class ChunkedUploadController {
         updated_at: now,
       }
 
-      await this.db.query(
+      await database.query(
         `INSERT INTO posts (id, user_id, title, description, media_type, media_url, processing_status, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
@@ -171,42 +170,16 @@ export class ChunkedUploadController {
         ]
       )
 
-      // Queue video processing job
-      const jobData = {
-        postId,
-        userId,
-        uploadId,
-        filePath,
-        fileName: post.title,
-        metadata: metadata || {},
-        options: {
-          quality: metadata?.quality || 'medium',
-          platform: metadata?.platform || 'twitter',
-          generateThumbnail: true,
-        },
-      }
-
-      const job = await videoProcessingQueue.add('process-video', jobData, {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 2000,
-        },
-        removeOnComplete: false,
-        removeOnFail: false,
-      })
-
       // Store job ID in upload service
-      await this.uploadService.setProcessingJobId(uploadId, job.id || '')
+      await this.uploadService.setProcessingJobId(uploadId, postId)
 
-      logger.info(`Upload completed: ${uploadId}, processing job: ${job.id}`)
+      logger.info(`Upload completed: ${uploadId}, post created: ${postId}`)
 
       res.status(200).json({
         uploadId,
         postId,
         videoUrl: filePath,
         status: 'processing',
-        processingJobId: job.id,
       })
     } catch (error) {
       logger.error(`Upload completion error: ${error}`)
