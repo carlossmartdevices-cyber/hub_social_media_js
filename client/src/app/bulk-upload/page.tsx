@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
+import { ChunkedUploadManager } from '@/lib/chunkedUpload';
 import { 
   Upload, X, Image, Video, FileVideo, Check, AlertCircle,
   RefreshCw, Sparkles, Calendar, Clock, Trash2, Eye
@@ -118,30 +119,53 @@ export default function BulkUploadPage() {
 
     for (const item of pendingItems) {
       updateMedia(item.id, { status: 'uploading' });
-      
+
       try {
-        const formData = new FormData();
-        formData.append('file', item.file);
-        formData.append('type', item.type);
-        
-        const response = await api.post('/media/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-            updateMedia(item.id, { progress });
-          }
-        });
-        
-        updateMedia(item.id, { 
-          status: 'uploaded', 
-          url: response.data.url,
-          progress: 100
-        });
-      } catch (err) {
+        const fileSizeMB = item.file.size / (1024 * 1024);
+
+        if (fileSizeMB > 500) {
+          // Use chunked upload for large files
+          const manager = new ChunkedUploadManager(item.file, {
+            onProgress: (progress) => {
+              updateMedia(item.id, { progress });
+            },
+            onError: (error) => {
+              updateMedia(item.id, { status: 'error' });
+            },
+          });
+
+          const result = await manager.upload();
+          updateMedia(item.id, {
+            status: 'uploaded',
+            url: result.url,
+            progress: 100
+          });
+        } else {
+          // Use simple upload for smaller files
+          const formData = new FormData();
+          formData.append('file', item.file);
+          formData.append('type', item.type);
+
+          const response = await api.post('/media/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+            onUploadProgress: (progressEvent) => {
+              const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
+              updateMedia(item.id, { progress });
+            }
+          });
+
+          updateMedia(item.id, {
+            status: 'uploaded',
+            url: response.data.url,
+            progress: 100
+          });
+        }
+      } catch (err: any) {
         updateMedia(item.id, { status: 'error' });
+        setError(err.message || 'Upload failed');
       }
     }
-    
+
     setUploading(false);
     setSuccess('All files uploaded successfully!');
   };

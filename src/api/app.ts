@@ -61,9 +61,17 @@ export function createApp(): Application {
   app.use('/api/ai', express.json({ limit: '500kb' }));
   app.use('/api/ai', express.urlencoded({ extended: true, limit: '500kb' }));
 
-  // Media/upload routes - larger payload
+  // Media/upload routes - larger payload for image/video uploads
   app.use('/api/media', express.json({ limit: '10mb' }));
   app.use('/api/media', express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Chunked upload routes - very large payload for large file uploads
+  app.use('/api/upload', express.json({ limit: '100mb' }));
+  app.use('/api/upload', express.urlencoded({ extended: true, limit: '100mb' }));
+
+  // Video routes - large payload for video metadata
+  app.use('/api/video', express.json({ limit: '10mb' }));
+  app.use('/api/video', express.urlencoded({ extended: true, limit: '10mb' }));
 
   // Default for other routes
   app.use(express.json({ limit: '500kb' }));

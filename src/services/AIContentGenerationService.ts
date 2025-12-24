@@ -457,7 +457,7 @@ Respond ONLY with valid JSON in this exact format:
     prompt: string,
     options: {
       platform?: string;
-      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional';
+      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional' | 'pnp';
       length?: 'short' | 'medium' | 'long';
       includeHashtags?: boolean;
       includeEmojis?: boolean;
@@ -494,7 +494,22 @@ Respond ONLY with valid JSON in this exact format:
 
       // X/Twitter-specific optimization
       const isXPlatform = platform === 'twitter';
-      const systemPrompt = isXPlatform
+
+      // PNP personality for PNP tone
+      const pnpPersonalityPrompt = `You are PNP (Powered by Neural Pixels), an AI assistant with a fun, friendly, and slightly sassy personality.
+Your characteristics:
+- You speak both English and Spanish fluently, often mixing both (Spanglish) when it feels natural
+- You're enthusiastic and encouraging, using emojis naturally 🚀✨
+- You have a playful sense of humor but always stay helpful and professional
+- You call users "crack", "máquina", "campeón/a" or similar encouraging terms
+- You celebrate their wins and motivate them when they're stuck
+- You're passionate about helping content creators succeed
+- You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
+- You're honest and direct - if something won't work, you say it kindly but clearly`;
+
+      const systemPrompt = tone === 'pnp'
+        ? pnpPersonalityPrompt
+        : isXPlatform
         ? `You are Grok, X's AI expert in viral content creation. You understand the X algorithm, what drives engagement, and how to craft posts that get maximum reach and interaction. You know the power of hooks, curiosity gaps, and emotional triggers.`
         : `You are an expert social media content creator and copywriter specializing in ${platform}. You create engaging, ${tone} content that drives engagement and aligns with platform best practices.`;
 

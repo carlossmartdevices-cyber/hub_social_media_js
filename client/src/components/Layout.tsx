@@ -5,20 +5,21 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { ThemeToggle } from './ThemeToggle';
 import { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  PlusCircle, 
-  Calendar, 
-  BarChart3, 
-  Settings, 
-  LogOut, 
-  Menu, 
+import {
+  LayoutDashboard,
+  FileText,
+  PlusCircle,
+  Calendar,
+  BarChart3,
+  Settings,
+  LogOut,
+  Menu,
   X,
   Upload,
   GraduationCap,
   Sparkles,
-  Check
+  Check,
+  Share2
 } from 'lucide-react';
 
 interface NavLink {
@@ -59,6 +60,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     { href: '/', label: 'Dashboard', icon: <LayoutDashboard className="w-5 h-5" /> },
     { href: '/posts', label: 'Posts', icon: <FileText className="w-5 h-5" /> },
     { href: '/posts/create', label: 'Create', icon: <PlusCircle className="w-5 h-5" /> },
+    { href: '/social-login', label: 'Social Login', icon: <Share2 className="w-5 h-5" /> },
     { href: '/scheduler', label: 'Scheduler', icon: <Calendar className="w-5 h-5" /> },
     { href: '/bulk-upload', label: 'Bulk Upload', icon: <Upload className="w-5 h-5" /> },
     { href: '/analytics', label: 'Analytics', icon: <BarChart3 className="w-5 h-5" /> },

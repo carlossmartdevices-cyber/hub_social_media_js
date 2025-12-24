@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
+import { ChunkedUploadManager } from '@/lib/chunkedUpload';
 import { Upload, X, Video, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 
 interface UploadedVideo {
@@ -56,7 +57,7 @@ export default function VideoUploadPage() {
 
   const handleFiles = async (files: File[]) => {
     const videoFiles = files.filter((file) => file.type.startsWith('video/'));
-    
+
     for (const file of videoFiles) {
       const videoId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const newVideo: UploadedVideo = {
@@ -65,41 +66,84 @@ export default function VideoUploadPage() {
         status: 'uploading',
         progress: 0,
       };
-      
-      setVideos((prev) => [...prev, newVideo]);
-      
-      try {
-        const formData = new FormData();
-        formData.append('video', file);
-        formData.append('title', file.name);
-        formData.append('description', '');
 
-        const response = await api.post('/video/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          onUploadProgress: (progressEvent) => {
-            const progress = progressEvent.total
-              ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
-              : 0;
-            setVideos((prev) =>
-              prev.map((v) => (v.id === videoId ? { ...v, progress } : v))
-            );
-          },
-        });
-        
-        setVideos((prev) =>
-          prev.map((v) =>
-            v.id === videoId
-              ? {
-                  ...v,
-                  status: 'ready',
-                  progress: 100,
-                  thumbnailUrl: response.data.thumbnailUrl,
-                }
-              : v
-          )
-        );
+      setVideos((prev) => [...prev, newVideo]);
+
+      try {
+        // Check if file is large (> 500MB) and use chunked upload
+        const fileSizeMB = file.size / (1024 * 1024);
+
+        if (fileSizeMB > 500) {
+          // Use chunked upload for large files
+          const manager = new ChunkedUploadManager(file, {
+            onProgress: (progress) => {
+              setVideos((prev) =>
+                prev.map((v) => (v.id === videoId ? { ...v, progress } : v))
+              );
+            },
+            onError: (error) => {
+              setVideos((prev) =>
+                prev.map((v) =>
+                  v.id === videoId
+                    ? {
+                        ...v,
+                        status: 'error',
+                        error: error || 'Upload failed',
+                      }
+                    : v
+                )
+              );
+            },
+          });
+
+          await manager.upload();
+
+          // After chunked upload completes, still process video metadata
+          setVideos((prev) =>
+            prev.map((v) =>
+              v.id === videoId
+                ? {
+                    ...v,
+                    status: 'ready',
+                    progress: 100,
+                  }
+                : v
+            )
+          );
+        } else {
+          // Use simple upload for smaller files
+          const formData = new FormData();
+          formData.append('video', file);
+          formData.append('title', file.name);
+          formData.append('description', '');
+
+          const response = await api.post('/video/upload', formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+            onUploadProgress: (progressEvent) => {
+              const progress = progressEvent.total
+                ? Math.round((progressEvent.loaded * 100) / progressEvent.total)
+                : 0;
+              setVideos((prev) =>
+                prev.map((v) => (v.id === videoId ? { ...v, progress } : v))
+              );
+            },
+          });
+
+          setVideos((prev) =>
+            prev.map((v) =>
+              v.id === videoId
+                ? {
+                    ...v,
+                    status: 'ready',
+                    progress: 100,
+                    thumbnailUrl: response.data.thumbnailUrl,
+                  }
+                : v
+            )
+          );
+        }
       } catch (error: any) {
         setVideos((prev) =>
           prev.map((v) =>
@@ -107,7 +151,7 @@ export default function VideoUploadPage() {
               ? {
                   ...v,
                   status: 'error',
-                  error: error.response?.data?.error || 'Upload failed',
+                  error: error.response?.data?.error || error.message || 'Upload failed',
                 }
               : v
           )
@@ -161,7 +205,10 @@ export default function VideoUploadPage() {
             Select Videos
           </button>
           <p className="mt-4 text-xs text-gray-400 dark:text-gray-500">
-            Supported formats: MP4, MOV, AVI, WebM (Max 500MB)
+            Supported formats: MP4, MOV, AVI, WebM, MKV, MPEG (Up to 5GB)
+          </p>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Large files (&gt;500MB) use resumable chunked upload for better reliability
           </p>
         </div>
 

@@ -10,6 +10,8 @@ import englishLearningRoutes from './englishLearning';
 import telegramRoutes from './telegram';
 import automatedActionsRoutes from './automatedActions';
 import webhookRoutes from './webhook';
+import chunkedUploadRoutes from './chunkedUpload';
+import mediaRoutes from './media';
 
 const router = Router();
 
@@ -29,5 +31,7 @@ router.use('/english-learning', englishLearningRoutes);
 router.use('/telegram', telegramRoutes);
 router.use('/automated-actions', automatedActionsRoutes);
 router.use('/webhook', webhookRoutes);
+router.use('/upload', chunkedUploadRoutes);
+router.use('/media', mediaRoutes);
 
 export default router;

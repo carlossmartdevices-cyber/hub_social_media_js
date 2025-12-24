@@ -83,8 +83,8 @@ export const config = {
   },
 
   media: {
-    maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '10485760', 10),
-    maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '104857600', 10),
+    maxImageSize: parseInt(process.env.MAX_IMAGE_SIZE || '104857600', 10), // 100MB for images
+    maxVideoSize: parseInt(process.env.MAX_VIDEO_SIZE || '5368709120', 10), // 5GB for videos
     storagePath: process.env.MEDIA_STORAGE_PATH || './uploads',
   },
 
