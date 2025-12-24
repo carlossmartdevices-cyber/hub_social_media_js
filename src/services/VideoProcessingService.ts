@@ -46,7 +46,7 @@ interface ProcessedVideo {
 export class VideoProcessingService {
   private readonly UPLOAD_DIR = process.env.VIDEO_UPLOAD_DIR || './uploads/videos';
   private readonly THUMBNAIL_DIR = process.env.THUMBNAIL_DIR || './uploads/thumbnails';
-  private readonly MAX_VIDEO_SIZE = 500 * 1024 * 1024; // 500MB default
+  private readonly MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB max
 
   // Adult content video constraints (previews for pnptv.app)
   private readonly ADULT_CONTENT_CONSTRAINTS: AdultContentConstraints = {
