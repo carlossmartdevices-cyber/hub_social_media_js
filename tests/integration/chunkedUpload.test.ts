@@ -7,7 +7,6 @@ import request from 'supertest'
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
 import express from 'express'
 import { ChunkedUploadService } from '../../src/services/ChunkedUploadService'
-import { ChunkedUploadController } from '../../src/api/controllers/ChunkedUploadController'
 import chunkedUploadRoutes from '../../src/api/routes/chunkedUpload'
 import { createClient } from 'redis'
 import crypto from 'crypto'
@@ -28,8 +27,7 @@ describe('Chunked Upload Integration Tests', () => {
 
     // Initialize Redis
     redisClient = createClient({
-      host: 'localhost',
-      port: 6379,
+      url: 'redis://localhost:6379',
     })
     await redisClient.connect()
 
@@ -346,15 +344,13 @@ describe('Chunked Upload Integration Tests', () => {
     it('should cleanup expired uploads', async () => {
       // This test requires TTL to be very short (done in setup)
       // Initialize upload
-      const initResponse = await request(app)
+      await request(app)
         .post('/api/upload/init')
         .send({
           fileName: 'expire-test.mp4',
           fileSize: 5 * 1024 * 1024,
           fileMimeType: 'video/mp4',
         })
-
-      const uploadId = initResponse.body.uploadId
 
       // Wait for session to expire (1 hour in normal config, instant in test)
       // In real tests, mock Redis TTL or use shorter TTL

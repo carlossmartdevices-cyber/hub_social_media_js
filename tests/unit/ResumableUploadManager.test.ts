@@ -3,7 +3,7 @@
  * Tests for upload manager functionality
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { ResumableUploadManager } from '../../client-vite-backup/src/utils/ResumableUploadManager'
 
 describe('ResumableUploadManager', () => {
@@ -17,11 +17,11 @@ describe('ResumableUploadManager', () => {
 
   beforeEach(() => {
     // Reset mocks
-    mockProgress = vi.fn()
-    mockStatusChange = vi.fn()
-    mockChunkComplete = vi.fn()
-    mockUploadComplete = vi.fn()
-    mockUploadFailed = vi.fn()
+    mockProgress = jest.fn()
+    mockStatusChange = jest.fn()
+    mockChunkComplete = jest.fn()
+    mockUploadComplete = jest.fn()
+    mockUploadFailed = jest.fn()
 
     // Create upload manager with mocks
     uploadManager = new ResumableUploadManager(
@@ -70,8 +70,8 @@ describe('ResumableUploadManager', () => {
     })
 
     it('should track queued and active uploads separately', async () => {
-      const uploadId1 = await uploadManager.addToQueue(mockFile, { title: 'Video 1' })
-      const uploadId2 = await uploadManager.addToQueue(mockFile, { title: 'Video 2' })
+      await uploadManager.addToQueue(mockFile, { title: 'Video 1' })
+      await uploadManager.addToQueue(mockFile, { title: 'Video 2' })
 
       const queued = uploadManager.getQueuedUploads()
       const active = uploadManager.getActiveUploads()
@@ -133,7 +133,7 @@ describe('ResumableUploadManager', () => {
 
   describe('Chunk Management', () => {
     it('should organize file into chunks', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const task = uploadManager.getQueuedUploads()[0]
 
       expect(task.chunks).toBeDefined()
@@ -143,7 +143,7 @@ describe('ResumableUploadManager', () => {
     })
 
     it('should track chunk metadata', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const task = uploadManager.getQueuedUploads()[0]
 
       task.chunks.forEach((chunk, i) => {
@@ -163,14 +163,14 @@ describe('ResumableUploadManager', () => {
         platform: 'twitter',
       }
 
-      const uploadId = await uploadManager.addToQueue(mockFile, metadata)
+      await uploadManager.addToQueue(mockFile, metadata)
       const task = uploadManager.getQueuedUploads()[0]
 
       expect(task.metadata).toEqual(metadata)
     })
 
     it('should handle empty metadata', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const task = uploadManager.getQueuedUploads()[0]
 
       expect(task.metadata).toBeDefined()
@@ -187,15 +187,15 @@ describe('ResumableUploadManager', () => {
     })
 
     it('should follow upload ID format', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      const result = await uploadManager.addToQueue(mockFile)
 
-      expect(uploadId).toMatch(/^upload-\d+-[a-z0-9]{9}$/)
+      expect(result).toMatch(/^upload-\d+-[a-z0-9]{9}$/)
     })
   })
 
   describe('Task Status', () => {
     it('should initialize with pending status', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const task = uploadManager.getQueuedUploads()[0]
 
       expect(task.status).toBe('pending')
@@ -203,7 +203,7 @@ describe('ResumableUploadManager', () => {
 
     it('should track task creation time', async () => {
       const before = new Date()
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const after = new Date()
 
       const task = uploadManager.getQueuedUploads()[0]
@@ -215,7 +215,7 @@ describe('ResumableUploadManager', () => {
 
   describe('Error Handling', () => {
     it('should store error messages', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
       const task = uploadManager.getQueuedUploads()[0]
 
       expect(task.error).toBeUndefined()
@@ -226,7 +226,7 @@ describe('ResumableUploadManager', () => {
 
   describe('Recovery', () => {
     it('should recover unfinished uploads', async () => {
-      const uploadId = await uploadManager.addToQueue(mockFile)
+      await uploadManager.addToQueue(mockFile)
 
       // In real scenario, this would recover from IndexedDB
       // For unit tests, we're testing the API
@@ -276,11 +276,11 @@ describe('ResumableUploadManager', () => {
 
     it('should support all callback types', async () => {
       const callbacks = {
-        onProgress: vi.fn(),
-        onChunkComplete: vi.fn(),
-        onUploadComplete: vi.fn(),
-        onUploadFailed: vi.fn(),
-        onStatusChange: vi.fn(),
+        onProgress: jest.fn(),
+        onChunkComplete: jest.fn(),
+        onUploadComplete: jest.fn(),
+        onUploadFailed: jest.fn(),
+        onStatusChange: jest.fn(),
       }
 
       const manager = new ResumableUploadManager({}, callbacks)
