@@ -450,6 +450,8 @@ export class AuthController {
               `${config.platforms.twitter.clientId}:${config.platforms.twitter.clientSecret}`
             ).toString('base64')}`,
           },
+          decompress: true, // Ensure response is decompressed
+          responseType: 'json', // Ensure JSON parsing
         }
       );
 
@@ -506,7 +508,7 @@ export class AuthController {
 
       // Auto-add X account to platform_credentials for immediate use
       try {
-        const EncryptionService = require('../utils/encryption').default;
+        const EncryptionService = require('../utils/encryption');
         const accountIdentifier = `@${twitterUser.username}`;
         const accountCredentials = {
           accessToken: tokens.access_token,
