@@ -120,7 +120,7 @@ export default function SocialLoginPage() {
   const fetchConnectedAccounts = async () => {
     try {
       const response = await api.get('/platform-accounts');
-      const platforms = new Set(response.data.map((acc: any) => acc.platform));
+      const platforms: Set<string> = new Set(response.data.map((acc: any) => acc.platform as string));
       setConnectedAccounts(platforms);
     } catch (error) {
       console.error('Failed to fetch accounts:', error);

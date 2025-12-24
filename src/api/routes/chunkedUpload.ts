@@ -3,29 +3,26 @@
  * API endpoints for resumable chunk-based file uploads
  */
 
-import { Router, Request, Response } from 'express'
+import { Router, Response } from 'express'
 import multer from 'multer'
+import { AuthRequest, authMiddleware } from '../middlewares/auth'
 import { ChunkedUploadController } from '../controllers/ChunkedUploadController'
 import { ChunkedUploadService } from '../../services/ChunkedUploadService'
-import { authenticateToken } from '../middleware/auth'
-import { Database } from '../../database'
-import { redisClient } from '../../cache/redis'
 import { config } from '../../config'
 
 const router = Router()
 
 // Initialize services
 const uploadService = new ChunkedUploadService(
-  redisClient,
-  config.TEMP_CHUNK_DIR || './uploads/temp/chunks',
-  config.CHUNK_SIZE_MB || 5,
-  config.MAX_UPLOAD_SIZE_MB || 5120,
-  config.UPLOAD_SESSION_TTL_HOURS || 24,
-  config.MAX_CONCURRENT_CHUNKS || 4
+  null as any, // Redis client will be initialized by service
+  config.upload.tempChunkDir,
+  config.upload.chunkSizeMb,
+  config.upload.maxUploadSizeMb,
+  config.upload.sessionTtlHours,
+  config.upload.maxConcurrentChunks
 )
 
-const database = new Database()
-const controller = new ChunkedUploadController(uploadService, database)
+const controller = new ChunkedUploadController(uploadService)
 
 // Multer configuration for chunk uploads
 const upload = multer({
@@ -64,7 +61,7 @@ const upload = multer({
  *   "expiresAt": "2025-12-19T12:00:00Z"
  * }
  */
-router.post('/init', authenticateToken, (req: Request, res: Response) =>
+router.post('/init', authMiddleware, (req: AuthRequest, res: Response) =>
   controller.initializeUpload(req, res)
 )
 
@@ -89,9 +86,9 @@ router.post('/init', authenticateToken, (req: Request, res: Response) =>
  */
 router.post(
   '/chunk/:uploadId',
-  authenticateToken,
+  authMiddleware,
   upload.single('chunk'),
-  (req: Request, res: Response) => controller.uploadChunk(req, res)
+  (req: AuthRequest, res: Response) => controller.uploadChunk(req, res)
 )
 
 /**
@@ -119,8 +116,8 @@ router.post(
  */
 router.post(
   '/complete/:uploadId',
-  authenticateToken,
-  (req: Request, res: Response) => controller.completeUpload(req, res)
+  authMiddleware,
+  (req: AuthRequest, res: Response) => controller.completeUpload(req, res)
 )
 
 /**
@@ -141,7 +138,7 @@ router.post(
  *   "expiresAt": "2025-12-19T12:00:00Z"
  * }
  */
-router.get('/status/:uploadId', authenticateToken, (req: Request, res: Response) =>
+router.get('/status/:uploadId', authMiddleware, (req: AuthRequest, res: Response) =>
   controller.getUploadStatus(req, res)
 )
 
@@ -156,8 +153,8 @@ router.get('/status/:uploadId', authenticateToken, (req: Request, res: Response)
  */
 router.delete(
   '/cancel/:uploadId',
-  authenticateToken,
-  (req: Request, res: Response) => controller.cancelUpload(req, res)
+  authMiddleware,
+  (req: AuthRequest, res: Response) => controller.cancelUpload(req, res)
 )
 
 export default router

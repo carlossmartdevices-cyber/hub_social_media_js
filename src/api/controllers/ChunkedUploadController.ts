@@ -3,25 +3,25 @@
  * Handles chunked upload endpoints for large video files
  */
 
-import { Request, Response } from 'express'
+import { Response } from 'express'
 import crypto from 'crypto'
+import { AuthRequest } from '../middlewares/auth'
 import { ChunkedUploadService } from '../../services/ChunkedUploadService'
 import { UploadInitRequest } from '../../types/upload.types'
 import { logger } from '../../utils/logger'
-import { Database } from '../../database'
-import { postQueue, videoProcessingQueue } from '../../jobs/queue'
+import database from '../../database/connection'
+import { videoProcessingQueue } from '../../jobs/queue'
 
 export class ChunkedUploadController {
   constructor(
-    private uploadService: ChunkedUploadService,
-    private db: Database
+    private uploadService: ChunkedUploadService
   ) {}
 
   /**
    * POST /api/upload/init
    * Initialize a chunked upload session
    */
-  async initializeUpload(req: Request, res: Response): Promise<void> {
+  async initializeUpload(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id
       if (!userId) {
@@ -75,7 +75,7 @@ export class ChunkedUploadController {
    * POST /api/upload/chunk/:uploadId
    * Upload a single chunk
    */
-  async uploadChunk(req: Request, res: Response): Promise<void> {
+  async uploadChunk(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id
       if (!userId) {
@@ -125,7 +125,7 @@ export class ChunkedUploadController {
    * POST /api/upload/complete/:uploadId
    * Complete the upload and assemble chunks
    */
-  async completeUpload(req: Request, res: Response): Promise<void> {
+  async completeUpload(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id
       if (!userId) {
@@ -220,7 +220,7 @@ export class ChunkedUploadController {
    * GET /api/upload/status/:uploadId
    * Get upload status
    */
-  async getUploadStatus(req: Request, res: Response): Promise<void> {
+  async getUploadStatus(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id
       if (!userId) {
@@ -245,7 +245,7 @@ export class ChunkedUploadController {
    * DELETE /api/upload/cancel/:uploadId
    * Cancel an upload
    */
-  async cancelUpload(req: Request, res: Response): Promise<void> {
+  async cancelUpload(req: AuthRequest, res: Response): Promise<void> {
     try {
       const userId = req.user?.id
       if (!userId) {
