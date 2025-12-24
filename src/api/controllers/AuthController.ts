@@ -504,6 +504,58 @@ export class AuthController {
         logger.info(`User registered via X: ${email} (@${twitterUser.username})`);
       }
 
+      // Auto-add X account to platform_credentials for immediate use
+      try {
+        const EncryptionService = require('../utils/encryption').default;
+        const accountIdentifier = `@${twitterUser.username}`;
+        const accountCredentials = {
+          accessToken: tokens.access_token,
+          refreshToken: tokens.refresh_token,
+          expiresAt: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+          userId: twitterUser.id,
+          username: twitterUser.username,
+        };
+
+        const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(accountCredentials));
+
+        // Check if X account already exists in platform_credentials
+        const existingAccount = await database.query(
+          `SELECT id FROM platform_credentials
+           WHERE user_id = $1 AND platform = 'twitter' AND account_identifier = $2`,
+          [user.id, accountIdentifier]
+        );
+
+        if (existingAccount.rows.length > 0) {
+          // Update existing X account
+          await database.query(
+            `UPDATE platform_credentials
+             SET credentials = $1, is_active = true, last_validated = NOW(), updated_at = NOW()
+             WHERE id = $2`,
+            [encryptedCredentials, existingAccount.rows[0].id]
+          );
+
+          logger.info('X account updated in platform_credentials', {
+            userId: user.id,
+            accountIdentifier: accountIdentifier.substring(0, 3) + '***',
+          });
+        } else {
+          // Create new X account entry
+          await database.query(
+            `INSERT INTO platform_credentials (user_id, platform, account_name, account_identifier, credentials, is_active)
+             VALUES ($1, 'twitter', $2, $3, $4, true)`,
+            [user.id, twitterUser.name || twitterUser.username, accountIdentifier, encryptedCredentials]
+          );
+
+          logger.info('X account added to platform_credentials', {
+            userId: user.id,
+            accountIdentifier: accountIdentifier.substring(0, 3) + '***',
+          });
+        }
+      } catch (credentialError) {
+        logger.warn('Failed to auto-add X account to platform_credentials', credentialError);
+        // Continue with login even if this fails - it's non-critical
+      }
+
       // Generate JWT tokens
       const accessToken = jwt.sign(
         { id: user.id, email: user.email, role: user.role },
