@@ -2,11 +2,38 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth';
 import { oauth2Service } from '../../services/OAuth2Service';
 import { logger } from '../../utils/logger';
+import { Platform } from '../../core/content/types';
+import { isOAuth2Configured, getAllOAuth2Platforms } from '../../utils/oauth2Config';
 
 /**
  * OAuth2Controller - Handle OAuth 2.0 flows for social platforms
  */
 export class OAuth2Controller {
+  /**
+   * GET /api/oauth/config
+   * Get OAuth 2.0 configuration for all platforms (public endpoint)
+   * Returns which platforms have valid OAuth 2.0 credentials configured
+   */
+  async getOAuth2Config(_req: Request, res: Response): Promise<void> {
+    try {
+      const allPlatforms = getAllOAuth2Platforms();
+      // Only return platforms that have OAuth 2.0 available
+      const availablePlatforms = allPlatforms.filter((p) => p.oauth2Available);
+
+      res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minutes
+      res.json({
+        success: true,
+        platforms: availablePlatforms,
+      });
+    } catch (error: any) {
+      logger.error('Get OAuth config error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Failed to get OAuth configuration',
+      });
+    }
+  }
+
   /**
    * GET /api/oauth/:platform/auth-url
    * Get OAuth authorization URL for any platform
@@ -20,10 +47,20 @@ export class OAuth2Controller {
 
       logger.info('OAuth auth URL request:', { userId, platform, returnUrl });
 
+      const platformEnum = platform.toLowerCase() as Platform;
+
+      // Check if platform supports OAuth 2.0
+      if (!isOAuth2Configured(platformEnum)) {
+        res.status(400).json({
+          success: false,
+          error: `OAuth 2.0 not configured for platform: ${platform}. Check server configuration.`,
+        });
+        return;
+      }
+
       // Route to platform-specific implementation
-      switch (platform.toLowerCase()) {
-        case 'twitter':
-        case 'x':
+      switch (platformEnum) {
+        case Platform.TWITTER:
           const authUrl = oauth2Service.getTwitterAuthURL(userId, returnUrl);
           res.json({
             success: true,
@@ -31,10 +68,15 @@ export class OAuth2Controller {
           });
           break;
 
+        // Future platforms will be added here
+        // case Platform.FACEBOOK:
+        //   const fbAuthUrl = oauth2Service.getFacebookAuthURL(userId, returnUrl);
+        //   ...
+
         default:
-          res.status(400).json({
+          res.status(501).json({
             success: false,
-            error: `OAuth not implemented for platform: ${platform}. Currently only Twitter/X is supported via OAuth2.`,
+            error: `OAuth 2.0 implementation not yet available for ${platform}`,
           });
       }
     } catch (error: any) {

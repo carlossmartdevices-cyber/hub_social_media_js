@@ -21,15 +21,15 @@ const storage = multer.diskStorage({
 export const mediaUpload = multer({
   storage,
   limits: {
-    fileSize: config.media.maxImageSize, // 10MB default
+    fileSize: 5 * 1024 * 1024 * 1024, // 5GB max for large videos
     files: 10, // Max 10 files per post
   },
   fileFilter: (_req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska', 'video/webm', 'video/mpeg'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WEBP) and videos (MP4, MOV) are allowed.'));
+      cb(new Error('Invalid file type. Only images (JPEG, PNG, GIF, WEBP) and videos (MP4, MOV, AVI, MKV, WEBM, MPEG) are allowed.'));
     }
   },
 });

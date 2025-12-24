@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
+import { useOAuthConfig } from '@/hooks/useOAuthConfig';
 import { Plus, Link2, Unlink, ExternalLink, Check, AlertCircle, Loader2 } from 'lucide-react';
 
 interface PlatformAccount {
@@ -17,15 +18,16 @@ interface PlatformAccount {
   profileImage?: string;
 }
 
-const PLATFORMS = [
-  { id: 'twitter', name: 'X (Twitter)', color: 'bg-black', icon: '𝕏' },
-  { id: 'facebook', name: 'Facebook', color: 'bg-blue-600', icon: 'f' },
-  { id: 'instagram', name: 'Instagram', color: 'bg-gradient-to-r from-purple-500 to-pink-500', icon: '📷' },
-  { id: 'linkedin', name: 'LinkedIn', color: 'bg-blue-700', icon: 'in' },
-  { id: 'tiktok', name: 'TikTok', color: 'bg-black', icon: '♪' },
-  { id: 'youtube', name: 'YouTube', color: 'bg-red-600', icon: '▶' },
-  { id: 'telegram', name: 'Telegram', color: 'bg-sky-500', icon: '✈' },
-];
+// Static platform display metadata (icons, colors)
+const PLATFORM_DISPLAY: Record<string, { color: string; icon: string }> = {
+  twitter: { color: 'bg-black', icon: '𝕏' },
+  facebook: { color: 'bg-blue-600', icon: 'f' },
+  instagram: { color: 'bg-gradient-to-r from-purple-500 to-pink-500', icon: '📷' },
+  linkedin: { color: 'bg-blue-700', icon: 'in' },
+  tiktok: { color: 'bg-black', icon: '♪' },
+  youtube: { color: 'bg-red-600', icon: '▶' },
+  telegram: { color: 'bg-sky-500', icon: '✈' },
+};
 
 export default function AccountsPage() {
   const { accessToken } = useAuthStore();
@@ -35,6 +37,9 @@ export default function AccountsPage() {
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Fetch OAuth 2.0 configuration
+  const { platforms: oauthPlatforms, loading: oauthLoading, isOAuthAvailable } = useOAuthConfig();
 
   useEffect(() => {
     if (!accessToken) {
@@ -82,12 +87,27 @@ export default function AccountsPage() {
   };
 
   const connectPlatform = async (platform: string) => {
+    // Check if OAuth is available for this platform
+    if (!isOAuthAvailable(platform)) {
+      setNotification({
+        type: 'error',
+        message: `OAuth connection is not available for ${platform}. Please check server configuration.`,
+      });
+      setTimeout(() => setNotification(null), 5000);
+      return;
+    }
+
     try {
       setConnecting(platform);
       const response = await api.get(`/oauth/${platform}/auth-url`);
       window.location.href = response.data.authUrl;
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Failed to connect ${platform}:`, error);
+      setNotification({
+        type: 'error',
+        message: error.response?.data?.error || `Failed to connect ${platform}`,
+      });
+      setTimeout(() => setNotification(null), 5000);
       setConnecting(null);
     }
   };
@@ -109,6 +129,14 @@ export default function AccountsPage() {
   };
 
   if (!accessToken) return null;
+
+  // Combine OAuth platforms with display metadata
+  const displayPlatforms = oauthPlatforms.map((oauth) => ({
+    id: oauth.id,
+    name: oauth.name,
+    oauth2Available: oauth.oauth2Available,
+    ...PLATFORM_DISPLAY[oauth.id] || { color: 'bg-gray-400', icon: '○' },
+  }));
 
   return (
     <Layout>
@@ -148,13 +176,13 @@ export default function AccountsPage() {
           </span>
         </div>
 
-        {loading ? (
+        {loading || oauthLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {PLATFORMS.map((platform) => {
+            {displayPlatforms.map((platform) => {
               const platformAccounts = getAccountForPlatform(platform.id);
               const hasAccount = platformAccounts.length > 0;
 
@@ -179,18 +207,24 @@ export default function AccountsPage() {
                           : 'Not connected'}
                       </p>
                     </div>
-                    <button
-                      onClick={() => connectPlatform(platform.id)}
-                      disabled={connecting === platform.id}
-                      className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white rounded-lg transition-colors"
-                    >
-                      {connecting === platform.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Plus className="w-4 h-4" />
-                      )}
-                      Add
-                    </button>
+                    {platform.oauth2Available ? (
+                      <button
+                        onClick={() => connectPlatform(platform.id)}
+                        disabled={connecting === platform.id}
+                        className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-500 hover:bg-blue-600 disabled:bg-blue-400 text-white rounded-lg transition-colors"
+                      >
+                        {connecting === platform.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Plus className="w-4 h-4" />
+                        )}
+                        Add
+                      </button>
+                    ) : (
+                      <span className="text-xs text-gray-400 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        Not configured
+                      </span>
+                    )}
                   </div>
 
                   {platformAccounts.length > 0 && (

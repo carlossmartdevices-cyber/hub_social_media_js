@@ -7,7 +7,7 @@ import database from './database/connection';
 import { PostWorker } from './jobs/workers/PostWorker';
 import { MetricsWorker } from './jobs/workers/MetricsWorker';
 import { closeQueues } from './jobs/queue';
-import { logPlatformStatus } from './utils/platformConfig';
+import { logPlatformStatus, logOAuth2Status } from './utils/platformConfig';
 import automatedActionsService from './services/AutomatedActionsService';
 
 async function startServer() {
@@ -21,6 +21,9 @@ async function startServer() {
 
     // Log platform configuration status
     logPlatformStatus();
+
+    // Log OAuth 2.0 configuration status
+    logOAuth2Status();
 
     // Initialize workers
     const postWorker = new PostWorker();

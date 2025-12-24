@@ -1,6 +1,7 @@
 import { config } from '../config';
 import { logger } from './logger';
 import { Platform } from '../core/content/types';
+import { logOAuth2Status } from './oauth2Config';
 
 /**
  * Checks if credentials for a platform are configured (not empty)
@@ -104,3 +105,6 @@ export function logPlatformStatus(): void {
 
   logger.info('========================================');
 }
+
+// Re-export OAuth 2.0 status logging function
+export { logOAuth2Status };

@@ -40,7 +40,7 @@ export class ChunkedUploadController {
       }
 
       // Validate file type
-      const allowedMimeTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo']
+      const allowedMimeTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/mpeg', 'video/webm', 'video/x-matroska']
       if (!allowedMimeTypes.includes(fileMimeType)) {
         res.status(400).json({
           error: `Invalid file type. Allowed types: ${allowedMimeTypes.join(', ')}`,

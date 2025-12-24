@@ -1,9 +1,10 @@
 import crypto from 'crypto';
 import axios from 'axios';
-import { config } from '../config';
 import { logger } from '../utils/logger';
 import database from '../database/connection';
 import EncryptionService from '../utils/encryption';
+import { Platform } from '../core/content/types';
+import { getOAuth2Credentials } from '../utils/oauth2Config';
 
 interface OAuthState {
   userId: string;
@@ -49,8 +50,17 @@ export class OAuth2Service {
    * @param userId - User ID initiating the OAuth flow
    * @param returnUrl - Optional URL to return to after OAuth
    * @returns Authorization URL to redirect user to
+   * @throws Error if Twitter OAuth 2.0 is not configured
    */
   public getTwitterAuthURL(userId: string, returnUrl?: string): string {
+    // Validate OAuth 2.0 configuration
+    const credentials = getOAuth2Credentials(Platform.TWITTER);
+    if (!credentials) {
+      throw new Error(
+        'Twitter OAuth 2.0 is not configured. Please set TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET, and TWITTER_REDIRECT_URI.'
+      );
+    }
+
     const { codeVerifier, codeChallenge } = this.generatePKCE();
     const state = this.generateState();
 
@@ -69,8 +79,8 @@ export class OAuth2Service {
 
     const params = new URLSearchParams({
       response_type: 'code',
-      client_id: config.platforms.twitter?.clientId || '',
-      redirect_uri: config.platforms.twitter?.redirectUri || '',
+      client_id: credentials.clientId,
+      redirect_uri: credentials.redirectUri,
       scope: 'tweet.read tweet.write users.read offline.access',
       state,
       code_challenge: codeChallenge,
@@ -78,10 +88,10 @@ export class OAuth2Service {
     });
 
     logger.info('Generated Twitter OAuth URL:', {
-      clientId: config.platforms.twitter?.clientId,
-      redirectUri: config.platforms.twitter?.redirectUri,
+      clientId: credentials.clientId.substring(0, 10) + '...',
+      redirectUri: credentials.redirectUri,
       scope: 'tweet.read tweet.write users.read offline.access',
-      userId
+      userId,
     });
 
     return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
@@ -113,21 +123,27 @@ export class OAuth2Service {
       // Use the user UUID directly from OAuth state
       const userUuid = oauthState.userId;
       
+      // Get validated credentials
+      const oauthCredentials = getOAuth2Credentials(Platform.TWITTER);
+      if (!oauthCredentials) {
+        throw new Error('Twitter OAuth 2.0 credentials are not configured');
+      }
+
       // Exchange code for access token
       const tokenResponse = await axios.post(
         'https://api.twitter.com/2/oauth2/token',
         new URLSearchParams({
           code,
           grant_type: 'authorization_code',
-          client_id: config.platforms.twitter?.clientId || '',
-          redirect_uri: config.platforms.twitter?.redirectUri || '',
+          client_id: oauthCredentials.clientId,
+          redirect_uri: oauthCredentials.redirectUri,
           code_verifier: oauthState.codeVerifier,
         }),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Authorization: `Basic ${Buffer.from(
-              `${config.platforms.twitter?.clientId}:${config.platforms.twitter?.clientSecret}`
+              `${oauthCredentials.clientId}:${oauthCredentials.clientSecret}`
             ).toString('base64')}`,
           },
         }
@@ -151,7 +167,7 @@ export class OAuth2Service {
       const accountName = twitterUser.name;
 
       // Store credentials
-      const credentials = {
+      const accountCredentials = {
         accessToken,
         refreshToken,
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
@@ -159,7 +175,7 @@ export class OAuth2Service {
         username: twitterUser.username,
       };
 
-      const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(credentials));
+      const encryptedCredentials = EncryptionService.encrypt(JSON.stringify(accountCredentials));
 
       // Check if account already exists
       const existingAccount = await database.query(
@@ -234,26 +250,32 @@ export class OAuth2Service {
         throw new Error('Not a Twitter account');
       }
 
-      // Decrypt credentials
-      const credentials = JSON.parse(EncryptionService.decrypt(accountData.credentials));
+      // Decrypt account credentials
+      const storedCredentials = JSON.parse(EncryptionService.decrypt(accountData.credentials));
 
-      if (!credentials.refreshToken) {
+      if (!storedCredentials.refreshToken) {
         throw new Error('No refresh token available');
+      }
+
+      // Get validated OAuth 2.0 credentials
+      const oauthCredentials = getOAuth2Credentials(Platform.TWITTER);
+      if (!oauthCredentials) {
+        throw new Error('Twitter OAuth 2.0 credentials are not configured');
       }
 
       // Refresh the token
       const tokenResponse = await axios.post(
         'https://api.twitter.com/2/oauth2/token',
         new URLSearchParams({
-          refresh_token: credentials.refreshToken,
+          refresh_token: storedCredentials.refreshToken,
           grant_type: 'refresh_token',
-          client_id: config.platforms.twitter?.clientId || '',
+          client_id: oauthCredentials.clientId,
         }),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
             Authorization: `Basic ${Buffer.from(
-              `${config.platforms.twitter?.clientId}:${config.platforms.twitter?.clientSecret}`
+              `${oauthCredentials.clientId}:${oauthCredentials.clientSecret}`
             ).toString('base64')}`,
           },
         }
@@ -267,9 +289,9 @@ export class OAuth2Service {
 
       // Update credentials
       const updatedCredentials = {
-        ...credentials,
+        ...storedCredentials,
         accessToken,
-        refreshToken: refreshToken || credentials.refreshToken,
+        refreshToken: refreshToken || storedCredentials.refreshToken,
         expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
       };
 

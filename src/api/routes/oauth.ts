@@ -5,6 +5,13 @@ import { oauth2Controller } from '../controllers/OAuth2Controller';
 const router = Router();
 
 /**
+ * OAuth 2.0 Configuration Routes
+ */
+
+// Get OAuth 2.0 configuration (public - no authentication required)
+router.get('/config', oauth2Controller.getOAuth2Config.bind(oauth2Controller));
+
+/**
  * Generic OAuth routes
  */
 
@@ -18,13 +25,6 @@ router.get(
 /**
  * Twitter OAuth 2.0 routes
  */
-
-// Generic auth URL endpoint (for frontend)
-router.get(
-  '/:platform/auth-url',
-  authMiddleware,
-  oauth2Controller.getAuthUrl.bind(oauth2Controller)
-);
 
 // Start Twitter OAuth flow (optional authentication - supports Telegram bot)
 router.get(
