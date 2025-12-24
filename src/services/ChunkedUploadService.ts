@@ -131,11 +131,23 @@ export class ChunkedUploadService {
       throw new Error(`Invalid chunk index: ${chunkIndex}`)
     }
 
-    // Validate chunk checksum (MD5)
-    const calculatedChecksum = crypto
-      .createHash('md5')
-      .update(chunkData)
-      .digest('hex')
+    // Validate chunk checksum (MD5 or SHA-256)
+    // Try both MD5 (32 char) and SHA-256 (64 char) formats
+    let calculatedChecksum: string
+
+    if (providedChecksum.length === 64) {
+      // SHA-256 checksum
+      calculatedChecksum = crypto
+        .createHash('sha256')
+        .update(chunkData)
+        .digest('hex')
+    } else {
+      // MD5 checksum (legacy)
+      calculatedChecksum = crypto
+        .createHash('md5')
+        .update(chunkData)
+        .digest('hex')
+    }
 
     if (calculatedChecksum !== providedChecksum) {
       throw new Error(`Checksum mismatch for chunk ${chunkIndex}`)

@@ -51,9 +51,7 @@ export class ChunkedUploadManager {
       const response = await api.post('/upload/init', {
         fileName: this.file.name,
         fileSize: this.file.size,
-        fileType: this.file.type,
-        chunkSize: this.chunkSize,
-        totalChunks: this.totalChunks,
+        fileMimeType: this.file.type,
       });
 
       this.uploadId = response.data.uploadId;
@@ -82,10 +80,15 @@ export class ChunkedUploadManager {
    * Upload a single chunk
    */
   private async uploadChunk(chunk: UploadChunk): Promise<void> {
+    // Calculate MD5 checksum if not provided
+    if (!chunk.hash) {
+      chunk.hash = await this.calculateChecksum(chunk.data);
+    }
+
     const formData = new FormData();
     formData.append('chunk', chunk.data);
     formData.append('chunkIndex', String(chunk.index));
-    formData.append('totalChunks', String(this.totalChunks));
+    formData.append('checksum', chunk.hash);
 
     try {
       await api.post(`/upload/chunk/${this.uploadId}`, formData, {
@@ -98,6 +101,16 @@ export class ChunkedUploadManager {
       const message = error instanceof Error ? error.message : 'Chunk upload failed';
       throw new Error(`Chunk ${chunk.index} failed: ${message}`);
     }
+  }
+
+  /**
+   * Calculate MD5 checksum of a blob
+   */
+  private async calculateChecksum(blob: Blob): Promise<string> {
+    const buffer = await blob.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   /**

@@ -98,9 +98,9 @@ export class ChunkedUploadController {
         return
       }
 
-      // Verify checksum is a valid MD5 hash
-      if (!/^[a-f0-9]{32}$/.test(checksum)) {
-        res.status(400).json({ error: 'Invalid checksum format (must be MD5 hex)' })
+      // Verify checksum is a valid hash (MD5: 32 chars or SHA-256: 64 chars)
+      if (!/^[a-f0-9]{32}$/.test(checksum) && !/^[a-f0-9]{64}$/.test(checksum)) {
+        res.status(400).json({ error: 'Invalid checksum format (must be MD5 or SHA-256 hex)' })
         return
       }
 

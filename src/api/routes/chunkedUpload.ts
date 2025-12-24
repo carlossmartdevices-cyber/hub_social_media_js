@@ -9,20 +9,65 @@ import { AuthRequest, authMiddleware } from '../middlewares/auth'
 import { ChunkedUploadController } from '../controllers/ChunkedUploadController'
 import { ChunkedUploadService } from '../../services/ChunkedUploadService'
 import { config } from '../../config'
+import cacheService from '../../services/CacheService'
 
 const router = Router()
 
-// Initialize services
-const uploadService = new ChunkedUploadService(
-  null as any, // Redis client will be initialized by service
-  config.upload.tempChunkDir,
-  config.upload.chunkSizeMb,
-  config.upload.maxUploadSizeMb,
-  config.upload.sessionTtlHours,
-  config.upload.maxConcurrentChunks
-)
+// Initialize cache service and then upload service
+let uploadService: ChunkedUploadService
+let controller: ChunkedUploadController
 
-const controller = new ChunkedUploadController(uploadService)
+async function initializeServices() {
+  try {
+    // Connect to Redis cache service
+    await cacheService.connect()
+
+    // Create Redis adapter from cache service
+    const redisAdapter = {
+      get: (key: string) => cacheService.get(key),
+      set: (key: string, value: string, options?: any) => {
+        const ttl = options?.EX || 3600
+        return cacheService.set(key, value, ttl)
+      },
+      del: (key: string) => cacheService.del(key),
+      expire: (key: string, seconds: number) => cacheService.expire(key, seconds),
+      sadd: async (key: string, member: string) => {
+        // For set operations, we'll use a simple implementation
+        const current = await cacheService.get<string[]>(key) || []
+        if (!current.includes(member)) {
+          current.push(member)
+          await cacheService.set(key, current, 3600)
+          return 1
+        }
+        return 0
+      },
+      smembers: (key: string) => cacheService.get<string[]>(key) || Promise.resolve([]),
+      scard: async (key: string) => {
+        const members = await cacheService.get<string[]>(key) || []
+        return members.length
+      }
+    }
+
+    uploadService = new ChunkedUploadService(
+      redisAdapter as any,
+      config.upload.tempChunkDir,
+      config.upload.chunkSizeMb,
+      config.upload.maxUploadSizeMb,
+      config.upload.sessionTtlHours,
+      config.upload.maxConcurrentChunks
+    )
+
+    controller = new ChunkedUploadController(uploadService)
+  } catch (error) {
+    console.error('Failed to initialize chunked upload services:', error)
+    throw error
+  }
+}
+
+// Initialize services on module load
+initializeServices().catch(error => {
+  console.error('Error during chunked upload service initialization:', error)
+})
 
 // Multer configuration for chunk uploads
 const upload = multer({
@@ -35,6 +80,20 @@ const upload = multer({
     cb(null, true)
   },
 })
+
+// Middleware to ensure services are initialized
+const ensureServicesInitialized = (_req: AuthRequest, res: Response, next: any) => {
+  if (!uploadService || !controller) {
+    res.status(503).json({
+      error: 'Upload service is not ready. Please try again in a moment.'
+    })
+    return
+  }
+  next()
+}
+
+// Apply middleware to all routes
+router.use(ensureServicesInitialized)
 
 /**
  * POST /api/upload/init
