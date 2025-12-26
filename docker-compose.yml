@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "55433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./src/database/migrations/001_initial_schema.sql:/docker-entrypoint-initdb.d/001_initial_schema.sql
@@ -24,7 +24,7 @@ services:
     image: redis:7-alpine
     container_name: content-hub-redis
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -62,7 +62,7 @@ services:
       XAI_MAX_TOKENS: ${XAI_MAX_TOKENS:-4000}
       XAI_ENABLED: ${XAI_ENABLED:-true}
     ports:
-      - "${PORT:-8080}:8080"
+      - "8082:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,7 +127,7 @@ services:
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
       - GF_USERS_ALLOW_SIGN_UP=false
     ports:
-      - "3001:3000"
+      - "3002:3000"
     volumes:
       - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
       - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
@@ -187,7 +187,7 @@ services:
     container_name: content-hub-cadvisor
     privileged: true
     ports:
-      - "8081:8080"
+      - "8083:8080"
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
@@ -201,6 +201,8 @@ services:
       - monitoring
 
 networks:
+  default:
+    driver: bridge
   monitoring:
     driver: bridge
 
