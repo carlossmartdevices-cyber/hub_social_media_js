@@ -8,12 +8,6 @@ import multer from 'multer'
 import { AuthRequest, authMiddleware } from '../middlewares/auth'
 import { ChunkedUploadController } from '../controllers/ChunkedUploadController'
 import { ChunkedUploadService } from '../../services/ChunkedUploadService'
-<<<<<<< HEAD
-=======
-import { authMiddleware as authenticateToken } from '../middlewares/auth'
-import { Database } from '../../database'
-import { redisClient } from '../../cache/redis'
->>>>>>> ebee11fc3699faae17b8c6e0b477937d7a6d844e
 import { config } from '../../config'
 import cacheService from '../../services/CacheService'
 

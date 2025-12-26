@@ -11,10 +11,7 @@ import telegramRoutes from './telegram';
 import automatedActionsRoutes from './automatedActions';
 import webhookRoutes from './webhook';
 import chunkedUploadRoutes from './chunkedUpload';
-<<<<<<< HEAD
 import mediaRoutes from './media';
-=======
->>>>>>> ebee11fc3699faae17b8c6e0b477937d7a6d844e
 
 const router = Router();
 
@@ -35,9 +32,6 @@ router.use('/telegram', telegramRoutes);
 router.use('/automated-actions', automatedActionsRoutes);
 router.use('/webhook', webhookRoutes);
 router.use('/upload', chunkedUploadRoutes);
-<<<<<<< HEAD
 router.use('/media', mediaRoutes);
-=======
->>>>>>> ebee11fc3699faae17b8c6e0b477937d7a6d844e
 
 export default router;
