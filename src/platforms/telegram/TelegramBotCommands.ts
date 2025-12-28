@@ -1,6 +1,8 @@
 import { Telegraf } from 'telegraf';
 import { logger } from '../../utils/logger';
 import platformAccountService from '../../services/PlatformAccountService';
+import { Database } from '../../database/connection';
+import { config } from '../../config';
 
 /**
  * 🔵 LOW: Interactive Telegram bot commands
@@ -744,30 +746,69 @@ export class TelegramBotCommands {
               // Handle support ticket submission
               this.userStates.delete(userId);
 
-              const supportMessage =
-                '🎫 *Support Ticket Received*\n\n' +
-                `From: ${ctx.from?.first_name || 'User'} ${ctx.from?.last_name || ''}\n` +
-                `Username: @${ctx.from?.username || 'N/A'}\n` +
-                `User ID: \`${userId}\`\n\n` +
-                `*Message:*\n${text}\n\n` +
-                `Received at: ${new Date().toISOString()}`;
+              const ticketId = `ST-${userId}-${Date.now()}`;
+              const timestamp = new Date();
 
-              // Log the support ticket
-              logger.info(`Support ticket from user ${userId}: ${text}`);
+              try {
+                // Save ticket to database
+                const db = Database.getInstance();
+                await db.query(
+                  `INSERT INTO support_tickets
+                   (ticket_id, user_id, telegram_username, first_name, last_name, message, status, created_at)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+                  [
+                    ticketId,
+                    userId,
+                    ctx.from?.username || null,
+                    ctx.from?.first_name || null,
+                    ctx.from?.last_name || null,
+                    text,
+                    'open',
+                    timestamp
+                  ]
+                );
 
-              // Send confirmation to user
-              ctx.reply(
-                '✅ *Support Ticket Submitted*\n\n' +
-                'Thank you for contacting support!\n\n' +
-                'Your ticket has been received and our team will respond within 24 hours.\n\n' +
-                `Ticket ID: \`ST-${userId}-${Date.now()}\`\n\n` +
-                'You will receive a notification when we respond.',
-                { parse_mode: 'Markdown' }
-              );
+                logger.info(`Support ticket ${ticketId} saved to database from user ${userId}`);
 
-              // TODO: Send notification to support team
-              // This could be via email, another Telegram chat, or database entry
-              logger.warn('Support ticket needs to be routed to support team:', supportMessage);
+                // Send confirmation to user
+                await ctx.reply(
+                  '✅ *Support Ticket Submitted*\n\n' +
+                  'Thank you for contacting support!\n\n' +
+                  'Your ticket has been received and our team will respond within 24 hours.\n\n' +
+                  `Ticket ID: \`${ticketId}\`\n\n` +
+                  'You will receive a notification when we respond.',
+                  { parse_mode: 'Markdown' }
+                );
+
+                // Send notification to support admin chat if configured
+                const supportAdminChatId = process.env.TELEGRAM_SUPPORT_ADMIN_CHAT_ID;
+                if (supportAdminChatId) {
+                  const supportMessage =
+                    '🎫 *New Support Ticket*\n\n' +
+                    `Ticket ID: \`${ticketId}\`\n` +
+                    `From: ${ctx.from?.first_name || 'User'} ${ctx.from?.last_name || ''}\n` +
+                    `Username: @${ctx.from?.username || 'N/A'}\n` +
+                    `User ID: \`${userId}\`\n\n` +
+                    `*Message:*\n${text}\n\n` +
+                    `Received at: ${timestamp.toISOString()}`;
+
+                  try {
+                    await this.bot.telegram.sendMessage(supportAdminChatId, supportMessage, {
+                      parse_mode: 'Markdown'
+                    });
+                    logger.info(`Support ticket notification sent to admin chat ${supportAdminChatId}`);
+                  } catch (notifyError) {
+                    logger.error('Failed to send support ticket notification to admin chat:', notifyError);
+                  }
+                } else {
+                  logger.info('Support admin chat not configured. Ticket saved to database only.');
+                }
+              } catch (error) {
+                logger.error('Error saving support ticket:', error);
+                await ctx.reply(
+                  '❌ Failed to submit support ticket. Please try again later or contact support directly.'
+                );
+              }
               break;
 
             default:
