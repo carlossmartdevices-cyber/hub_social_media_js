@@ -1,5 +1,6 @@
 import { TwitterApi } from 'twitter-api-v2';
 import { promises as fs } from 'fs';
+import path from 'path';
 import { logger } from '../../utils/logger';
 import { PostContent } from '../../core/content/types';
 
@@ -77,8 +78,16 @@ export class TwitterVideoAdapter {
         throw new Error('No video URL provided');
       }
 
+      // Convert web URL to filesystem path
+      // If videoUrl starts with '/', treat it as a relative path from project root
+      const videoPath = videoUrl.startsWith('/')
+        ? path.join(process.cwd(), videoUrl.substring(1))
+        : videoUrl;
+
+      logger.info('Reading video file', { videoUrl, videoPath });
+
       // Read video file
-      const videoBuffer = await fs.readFile(videoUrl);
+      const videoBuffer = await fs.readFile(videoPath);
 
       // Upload video using chunked upload
       const mediaId = await this.uploadVideoChunked(videoBuffer, videoMetadata);
