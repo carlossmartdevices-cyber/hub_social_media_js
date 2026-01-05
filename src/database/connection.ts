@@ -7,22 +7,25 @@ export class Database {
   private pool: Pool;
 
   private constructor() {
-    // 🟡 HIGH: Increased connection timeout from 2s to 10s
+    // Optimized pool configuration to prevent connection exhaustion
     this.pool = new Pool({
       host: config.database.host,
       port: config.database.port,
       database: config.database.name,
       user: config.database.user,
       password: config.database.password,
-      max: 20, // Maximum pool size
+      max: 15, // Reduced from 20 to prevent pool exhaustion
+      min: 2, // Maintain minimum connections
       idleTimeoutMillis: 30000, // 30 seconds
-      connectionTimeoutMillis: 10000, // 10 seconds (was 2s)
-      query_timeout: 30000, // 30 seconds for query execution
-      statement_timeout: 30000, // 30 seconds for statement execution
+      connectionTimeoutMillis: 15000, // 15 seconds connection timeout
+      query_timeout: 45000, // 45 seconds for query execution
+      statement_timeout: 45000, // 45 seconds for statement execution
+      allowExitOnIdle: false, // Keep pool alive even if idle
+      maxUses: 7500, // Recycle connections after 7500 uses to prevent stale connections
     });
 
-    this.pool.on('error', (err) => {
-      logger.error('Unexpected database error:', err);
+    this.pool.on('error', (err: any) => {
+      logger.error('Unexpected database pool error:', err);
     });
 
     this.pool.on('connect', () => {
@@ -31,6 +34,17 @@ export class Database {
 
     this.pool.on('remove', () => {
       logger.debug('Database connection removed from pool');
+    });
+
+    // Connection health check
+    this.pool.on('error', (err: any, _client: any) => {
+      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        logger.error('Database connection was closed unexpectedly');
+      } else if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+        logger.error('Database connection could not be re-established after fatal error');
+      } else if (err.code === 'PROTOCOL_ENQUEUE_HANDSHAKE_ERROR') {
+        logger.error('Database connection handshake failed');
+      }
     });
   }
 

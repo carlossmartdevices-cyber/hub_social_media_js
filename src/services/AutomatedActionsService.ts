@@ -17,6 +17,7 @@ export class AutomatedActionsService {
   private hubManager: HubManager;
   private intervalId: NodeJS.Timeout | null = null;
   private readonly CHECK_INTERVAL = 60 * 1000; // Check every minute
+  private isProcessing = false; // Prevent concurrent executions
 
   constructor() {
     this.hubManager = new HubManager();
@@ -55,6 +56,13 @@ export class AutomatedActionsService {
    * Process all enabled automated actions
    */
   private async processActions(): Promise<void> {
+    // Prevent concurrent executions to avoid connection pool exhaustion
+    if (this.isProcessing) {
+      logger.debug('Automated actions processing already in progress, skipping this cycle');
+      return;
+    }
+
+    this.isProcessing = true;
     try {
       const result = await database.query(
         `SELECT * FROM automated_actions WHERE is_enabled = true`
@@ -78,6 +86,8 @@ export class AutomatedActionsService {
       }
     } catch (error) {
       logger.error('Error processing automated actions:', error);
+    } finally {
+      this.isProcessing = false;
     }
   }
 
