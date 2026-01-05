@@ -508,7 +508,7 @@ export class AuthController {
 
       // Auto-add X account to platform_credentials for immediate use
       try {
-        const EncryptionService = require('../utils/encryption');
+        const EncryptionService = require('../../utils/encryption');
         const accountIdentifier = `@${twitterUser.username}`;
         const accountCredentials = {
           accessToken: tokens.access_token,

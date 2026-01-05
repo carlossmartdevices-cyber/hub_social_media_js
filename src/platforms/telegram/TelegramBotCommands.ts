@@ -2,7 +2,6 @@ import { Telegraf } from 'telegraf';
 import { logger } from '../../utils/logger';
 import platformAccountService from '../../services/PlatformAccountService';
 import { Database } from '../../database/connection';
-import { config } from '../../config';
 
 /**
  * 🔵 LOW: Interactive Telegram bot commands

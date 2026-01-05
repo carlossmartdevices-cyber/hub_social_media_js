@@ -71,10 +71,14 @@ export function getOAuth2Credentials(platform: Platform): OAuth2Credentials | nu
   const platformKey = platform.toLowerCase();
   const platformConfig = (config.platforms as Record<string, PlatformCredentials>)[platformKey];
 
+  if (!platformConfig) {
+    throw new Error(`Platform config not found for ${platform}`);
+  }
+
   return {
-    clientId: platformConfig.clientId,
-    clientSecret: platformConfig.clientSecret,
-    redirectUri: platformConfig.redirectUri,
+    clientId: platformConfig.clientId || '',
+    clientSecret: platformConfig.clientSecret || '',
+    redirectUri: platformConfig.redirectUri || '',
   };
 }
 

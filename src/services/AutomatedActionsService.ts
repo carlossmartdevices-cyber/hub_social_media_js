@@ -1,7 +1,7 @@
 import database from '../database/connection';
 import { logger } from '../utils/logger';
 import { HubManager } from '../core/hub/HubManager';
-import { Post, Platform } from '../core/content/types';
+import { Post, Platform, PostStatus } from '../core/content/types';
 
 interface AutomatedAction {
   id: string;
@@ -269,7 +269,7 @@ export class AutomatedActionsService {
           link: action.config.link,
         },
         scheduledAt: new Date(),
-        status: 'scheduled' as const,
+        status: PostStatus.SCHEDULED,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
