@@ -5,6 +5,7 @@ import database from '../database/connection';
 import EncryptionService from '../utils/encryption';
 import { Platform } from '../core/content/types';
 import { getOAuth2Credentials } from '../utils/oauth2Config';
+import cacheService from './CacheService';
 
 interface OAuthState {
   userId: string;
@@ -20,9 +21,11 @@ interface OAuthState {
  * - Twitter OAuth 2.0 with PKCE
  * - Multiple accounts per platform
  * - Secure token storage
+ * - Redis-backed state storage for scalability
  */
 export class OAuth2Service {
-  private stateStore: Map<string, OAuthState> = new Map();
+  private readonly STATE_TTL = 10 * 60; // 10 minutes in seconds
+  private readonly STATE_KEY_PREFIX = 'oauth2:state:';
 
   /**
    * Generate PKCE code verifier and challenge
@@ -64,18 +67,19 @@ export class OAuth2Service {
     const { codeVerifier, codeChallenge } = this.generatePKCE();
     const state = this.generateState();
 
-    // Store state temporarily (you might want to use Redis in production)
-    this.stateStore.set(state, {
+    // Store state in Redis with automatic expiration
+    const stateData: OAuthState = {
       userId,
       platform: 'twitter',
       codeVerifier,
       returnUrl,
-    });
+    };
 
-    // Clean up old states after 10 minutes
-    setTimeout(() => {
-      this.stateStore.delete(state);
-    }, 10 * 60 * 1000);
+    const stateKey = `${this.STATE_KEY_PREFIX}${state}`;
+    cacheService.set(stateKey, stateData, this.STATE_TTL)
+      .catch(error => {
+        logger.error('Failed to store OAuth state in Redis:', error);
+      });
 
     const params = new URLSearchParams({
       response_type: 'code',
@@ -110,14 +114,16 @@ export class OAuth2Service {
     code: string,
     state: string
   ): Promise<{ userId: string; returnUrl?: string; accountInfo: any }> {
-    // Verify state
-    const oauthState = this.stateStore.get(state);
+    // Verify and retrieve state from Redis
+    const stateKey = `${this.STATE_KEY_PREFIX}${state}`;
+    const oauthState = await cacheService.get<OAuthState>(stateKey);
+
     if (!oauthState) {
       throw new Error('Invalid or expired state parameter');
     }
 
-    // Clean up state
-    this.stateStore.delete(state);
+    // Clean up state from Redis
+    await cacheService.del(stateKey);
 
     try {
       // Use the user UUID directly from OAuth state

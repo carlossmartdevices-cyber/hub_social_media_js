@@ -10,6 +10,7 @@ import { ChunkedUploadController } from '../controllers/ChunkedUploadController'
 import { ChunkedUploadService } from '../../services/ChunkedUploadService'
 import { config } from '../../config'
 import cacheService from '../../services/CacheService'
+import { logger } from '../../utils/logger'
 
 const router = Router()
 
@@ -17,21 +18,41 @@ const router = Router()
 let uploadService: ChunkedUploadService
 let controller: ChunkedUploadController
 
+// Redis adapter interface to match ChunkedUploadService requirements
+interface RedisClient {
+  get(key: string): Promise<string | null>
+  set(key: string, value: string, options?: any): Promise<any>
+  del(key: string): Promise<number>
+  expire(key: string, seconds: number): Promise<number>
+  sadd(key: string, member: string): Promise<number>
+  smembers(key: string): Promise<string[]>
+  scard(key: string): Promise<number>
+}
+
 async function initializeServices() {
   try {
     // Connect to Redis cache service
     await cacheService.connect()
 
     // Create Redis adapter from cache service
-    const redisAdapter = {
-      get: (key: string) => cacheService.get(key),
-      set: (key: string, value: string, options?: any) => {
+    const redisAdapter: RedisClient = {
+      get: async (key: string): Promise<string | null> => {
+        const result = await cacheService.get<string>(key);
+        return result || null;
+      },
+      set: async (key: string, value: string, options?: any): Promise<any> => {
         const ttl = options?.EX || 3600
         return cacheService.set(key, value, ttl)
       },
-      del: (key: string) => cacheService.del(key),
-      expire: (key: string, seconds: number) => cacheService.expire(key, seconds),
-      sadd: async (key: string, member: string) => {
+      del: async (key: string): Promise<number> => {
+        await cacheService.del(key);
+        return 1;
+      },
+      expire: async (key: string, seconds: number): Promise<number> => {
+        await cacheService.expire(key, seconds);
+        return 1;
+      },
+      sadd: async (key: string, member: string): Promise<number> => {
         // For set operations, we'll use a simple implementation
         const current = await cacheService.get<string[]>(key) || []
         if (!current.includes(member)) {
@@ -41,15 +62,18 @@ async function initializeServices() {
         }
         return 0
       },
-      smembers: (key: string) => cacheService.get<string[]>(key) || Promise.resolve([]),
-      scard: async (key: string) => {
+      smembers: async (key: string): Promise<string[]> => {
+        const result = await cacheService.get<string[]>(key);
+        return result || [];
+      },
+      scard: async (key: string): Promise<number> => {
         const members = await cacheService.get<string[]>(key) || []
         return members.length
       }
     }
 
     uploadService = new ChunkedUploadService(
-      redisAdapter as any,
+      redisAdapter,
       config.upload.tempChunkDir,
       config.upload.chunkSizeMb,
       config.upload.maxUploadSizeMb,
@@ -59,14 +83,14 @@ async function initializeServices() {
 
     controller = new ChunkedUploadController(uploadService)
   } catch (error) {
-    console.error('Failed to initialize chunked upload services:', error)
+    logger.error('Failed to initialize chunked upload services:', error)
     throw error
   }
 }
 
 // Initialize services on module load
 initializeServices().catch(error => {
-  console.error('Error during chunked upload service initialization:', error)
+  logger.error('Error during chunked upload service initialization:', error)
 })
 
 // Multer configuration for chunk uploads

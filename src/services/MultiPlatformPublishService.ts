@@ -246,14 +246,11 @@ export class MultiPlatformPublishService {
       const channels = channelsResult.rows;
 
       // Upload video to Telegram first
+      // Upload video to Telegram (will throw error if fails)
       const uploadResult = await telegramBroadcastService.uploadVideoToTelegram(videoPath, {
         duration: post.video_duration,
         supportsStreaming: true,
       });
-
-      if (!(uploadResult as any).success) {
-        throw new Error('Failed to upload video to Telegram');
-      }
 
       // Broadcast to all channels
       const broadcastResults = await telegramBroadcastService.broadcastVideo(

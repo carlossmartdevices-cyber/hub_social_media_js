@@ -1,7 +1,18 @@
 import dotenv from 'dotenv';
+import winston from 'winston';
 // Load .env file but don't override existing environment variables
 // This allows PM2 environment variables to take precedence
 dotenv.config({ override: false });
+
+// Create a simple logger for config validation (before full logger is initialized)
+const configLogger = winston.createLogger({
+  level: 'error',
+  format: winston.format.combine(
+    winston.format.colorize(),
+    winston.format.simple()
+  ),
+  transports: [new winston.transports.Console()]
+});
 
 export const config = {
   env: process.env.NODE_ENV || 'development',
@@ -203,9 +214,9 @@ if (config.env === 'production') {
   }
 
   if (errors.length > 0) {
-    console.error('\n❌ PRODUCTION CONFIGURATION ERRORS:');
-    errors.forEach(error => console.error(`  - ${error}`));
-    console.error('\nPlease set the required environment variables before starting in production.\n');
+    configLogger.error('\n❌ PRODUCTION CONFIGURATION ERRORS:');
+    errors.forEach(error => configLogger.error(`  - ${error}`));
+    configLogger.error('\nPlease set the required environment variables before starting in production.\n');
     process.exit(1);
   }
 }

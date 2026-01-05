@@ -1,6 +1,7 @@
 import database from '../database/connection';
 import { logger } from '../utils/logger';
 import { HubManager } from '../core/hub/HubManager';
+import { Post, Platform } from '../core/content/types';
 
 interface AutomatedAction {
   id: string;
@@ -258,10 +259,10 @@ export class AutomatedActionsService {
       });
 
       // Create a post using the HubManager
-      const post = {
+      const post: Post = {
         id: `promo-${Date.now()}`,
         userId: action.userId,
-        platforms: action.platforms as any,
+        platforms: action.platforms as Platform[],
         content: {
           text: action.config.message,
           hashtags: action.config.hashtags || [],
@@ -273,7 +274,7 @@ export class AutomatedActionsService {
         updatedAt: new Date(),
       };
 
-      await this.hubManager.schedulePost(post as any, action.userId);
+      await this.hubManager.schedulePost(post, action.userId);
 
       logger.info('Scheduled promotion posted successfully', {
         actionId: action.id,

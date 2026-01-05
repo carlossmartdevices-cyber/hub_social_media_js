@@ -23,12 +23,22 @@ export interface OAuth2Credentials {
 }
 
 /**
+ * Platform credentials configuration type
+ */
+interface PlatformCredentials {
+  clientId?: string;
+  clientSecret?: string;
+  redirectUri?: string;
+  [key: string]: any;
+}
+
+/**
  * Check if a platform has valid OAuth 2.0 credentials configured
  * Validates that clientId, clientSecret, and redirectUri are non-empty strings
  */
 export function isOAuth2Configured(platform: Platform): boolean {
   const platformKey = platform.toLowerCase();
-  const platformConfig = (config.platforms as any)[platformKey];
+  const platformConfig = (config.platforms as Record<string, PlatformCredentials>)[platformKey];
 
   if (!platformConfig) {
     return false;
@@ -59,7 +69,7 @@ export function getOAuth2Credentials(platform: Platform): OAuth2Credentials | nu
   }
 
   const platformKey = platform.toLowerCase();
-  const platformConfig = (config.platforms as any)[platformKey];
+  const platformConfig = (config.platforms as Record<string, PlatformCredentials>)[platformKey];
 
   return {
     clientId: platformConfig.clientId,
