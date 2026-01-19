@@ -1,4 +1,4 @@
-import { TwitterApi, TweetV2PostTweetResult } from 'twitter-api-v2';
+import { TwitterApi, TweetV2PostTweetResult, SendTweetV2Params } from 'twitter-api-v2';
 import {
   PlatformAdapter,
   PlatformRequirements,
@@ -92,20 +92,22 @@ export class TwitterAdapter extends PlatformAdapter {
         }
       }
 
-      interface TweetOptions {
-        text: string;
-        media?: { media_ids: string[] };
-      }
-
-      const tweetOptions: TweetOptions = {
-        text: content.text,
-      };
+      // Use the proper Twitter API type for tweet options
+      let result: TweetV2PostTweetResult;
 
       if (mediaIds.length > 0) {
-        tweetOptions.media = { media_ids: mediaIds };
+        // Convert to SendTweetV2Params when media is present
+        const tweetOptions: SendTweetV2Params = {
+          text: content.text,
+          media: {
+            media_ids: mediaIds.slice(0, 4) as [string] | [string, string] | [string, string, string] | [string, string, string, string]
+          }
+        };
+        result = await this.client.v2.tweet(tweetOptions);
+      } else {
+        // Simple text tweet
+        result = await this.client.v2.tweet(content.text);
       }
-
-      const result: TweetV2PostTweetResult = await this.client.v2.tweet(tweetOptions);
 
       logger.info(`Tweet published successfully: ${result.data.id}`);
 

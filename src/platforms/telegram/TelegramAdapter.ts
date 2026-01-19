@@ -161,31 +161,35 @@ export class TelegramAdapter extends PlatformAdapter {
       } catch (error: unknown) {
         lastError = error;
 
-        // Handle specific Telegram errors
-        if (error instanceof Error && 'response' in error && error.response?.error_code === 403) {
+        // Handle specific Telegram errors with proper type guards
+        const telegramError = error as { response?: { error_code?: number; parameters?: { retry_after?: number } } };
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+        if (telegramError.response?.error_code === 403) {
           logger.error('Bot was blocked by user or kicked from chat');
           return {
             success: false,
             error: 'Bot has no access to this chat. Bot may have been blocked or removed.',
             publishedAt: new Date(),
           };
-        } else if (error.response?.error_code === 400) {
-          logger.error('Invalid request to Telegram API:', error.message);
+        } else if (telegramError.response?.error_code === 400) {
+          logger.error('Invalid request to Telegram API:', errorMessage);
           return {
             success: false,
-            error: `Invalid request: ${error.message}`,
+            error: `Invalid request: ${errorMessage}`,
             publishedAt: new Date(),
           };
-        } else if (error.response?.error_code === 429) {
-          const retryAfter = error.response?.parameters?.retry_after || (attempt * 2);
+        } else if (telegramError.response?.error_code === 429) {
+          const retryAfter = telegramError.response?.parameters?.retry_after ?? (attempt * 2);
+          const retryAfterMs = Math.max(1000, retryAfter * 1000);
           logger.warn(
             `Telegram rate limit hit. Attempt ${attempt}/${maxRetries}. Retrying after ${retryAfter}s...`
           );
           if (attempt < maxRetries) {
-            await this.sleep(retryAfter * 1000);
+            await this.sleep(retryAfterMs);
             continue;
           }
-        } else if ([500, 502, 503, 504].includes(error.response?.error_code)) {
+        } else if (telegramError.response?.error_code && [500, 502, 503, 504].includes(telegramError.response.error_code)) {
           const backoffMs = Math.min(1000 * Math.pow(2, attempt - 1), 10000);
           logger.warn(
             `Temporary error on attempt ${attempt}/${maxRetries}. Retrying in ${backoffMs}ms...`
@@ -198,18 +202,20 @@ export class TelegramAdapter extends PlatformAdapter {
 
         logger.error(`Failed to publish Telegram message (attempt ${attempt}):`, error);
         if (attempt === maxRetries) {
+          const finalErrorMessage = error instanceof Error ? error.message : 'Failed to publish message after multiple attempts';
           return {
             success: false,
-            error: error.message || 'Failed to publish message after multiple attempts',
+            error: finalErrorMessage,
             publishedAt: new Date(),
           };
         }
       }
     }
 
+    const finalErrorMessage = lastError instanceof Error ? lastError.message : 'Unknown error';
     return {
       success: false,
-      error: lastError?.message || 'Unknown error',
+      error: finalErrorMessage,
       publishedAt: new Date(),
     };
   }
