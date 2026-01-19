@@ -10,7 +10,7 @@ import { Database } from '../../database/connection';
 export class TelegramBotCommands {
   private bot: Telegraf;
   // Store user states for multi-step commands
-  private userStates: Map<number, any> = new Map();
+  private userStates: Map<number, unknown> = new Map();
 
   constructor(bot: Telegraf) {
     this.bot = bot;
@@ -21,13 +21,14 @@ export class TelegramBotCommands {
    * Safely answer callback query without throwing errors
    * Prevents "query is too old" errors from being logged
    */
-  private async safeAnswerCbQuery(ctx: any, text?: string): Promise<void> {
+  private async safeAnswerCbQuery(ctx: unknown, text?: string): Promise<void> {
     try {
-      await ctx.answerCbQuery(text);
-    } catch (error: any) {
+      await (ctx as any).answerCbQuery(text);
+    } catch (error: unknown) {
       // Silently ignore callback query errors (query too old, invalid, etc.)
       // These are expected and don't affect functionality
-      logger.debug('Callback query answer failed (expected):', error.message);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown callback query error';
+      logger.debug('Callback query answer failed (expected):', errorMessage);
     }
   }
 
@@ -192,7 +193,7 @@ export class TelegramBotCommands {
         }
 
         let message = '🐦 *Your X (Twitter) Accounts*\n\n';
-        const keyboard: any[][] = [];
+        const keyboard: Array<Array<{ text: string; callback_data: string }>> = [];
 
         accounts.forEach((account, index) => {
           const defaultBadge = account.isDefault ? ' ⭐' : '';
@@ -214,8 +215,10 @@ export class TelegramBotCommands {
           parse_mode: 'Markdown',
           reply_markup: { inline_keyboard: keyboard }
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error listing X accounts:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error fetching X accounts';
+        logger.error('Error listing X accounts:', errorMessage);
         ctx.reply('❌ Error fetching X accounts. Please try again later.');
       }
     });
@@ -256,8 +259,10 @@ export class TelegramBotCommands {
             }
           }
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error in addxaccount:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error in addxaccount';
+        logger.error('Error in addxaccount:', errorMessage);
         ctx.reply('❌ Error generating authorization link. Please try again later.');
       }
     });
@@ -298,8 +303,10 @@ export class TelegramBotCommands {
             reply_markup: { inline_keyboard: keyboard }
           }
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error in setdefaultx command:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error in setdefaultx command';
+        logger.error('Error in setdefaultx command:', errorMessage);
         ctx.reply('❌ Error. Please try again later.');
       }
     });
@@ -336,8 +343,10 @@ export class TelegramBotCommands {
             reply_markup: { inline_keyboard: keyboard }
           }
         );
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('Error in deletexaccount command:', error);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error in deletexaccount command';
+        logger.error('Error in deletexaccount command:', errorMessage);
         ctx.reply('❌ Error. Please try again later.');
       }
     });
@@ -502,7 +511,7 @@ export class TelegramBotCommands {
           }
 
           let message = '🐦 *Your X (Twitter) Accounts*\n\n';
-          const keyboard: any[][] = [];
+          const keyboard: Array<Array<{ text: string; callback_data: string }>> = [];
 
           accounts.forEach((account, index) => {
             const defaultBadge = account.isDefault ? ' ⭐' : '';
@@ -731,8 +740,10 @@ export class TelegramBotCommands {
                   'Use /xaccounts to view all your accounts.',
                   { parse_mode: 'Markdown' }
                 );
-              } catch (error: any) {
+              } catch (error: unknown) {
                 logger.error('Error saving X account:', error);
+                const errorMessage = error instanceof Error ? error.message : 'Unknown error saving X account';
+                logger.error('Error saving X account:', errorMessage);
                 this.userStates.delete(userId);
                 ctx.reply(
                   '❌ Error saving account. Please try again.\n\n' +
