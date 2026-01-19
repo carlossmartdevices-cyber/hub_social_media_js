@@ -69,11 +69,12 @@ export class FacebookAdapter extends PlatformAdapter {
         platformPostId: `fb_${Date.now()}`,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish Facebook post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish Facebook post';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }

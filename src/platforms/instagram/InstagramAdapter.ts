@@ -72,11 +72,12 @@ export class InstagramAdapter extends PlatformAdapter {
         platformPostId: `ig_${Date.now()}`,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish Instagram post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish Instagram post';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }

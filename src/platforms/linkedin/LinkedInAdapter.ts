@@ -67,11 +67,12 @@ export class LinkedInAdapter extends PlatformAdapter {
         platformPostId: `li_${Date.now()}`,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish LinkedIn post:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish LinkedIn post';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }

@@ -69,11 +69,12 @@ export class YouTubeAdapter extends PlatformAdapter {
         platformPostId: `yt_${Date.now()}`,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish YouTube video:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish YouTube video';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }

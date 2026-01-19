@@ -46,9 +46,10 @@ export class TwitterVideoAdapter {
       }
 
       logger.info('TwitterVideoAdapter initialized successfully');
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to initialize TwitterVideoAdapter:', error);
-      throw new Error(`Twitter initialization failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error during Twitter initialization';
+      throw new Error(`Twitter initialization failed: ${errorMessage}`);
     }
   }
 
@@ -113,11 +114,12 @@ export class TwitterVideoAdapter {
         platformPostId: tweet.data.id,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish video to Twitter:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish video';
       return {
         success: false,
-        error: error.message || 'Failed to publish video',
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }
@@ -150,9 +152,10 @@ export class TwitterVideoAdapter {
       logger.info('Video uploaded to Twitter', { mediaId });
 
       return mediaId;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Video upload to Twitter failed:', error);
-      throw new Error(`Video upload failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown video upload error';
+      throw new Error(`Video upload failed: ${errorMessage}`);
     }
   }
 
@@ -260,7 +263,7 @@ export class TwitterVideoAdapter {
       // Note: This endpoint might require elevated access
       const status = await this.client.v1.mediaInfo(mediaId);
       return status;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to get video status:', error);
       throw error;
     }

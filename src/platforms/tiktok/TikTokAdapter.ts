@@ -67,11 +67,12 @@ export class TikTokAdapter extends PlatformAdapter {
         platformPostId: `tt_${Date.now()}`,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish TikTok video:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish TikTok video';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }

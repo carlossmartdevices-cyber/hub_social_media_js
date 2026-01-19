@@ -24,7 +24,7 @@ export class Database {
       maxUses: 7500, // Recycle connections after 7500 uses to prevent stale connections
     });
 
-    this.pool.on('error', (err: any) => {
+    this.pool.on('error', (err: Error) => {
       logger.error('Unexpected database pool error:', err);
     });
 
@@ -37,13 +37,15 @@ export class Database {
     });
 
     // Connection health check
-    this.pool.on('error', (err: any, _client: any) => {
-      if (err.code === 'PROTOCOL_CONNECTION_LOST') {
-        logger.error('Database connection was closed unexpectedly');
-      } else if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
-        logger.error('Database connection could not be re-established after fatal error');
-      } else if (err.code === 'PROTOCOL_ENQUEUE_HANDSHAKE_ERROR') {
-        logger.error('Database connection handshake failed');
+    this.pool.on('error', (err: Error, _client: unknown) => {
+      if (err instanceof Error && 'code' in err) {
+        if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+          logger.error('Database connection was closed unexpectedly');
+        } else if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+          logger.error('Database connection could not be re-established after fatal error');
+        } else if (err.code === 'PROTOCOL_ENQUEUE_HANDSHAKE_ERROR') {
+          logger.error('Database connection handshake failed');
+        }
       }
     });
   }
@@ -59,14 +61,14 @@ export class Database {
     return this.pool;
   }
 
-  async query(text: string, params?: any[]) {
+  async query(text: string, params?: unknown[]) {
     const start = Date.now();
     try {
       const result = await this.pool.query(text, params);
       const duration = Date.now() - start;
       logger.debug('Executed query', { text, duration, rows: result.rowCount });
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Database query error:', { text, error });
       throw error;
     }

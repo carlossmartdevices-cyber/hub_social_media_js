@@ -92,7 +92,12 @@ export class TwitterAdapter extends PlatformAdapter {
         }
       }
 
-      const tweetOptions: any = {
+      interface TweetOptions {
+        text: string;
+        media?: { media_ids: string[] };
+      }
+
+      const tweetOptions: TweetOptions = {
         text: content.text,
       };
 
@@ -109,11 +114,12 @@ export class TwitterAdapter extends PlatformAdapter {
         platformPostId: result.data.id,
         publishedAt: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to publish tweet:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to publish tweet';
       return {
         success: false,
-        error: error.message,
+        error: errorMessage,
         publishedAt: new Date(),
       };
     }
@@ -147,7 +153,7 @@ export class TwitterAdapter extends PlatformAdapter {
           metrics.like_count + metrics.retweet_count + metrics.reply_count,
         timestamp: new Date(),
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Failed to fetch Twitter metrics:', error);
       throw error;
     }

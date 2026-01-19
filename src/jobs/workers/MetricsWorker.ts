@@ -66,7 +66,7 @@ export class MetricsWorker {
       );
 
       return metrics;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error(`Failed to fetch metrics for ${platform}:`, error);
       throw error;
     }

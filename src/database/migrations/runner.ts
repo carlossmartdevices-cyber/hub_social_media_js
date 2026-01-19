@@ -18,7 +18,7 @@ async function runMigrations() {
 
     // Get list of already applied migrations
     const result = await database.query('SELECT migration_name FROM schema_migrations');
-    const appliedMigrations = new Set(result.rows.map((row: any) => row.migration_name));
+    const appliedMigrations = new Set(result.rows.map((row: { migration_name: string }) => row.migration_name));
 
     // Dynamically read all migration files and sort them
     const migrationsDir = __dirname;

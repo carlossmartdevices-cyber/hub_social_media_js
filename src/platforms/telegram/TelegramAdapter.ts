@@ -50,8 +50,9 @@ export class TelegramAdapter extends PlatformAdapter {
         try {
           await this.bot.telegram.getChat(this.chatId);
           logger.info(`Telegram bot has access to chat: ${this.chatId}`);
-        } catch (error: any) {
-          logger.error(`Bot does not have access to chat ${this.chatId}:`, error.message);
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error accessing chat';
+          logger.error(`Bot does not have access to chat ${this.chatId}:`, errorMessage);
           throw new Error(
             `Bot cannot access chat ${this.chatId}. Make sure the bot is added to the chat.`
           );
@@ -59,12 +60,13 @@ export class TelegramAdapter extends PlatformAdapter {
       } else {
         logger.warn('Telegram chat ID is not configured - bot initialized but cannot publish');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Telegram bot initialization failed:', error);
       // Clear bot instance on failure
       this.bot = undefined;
       this.chatId = undefined;
-      throw new Error(`Telegram bot validation failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown Telegram bot initialization error';
+      throw new Error(`Telegram bot validation failed: ${errorMessage}`);
     }
   }
 
@@ -106,7 +108,7 @@ export class TelegramAdapter extends PlatformAdapter {
     }
 
     const maxRetries = 3;
-    let lastError: any;
+    let lastError: unknown;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
@@ -156,11 +158,11 @@ export class TelegramAdapter extends PlatformAdapter {
           platformPostId: messageId.toString(),
           publishedAt: new Date(),
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
 
         // Handle specific Telegram errors
-        if (error.response?.error_code === 403) {
+        if (error instanceof Error && 'response' in error && error.response?.error_code === 403) {
           logger.error('Bot was blocked by user or kicked from chat');
           return {
             success: false,
