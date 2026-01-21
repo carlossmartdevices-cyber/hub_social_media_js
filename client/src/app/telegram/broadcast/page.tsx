@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { Send, Users, MessageCircle, Image, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import ErrorService from '@/services/errorService';
 
 interface Channel {
   id: string;
@@ -38,7 +39,11 @@ export default function TelegramBroadcastPage() {
       const response = await api.get('/telegram/channels');
       setChannels(response.data);
     } catch (error) {
-      console.error('Failed to fetch channels:', error);
+      ErrorService.report(error, {
+        component: 'TelegramBroadcastPage',
+        action: 'fetchChannels',
+        severity: 'medium'
+      });
     } finally {
       setLoading(false);
     }

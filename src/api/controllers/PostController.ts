@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { AuthRequest } from '../middlewares/auth';
 import { HubManager } from '../../core/hub/HubManager';
-import { Post, PostStatus, Platform, Language, MediaFile, MediaType } from '../../core/content/types';
+import { Post, PostStatus, Platform, Language, MediaFile, MediaType, PostContent, RecurrenceConfig } from '../../core/content/types';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 import database from '../../database/connection';
@@ -56,9 +56,9 @@ export class PostController {
 
       // Parse JSON data from multipart form
       let platforms: string[];
-      let content: any;
+      let content: PostContent;
       let scheduledAt: string | undefined;
-      let recurrence: any;
+      let recurrence: RecurrenceConfig | undefined;
 
       try {
         platforms = typeof req.body.platforms === 'string'
@@ -147,7 +147,7 @@ export class PostController {
 
       // Parse JSON data from multipart form
       let platforms: string[];
-      let content: any;
+      let content: PostContent;
 
       try {
         platforms = typeof req.body.platforms === 'string'
@@ -257,7 +257,7 @@ export class PostController {
       const { status, platform, limit = 50, offset = 0 } = req.query;
 
       let query = `SELECT * FROM posts WHERE user_id = $1`;
-      const params: any[] = [userId];
+      const params: unknown[] = [userId];
       let paramCount = 1;
 
       if (status) {
@@ -705,7 +705,7 @@ export class PostController {
 
       // Build query
       let query = 'DELETE FROM posts WHERE user_id = $1';
-      const params: any[] = [userId];
+      const params: unknown[] = [userId];
       let paramCount = 1;
 
       if (dateThreshold) {

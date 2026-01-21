@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { User, Bell, Shield, Palette, Globe, Save, Check, Trash2, Zap } from 'lucide-react';
 import { useTheme } from '@/hooks/useTheme';
+import ErrorService from '@/services/errorService';
 
 export default function SettingsPage() {
   const { accessToken, user } = useAuthStore();
@@ -73,7 +74,11 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (error) {
-      console.error('Failed to save settings:', error);
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'saveProfile',
+        severity: 'medium'
+      });
     } finally {
       setSaving(false);
     }
@@ -96,8 +101,15 @@ export default function SettingsPage() {
       setTimeout(() => setDeleteSuccess(false), 3000);
       alert(response.data.message || 'Posts deleted successfully');
     } catch (error: any) {
-      console.error('Failed to delete posts:', error);
-      alert(error.response?.data?.error || 'Failed to delete posts');
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'bulkDeletePosts',
+        severity: 'high'
+      });
+      alert(ErrorService.handleApiError(error, {
+        component: 'SettingsPage',
+        action: 'bulkDeletePosts'
+      }, 'Failed to delete posts'));
     } finally {
       setDeleting(false);
     }
@@ -109,7 +121,11 @@ export default function SettingsPage() {
       const response = await api.get('/automated-actions');
       setAutomations(response.data.actions || []);
     } catch (error) {
-      console.error('Failed to load automations:', error);
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'loadAutomations',
+        severity: 'medium'
+      });
     } finally {
       setLoadingAutomations(false);
     }
@@ -127,8 +143,15 @@ export default function SettingsPage() {
       });
       loadAutomations();
     } catch (error: any) {
-      console.error('Failed to create automation:', error);
-      alert(error.response?.data?.error || 'Failed to create automation');
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'createAutomation',
+        severity: 'medium'
+      });
+      alert(ErrorService.handleApiError(error, {
+        component: 'SettingsPage',
+        action: 'createAutomation'
+      }, 'Failed to create automation'));
     }
   };
 
@@ -137,7 +160,11 @@ export default function SettingsPage() {
       await api.patch(`/automated-actions/${id}/toggle`);
       loadAutomations();
     } catch (error) {
-      console.error('Failed to toggle automation:', error);
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'toggleAutomation',
+        severity: 'low'
+      });
     }
   };
 
@@ -150,7 +177,11 @@ export default function SettingsPage() {
       await api.delete(`/automated-actions/${id}`);
       loadAutomations();
     } catch (error) {
-      console.error('Failed to delete automation:', error);
+      ErrorService.report(error, {
+        component: 'SettingsPage',
+        action: 'deleteAutomation',
+        severity: 'medium'
+      });
     }
   };
 

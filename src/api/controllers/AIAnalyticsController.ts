@@ -27,11 +27,12 @@ export class AIAnalyticsController {
         data: hashtags,
         message: 'Smart hashtags generated successfully',
       });
-    } catch (error: any) {
-      logger.error('Error in getSmartHashtags', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error in getSmartHashtags', { error: errorMessage });
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to generate smart hashtags',
+        message: errorMessage,
       });
     }
   }
@@ -56,11 +57,12 @@ export class AIAnalyticsController {
         data: captions,
         message: 'Smart captions generated successfully',
       });
-    } catch (error: any) {
-      logger.error('Error in getSmartCaptions', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error in getSmartCaptions', { error: errorMessage });
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to generate smart captions',
+        message: errorMessage,
       });
     }
   }
@@ -85,11 +87,12 @@ export class AIAnalyticsController {
         data: ideas,
         message: 'Content ideas generated successfully',
       });
-    } catch (error: any) {
-      logger.error('Error in getContentIdeas', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error in getContentIdeas', { error: errorMessage });
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to generate content ideas',
+        message: errorMessage,
       });
     }
   }
@@ -113,11 +116,12 @@ export class AIAnalyticsController {
         data: result,
         message: 'Optimal posting times analyzed successfully',
       });
-    } catch (error: any) {
-      logger.error('Error in getOptimalPostingTimes', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error in getOptimalPostingTimes', { error: errorMessage });
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to analyze optimal posting times',
+        message: errorMessage,
       });
     }
   }
@@ -164,11 +168,12 @@ export class AIAnalyticsController {
           insights: result.insights,
         },
       });
-    } catch (error: any) {
-      logger.error('Error in suggestSchedule', { error: error.message });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      logger.error('Error in suggestSchedule', { error: errorMessage });
       res.status(500).json({
         success: false,
-        message: error.message || 'Failed to suggest schedule',
+        message: errorMessage,
       });
     }
   }

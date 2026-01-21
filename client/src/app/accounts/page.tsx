@@ -7,6 +7,7 @@ import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { useOAuthConfig } from '@/hooks/useOAuthConfig';
 import { Plus, Link2, Unlink, ExternalLink, Check, AlertCircle, Loader2 } from 'lucide-react';
+import ErrorService from '@/services/errorService';
 
 interface PlatformAccount {
   id: string;
@@ -80,7 +81,10 @@ export default function AccountsPage() {
       const response = await api.get('/platform-accounts');
       setAccounts(response.data);
     } catch (error) {
-      console.error('Failed to fetch accounts:', error);
+      ErrorService.report(error, {
+        component: 'AccountsPage',
+        action: 'fetchAccounts'
+      });
     } finally {
       setLoading(false);
     }
@@ -102,10 +106,17 @@ export default function AccountsPage() {
       const response = await api.get(`/oauth/${platform}/auth-url`);
       window.location.href = response.data.authUrl;
     } catch (error: any) {
-      console.error(`Failed to connect ${platform}:`, error);
+      ErrorService.report(error, {
+        component: 'AccountsPage',
+        action: 'connectPlatform',
+        severity: 'high'
+      });
       setNotification({
         type: 'error',
-        message: error.response?.data?.error || `Failed to connect ${platform}`,
+        message: ErrorService.handleApiError(error, {
+          component: 'AccountsPage',
+          action: 'connectPlatform'
+        }, `Failed to connect ${platform}`),
       });
       setTimeout(() => setNotification(null), 5000);
       setConnecting(null);
@@ -118,7 +129,11 @@ export default function AccountsPage() {
       await api.delete(`/platform-accounts/${accountId}`);
       setAccounts((prev) => prev.filter((a) => a.id !== accountId));
     } catch (error) {
-      console.error('Failed to disconnect account:', error);
+      ErrorService.report(error, {
+        component: 'AccountsPage',
+        action: 'disconnectAccount',
+        severity: 'medium'
+      });
     } finally {
       setDisconnecting(null);
     }

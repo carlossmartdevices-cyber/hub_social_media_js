@@ -25,7 +25,7 @@ export class OAuth2Controller {
         success: true,
         platforms: availablePlatforms,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Get OAuth config error:', error);
       res.status(500).json({
         success: false,
@@ -79,7 +79,7 @@ export class OAuth2Controller {
             error: `OAuth 2.0 implementation not yet available for ${platform}`,
           });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Get auth URL error:', error);
       res.status(500).json({
         success: false,
@@ -127,7 +127,7 @@ export class OAuth2Controller {
         // If from Telegram bot, redirect directly
         res.redirect(authUrl);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Twitter authorize error:', error);
       res.status(500).json({
         success: false,
@@ -306,12 +306,14 @@ export class OAuth2Controller {
           `${returnUrl}?oauth_success=true&account=${encodeURIComponent(result.accountInfo.username)}`
         );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Twitter callback error:', error);
 
-      // Show error page for Telegram users or redirect for web
-      const returnUrl = error.returnUrl || '/settings';
-      
+      // Extract error properties safely
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorWithReturnUrl = error as { returnUrl?: string };
+      const returnUrl = errorWithReturnUrl.returnUrl || '/settings';
+
       if (returnUrl.includes('telegram-success')) {
         res.send(`
           <!DOCTYPE html>
@@ -345,8 +347,8 @@ export class OAuth2Controller {
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
               }
-              .icon { 
-                font-size: 80px; 
+              .icon {
+                font-size: 80px;
                 margin-bottom: 20px;
                 animation: shake 0.5s ease;
               }
@@ -357,11 +359,11 @@ export class OAuth2Controller {
               }
               h1 { margin: 0 0 10px 0; font-size: 28px; }
               p { margin: 10px 0; font-size: 16px; opacity: 0.9; line-height: 1.5; }
-              .error { 
-                font-size: 14px; 
-                background: rgba(0,0,0,0.3); 
-                padding: 15px; 
-                border-radius: 8px; 
+              .error {
+                font-size: 14px;
+                background: rgba(0,0,0,0.3);
+                padding: 15px;
+                border-radius: 8px;
                 margin-top: 20px;
                 word-wrap: break-word;
               }
@@ -403,7 +405,7 @@ export class OAuth2Controller {
               <div class="icon">❌</div>
               <h1>Error al Conectar</h1>
               <p>No se pudo conectar tu cuenta de X.</p>
-              <div class="error">${error.message}</div>
+              <div class="error">${errorMessage}</div>
               <a href="https://t.me/ContenidoPNPtvbot" class="telegram-button">
                 📱 Volver a Telegram
               </a>
@@ -416,7 +418,7 @@ export class OAuth2Controller {
           </html>
         `);
       } else {
-        res.redirect(`/settings?oauth_error=${encodeURIComponent(error.message)}`);
+        res.redirect(`/settings?oauth_error=${encodeURIComponent(errorMessage)}`);
       }
     }
   }
@@ -450,11 +452,12 @@ export class OAuth2Controller {
         success: true,
         message: 'Token refreshed successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Refresh token error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh token';
       return res.status(500).json({
         success: false,
-        error: error.message,
+        error: errorMessage,
       });
     }
   }

@@ -13,6 +13,36 @@ import { multiPlatformPublishService } from '../../services/MultiPlatformPublish
 import multer from 'multer';
 import path from 'path';
 
+/** Video post database row type */
+interface VideoPostRow {
+  id: string;
+  user_id: string;
+  media_type: string;
+  media_url: string;
+  thumbnail_url?: string;
+  video_duration?: number;
+  video_size?: number;
+  processing_status: string;
+  video_metadata?: VideoMetadata;
+  geo_restrictions?: Record<string, unknown>;
+  content?: Record<string, unknown>;
+  status: string;
+  platforms?: string[];
+  scheduled_at?: Date;
+  published_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
+/** Video metadata type */
+interface VideoMetadata {
+  title?: string;
+  description?: string;
+  alt_text?: string;
+  hashtags?: string[];
+  cta?: string;
+}
+
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
@@ -118,11 +148,12 @@ export class VideoPostController {
         },
         message: 'Video uploaded and processed successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Video upload error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to upload video';
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to upload video',
+        error: errorMessage,
       });
     }
   }
@@ -197,11 +228,11 @@ export class VideoPostController {
         success: true,
         message: 'Video metadata updated successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Update video metadata error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to update video metadata',
+        error: error instanceof Error ? error.message : 'Failed to update video metadata',
       });
     }
   }
@@ -283,11 +314,11 @@ export class VideoPostController {
         message: 'Video published successfully',
         results,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Publish video error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to publish video',
+        error: error instanceof Error ? error.message : 'Failed to publish video',
       });
     }
   }
@@ -296,10 +327,10 @@ export class VideoPostController {
    * Publish video to Twitter
    */
   private async publishToTwitter(
-    post: any,
-    videoMetadata: any,
+    post: VideoPostRow,
+    videoMetadata: VideoMetadata,
     accountId?: string
-  ): Promise<any> {
+  ): Promise<{ success: boolean; platformPostId?: string; error?: string; platform: string }> {
     try {
       // Get credentials
       let credentials;
@@ -322,8 +353,8 @@ export class VideoPostController {
       // Validate video
       const validation = await twitterVideoAdapter.validateVideo(
         post.media_url,
-        post.video_duration,
-        post.video_size
+        post.video_duration ?? 0,
+        post.video_size ?? 0
       );
 
       if (!validation.valid) {
@@ -333,10 +364,10 @@ export class VideoPostController {
       // Publish
       const result = await twitterVideoAdapter.publishVideo(
         {
-          text: videoMetadata.title,
+          text: videoMetadata.title ?? '',
           media: [{ id: '', url: post.media_url, type: MediaType.VIDEO, mimeType: 'video/mp4', size: 0 }],
         },
-        videoMetadata
+        { ...videoMetadata, title: videoMetadata.title ?? '', description: videoMetadata.description ?? '' }
       );
 
       // Store platform post
@@ -350,11 +381,11 @@ export class VideoPostController {
       }
 
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Twitter publish error:', error);
       return {
         success: false,
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         platform: 'twitter',
       };
     }
@@ -388,11 +419,11 @@ export class VideoPostController {
         success: true,
         stats,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Get access stats error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get access statistics',
+        error: error instanceof Error ? error.message : 'Failed to get access statistics',
       });
     }
   }
@@ -411,11 +442,11 @@ export class VideoPostController {
         success: true,
         suggestions,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Get geo suggestions error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get geo suggestions',
+        error: error instanceof Error ? error.message : 'Failed to get geo suggestions',
       });
     }
   }
@@ -449,11 +480,11 @@ export class VideoPostController {
         success: true,
         metadata,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Generate metadata error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate metadata',
+        error: error instanceof Error ? error.message : 'Failed to generate metadata',
       });
     }
   }
@@ -490,11 +521,11 @@ export class VideoPostController {
         success: true,
         variants,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Generate posts error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate post variants',
+        error: error instanceof Error ? error.message : 'Failed to generate post variants',
       });
     }
   }
@@ -531,11 +562,11 @@ export class VideoPostController {
         success: true,
         variants,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Regenerate posts error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to regenerate post variants',
+        error: error instanceof Error ? error.message : 'Failed to regenerate post variants',
       });
     }
   }
@@ -573,11 +604,11 @@ export class VideoPostController {
         success: true,
         variants: allVariants,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Generate bulk posts error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate bulk post variants',
+        error: error instanceof Error ? error.message : 'Failed to generate bulk post variants',
       });
     }
   }
@@ -663,11 +694,11 @@ export class VideoPostController {
         totalSuccess: result.totalSuccess,
         totalFailed: result.totalFailed,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Multi-platform publish error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to publish to multiple platforms',
+        error: error instanceof Error ? error.message : 'Failed to publish to multiple platforms',
       });
     }
   }
@@ -687,11 +718,11 @@ export class VideoPostController {
         success: true,
         status,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Get publish status error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get publish status',
+        error: error instanceof Error ? error.message : 'Failed to get publish status',
       });
     }
   }

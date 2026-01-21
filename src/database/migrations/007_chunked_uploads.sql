@@ -46,9 +46,9 @@ SELECT
   cu.status,
   cu.created_at,
   cu.expires_at
-FROM chunked_uploads
-WHERE status IN ('pending', 'uploading')
-  AND expires_at > NOW();
+FROM chunked_uploads cu
+WHERE cu.status IN ('pending', 'uploading')
+  AND cu.expires_at > NOW();
 
 -- Create function to auto-update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_chunked_uploads_timestamp()

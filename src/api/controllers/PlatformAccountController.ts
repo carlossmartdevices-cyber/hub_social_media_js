@@ -5,6 +5,20 @@ import { logger } from '../../utils/logger';
 import EncryptionService from '../../utils/encryption';
 import { ValidationService } from '../../utils/validation';
 
+/** Database row type for platform_credentials table */
+interface PlatformCredentialRow {
+  id: string;
+  user_id: string;
+  platform: string;
+  account_name: string;
+  account_identifier: string;
+  credentials: string;
+  is_active: boolean;
+  last_validated: Date | null;
+  created_at: Date;
+  updated_at?: Date;
+}
+
 /**
  * PlatformAccountController - Manage multiple platform accounts per user
  */
@@ -23,11 +37,11 @@ export class PlatformAccountController {
         FROM platform_credentials
         WHERE user_id = $1
       `;
-      const params: any[] = [userId];
+      const params: (string | number)[] = [userId];
 
       if (platform) {
         query += ` AND platform = $2`;
-        params.push(platform);
+        params.push(String(platform));
       }
 
       query += ` ORDER BY platform, account_name`;
@@ -35,7 +49,7 @@ export class PlatformAccountController {
       const result = await database.query(query, params);
 
       // Transform data to match frontend expectations
-      const accounts = result.rows.map((row: any) => ({
+      const accounts = result.rows.map((row: PlatformCredentialRow) => ({
         id: row.id,
         platform: row.platform,
         accountName: row.account_name,
@@ -47,7 +61,7 @@ export class PlatformAccountController {
       }));
 
       return res.json(accounts);
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('List accounts error:', error);
       return res.status(500).json({
         success: false,
@@ -158,7 +172,7 @@ export class PlatformAccountController {
         message: 'Account added successfully',
         account: result.rows[0],
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Add account error:', error);
       return res.status(500).json({
         success: false,
@@ -191,7 +205,7 @@ export class PlatformAccountController {
       }
 
       const updates: string[] = [];
-      const values: any[] = [];
+      const values: (string | number | boolean)[] = [];
       let paramCount = 1;
 
       if (accountName !== undefined) {
@@ -248,7 +262,7 @@ export class PlatformAccountController {
         message: 'Account updated successfully',
         account: result.rows[0],
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Update account error:', error);
       return res.status(500).json({
         success: false,
@@ -286,7 +300,7 @@ export class PlatformAccountController {
         success: true,
         message: 'Account deleted successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Delete account error:', error);
       return res.status(500).json({
         success: false,
@@ -336,13 +350,14 @@ export class PlatformAccountController {
           success: true,
           message: 'Account credentials are valid',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         return res.status(400).json({
           success: false,
-          error: `Credentials test failed: ${error.message}`,
+          error: `Credentials test failed: ${errorMessage}`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Test account error:', error);
       return res.status(500).json({
         success: false,

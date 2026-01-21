@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
   message TEXT NOT NULL,
   status VARCHAR(50) DEFAULT 'open',
   priority VARCHAR(50) DEFAULT 'normal',
-  assigned_to INTEGER,
+  assigned_to UUID,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   resolved_at TIMESTAMP,

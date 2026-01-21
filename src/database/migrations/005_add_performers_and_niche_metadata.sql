@@ -115,6 +115,8 @@ CREATE INDEX IF NOT EXISTS idx_posts_media_type_status
 ON posts(media_type, processing_status)
 WHERE media_type = 'video';
 
+-- Note: Cannot use NOW() in partial index as it's not immutable
+-- This index will be created without the time-based predicate
 CREATE INDEX IF NOT EXISTS idx_posts_scheduled_future
 ON posts(scheduled_at)
-WHERE status = 'scheduled' AND scheduled_at > NOW();
+WHERE status = 'scheduled';

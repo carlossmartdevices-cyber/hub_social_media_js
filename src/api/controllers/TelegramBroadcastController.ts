@@ -73,11 +73,12 @@ export class TelegramBroadcastController {
         result: uploadResult,
         message: 'Video uploaded to Telegram successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Telegram video upload error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to upload video to Telegram',
+        error: errorMessage,
       });
     }
   }
@@ -114,11 +115,12 @@ export class TelegramBroadcastController {
         success: true,
         description,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Generate description error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate description',
+        error: errorMessage,
       });
     }
   }
@@ -167,11 +169,12 @@ export class TelegramBroadcastController {
         },
         message: `Broadcast completed: ${successCount} successful, ${failCount} failed`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Broadcast video error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to broadcast video',
+        error: errorMessage,
       });
     }
   }
@@ -215,11 +218,12 @@ export class TelegramBroadcastController {
         },
         message: `Broadcast completed: ${successCount} successful, ${failCount} failed`,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Broadcast text error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to broadcast text',
+        error: errorMessage,
       });
     }
   }
@@ -236,11 +240,12 @@ export class TelegramBroadcastController {
         success: true,
         botInfo,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Get bot info error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get bot information',
+        error: errorMessage,
       });
     }
   }
@@ -269,11 +274,12 @@ export class TelegramBroadcastController {
         isAdmin,
         canBroadcast: isAdmin,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Check channel error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to check channel access',
+        error: errorMessage,
       });
     }
   }
@@ -295,11 +301,12 @@ export class TelegramBroadcastController {
         success: true,
         channels: result.rows,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Get channels error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get channels',
+        error: errorMessage,
       });
     }
   }
@@ -350,11 +357,12 @@ export class TelegramBroadcastController {
         channel: result.rows[0],
         message: 'Channel added successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Add channel error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to add channel',
+        error: errorMessage,
       });
     }
   }
@@ -384,11 +392,12 @@ export class TelegramBroadcastController {
         success: true,
         message: 'Channel removed successfully',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Remove channel error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to remove channel',
+        error: errorMessage,
       });
     }
   }

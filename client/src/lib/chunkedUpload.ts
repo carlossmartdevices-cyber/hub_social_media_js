@@ -1,9 +1,10 @@
 import api from './api';
+import { UploadStatus, ChunkedUploadResponse, ApiError } from '../types/api.types';
 
 interface ChunkedUploadOptions {
   onProgress?: (progress: number) => void;
   onError?: (error: string) => void;
-  onComplete?: (result: any) => void;
+  onComplete?: (result: ChunkedUploadResponse) => void;
   chunkSize?: number; // in MB
 }
 
@@ -66,12 +67,14 @@ export class ChunkedUploadManager {
   /**
    * Get upload status
    */
-  async getUploadStatus(): Promise<any> {
+  async getUploadStatus(): Promise<UploadStatus | null> {
     try {
       const response = await api.get(`/upload/status/${this.uploadId}`);
-      return response.data;
+      return response.data as UploadStatus;
     } catch (error) {
-      console.error('Failed to get upload status:', error);
+      // Use error service instead of console.error
+      const errorMessage = error instanceof Error ? error.message : 'Failed to get upload status';
+      this.options.onError?.(errorMessage);
       return null;
     }
   }
@@ -173,7 +176,9 @@ export class ChunkedUploadManager {
     try {
       await api.delete(`/upload/cancel/${this.uploadId}`);
     } catch (error) {
-      console.error('Failed to cancel upload:', error);
+      // Silent failure - don't show error to user for cleanup operations
+      const errorMessage = error instanceof Error ? error.message : 'Failed to cancel upload';
+      this.options.onError?.(errorMessage);
     }
   }
 

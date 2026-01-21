@@ -5,13 +5,51 @@ import database from '../../database/connection';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 
+/** Config for auto-reply actions */
+interface AutoReplyConfig {
+  replyMessage: string;
+}
+
+/** Config for scheduled promotion action */
+interface ScheduledPromotionConfig {
+  message: string;
+  frequency: 'daily' | 'weekly' | 'monthly';
+}
+
+/** Config for auto-like action */
+interface AutoLikeConfig {
+  keywords?: string[];
+}
+
+/** Config for auto-follow action */
+interface AutoFollowConfig {
+  criteria?: Record<string, unknown>;
+}
+
+/** Union type for all action configs */
+type ActionConfig = AutoReplyConfig | ScheduledPromotionConfig | AutoLikeConfig | AutoFollowConfig;
+
+/** Database row type for automated_actions table */
+interface AutomatedActionRow {
+  id: string;
+  user_id: string;
+  name: string;
+  type: 'auto_reply_inbox' | 'auto_reply_mentions' | 'scheduled_promotion' | 'auto_like' | 'auto_follow';
+  platforms: string[];
+  config: ActionConfig;
+  is_enabled: boolean;
+  last_executed_at?: Date;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export interface AutomatedAction {
   id: string;
   userId: string;
   name: string;
   type: 'auto_reply_inbox' | 'auto_reply_mentions' | 'scheduled_promotion' | 'auto_like' | 'auto_follow';
   platforms: string[];
-  config: any;
+  config: ActionConfig;
   isEnabled: boolean;
   lastExecutedAt?: Date;
   createdAt: Date;
@@ -104,19 +142,19 @@ export class AutomatedActionsController {
       const { type, platform, enabled } = req.query;
 
       let query = 'SELECT * FROM automated_actions WHERE user_id = $1';
-      const params: any[] = [userId];
+      const params: (string | boolean)[] = [userId];
       let paramCount = 1;
 
       if (type) {
         paramCount++;
         query += ` AND type = $${paramCount}`;
-        params.push(type);
+        params.push(String(type));
       }
 
       if (platform) {
         paramCount++;
         query += ` AND $${paramCount} = ANY(platforms)`;
-        params.push(platform);
+        params.push(String(platform));
       }
 
       if (enabled !== undefined) {
@@ -190,7 +228,7 @@ export class AutomatedActionsController {
 
       // Build update query dynamically
       const updates: string[] = [];
-      const params: any[] = [];
+      const params: (string | boolean | string[])[] = [];
       let paramCount = 0;
 
       if (name !== undefined) {
@@ -387,7 +425,7 @@ export class AutomatedActionsController {
   /**
    * Validate config based on action type
    */
-  private validateConfig(type: string, config: any): { valid: boolean; error?: string } {
+  private validateConfig(type: string, config: Record<string, unknown>): { valid: boolean; error?: string } {
     switch (type) {
       case 'auto_reply_inbox':
       case 'auto_reply_mentions':
@@ -400,7 +438,7 @@ export class AutomatedActionsController {
         if (!config.message || typeof config.message !== 'string') {
           return { valid: false, error: 'Config must include a message string' };
         }
-        if (!config.frequency || !['daily', 'weekly', 'monthly'].includes(config.frequency)) {
+        if (!config.frequency || !['daily', 'weekly', 'monthly'].includes(String(config.frequency))) {
           return { valid: false, error: 'Config must include a frequency (daily, weekly, or monthly)' };
         }
         break;
@@ -427,7 +465,7 @@ export class AutomatedActionsController {
   /**
    * Map database row to AutomatedAction object
    */
-  private mapActionFromDb(row: any): AutomatedAction {
+  private mapActionFromDb(row: AutomatedActionRow): AutomatedAction {
     return {
       id: row.id,
       userId: row.user_id,

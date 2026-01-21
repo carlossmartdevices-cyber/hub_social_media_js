@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { LogIn, ExternalLink, Loader2, Check, AlertCircle, ArrowRight } from 'lucide-react';
+import ErrorService from '@/services/errorService';
 
 interface PlatformOption {
   id: string;
@@ -123,7 +124,11 @@ export default function SocialLoginPage() {
       const platforms: Set<string> = new Set(response.data.map((acc: any) => acc.platform as string));
       setConnectedAccounts(platforms);
     } catch (error) {
-      console.error('Failed to fetch accounts:', error);
+      ErrorService.report(error, {
+        component: 'SocialLoginPage',
+        action: 'fetchConnectedAccounts',
+        severity: 'low'
+      });
     } finally {
       setLoading(false);
     }

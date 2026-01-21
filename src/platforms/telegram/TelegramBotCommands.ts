@@ -3,6 +3,17 @@ import { logger } from '../../utils/logger';
 import platformAccountService from '../../services/PlatformAccountService';
 import { Database } from '../../database/connection';
 
+interface UserState {
+  step: string;
+  platform?: string;
+  accountName?: string;
+  username?: string;
+  apiKey?: string;
+  apiSecret?: string;
+  accessToken?: string;
+  accessSecret?: string;
+}
+
 /**
  * 🔵 LOW: Interactive Telegram bot commands
  * Provides user-friendly commands and inline keyboards
@@ -10,7 +21,7 @@ import { Database } from '../../database/connection';
 export class TelegramBotCommands {
   private bot: Telegraf;
   // Store user states for multi-step commands
-  private userStates: Map<number, unknown> = new Map();
+  private userStates: Map<number, UserState> = new Map();
 
   constructor(bot: Telegraf) {
     this.bot = bot;
@@ -648,7 +659,7 @@ export class TelegramBotCommands {
 
       // Check if user is in a multi-step flow
       if (userId && this.userStates.has(userId)) {
-        const state = this.userStates.get(userId);
+        const state = this.userStates.get(userId)!;
         try {
           switch (state.step) {
             case 'account_name':
@@ -708,10 +719,10 @@ export class TelegramBotCommands {
               // Now save the account
               try {
                 const credentials = {
-                  apiKey: state.apiKey,
-                  apiSecret: state.apiSecret,
-                  accessToken: state.accessToken,
-                  accessSecret: state.accessSecret,
+                  apiKey: state.apiKey ?? '',
+                  apiSecret: state.apiSecret ?? '',
+                  accessToken: state.accessToken ?? '',
+                  accessSecret: state.accessSecret ?? '',
                 };
 
                 const accounts = await platformAccountService.getUserPlatformAccounts(
@@ -723,8 +734,8 @@ export class TelegramBotCommands {
                 const account = await platformAccountService.addAccount(
                   userId.toString(),
                   'twitter',
-                  state.accountName,
-                  state.username,
+                  state.accountName ?? '',
+                  state.username ?? '',
                   credentials,
                   isFirstAccount // Set as default if it's the first account
                 );
@@ -741,13 +752,12 @@ export class TelegramBotCommands {
                   { parse_mode: 'Markdown' }
                 );
               } catch (error: unknown) {
-                logger.error('Error saving X account:', error);
                 const errorMessage = error instanceof Error ? error.message : 'Unknown error saving X account';
                 logger.error('Error saving X account:', errorMessage);
                 this.userStates.delete(userId);
                 ctx.reply(
                   '❌ Error saving account. Please try again.\n\n' +
-                  `Error: ${error.message}`
+                  `Error: ${errorMessage}`
                 );
               }
               break;

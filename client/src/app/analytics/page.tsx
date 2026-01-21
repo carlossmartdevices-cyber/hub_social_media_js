@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import Layout from '@/components/Layout';
 import api from '@/lib/api';
 import { BarChart3, TrendingUp, Users, Eye, Heart, MessageCircle, Share2 } from 'lucide-react';
+import ErrorService from '@/services/errorService';
 
 interface AnalyticsData {
   totalPosts: number;
@@ -42,7 +43,11 @@ export default function AnalyticsPage() {
       const response = await api.get(`/analytics?period=${period}`);
       setAnalytics(response.data);
     } catch (error) {
-      console.error('Failed to fetch analytics:', error);
+      ErrorService.report(error, {
+        component: 'AnalyticsPage',
+        action: 'fetchAnalytics',
+        severity: 'medium'
+      });
       // Set default data on error
       setAnalytics({
         totalPosts: 0,

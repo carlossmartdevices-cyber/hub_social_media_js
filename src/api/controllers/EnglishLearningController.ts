@@ -38,11 +38,12 @@ export class EnglishLearningController {
         success: true,
         response,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('English learning query error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to process English learning query',
+        error: errorMessage,
       });
     }
   }
@@ -59,11 +60,12 @@ export class EnglishLearningController {
         success: true,
         topics,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Get topics error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to get suggested topics',
+        error: errorMessage,
       });
     }
   }
@@ -92,11 +94,12 @@ export class EnglishLearningController {
         success: true,
         practice,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('Generate practice error:', error);
       return res.status(500).json({
         success: false,
-        error: error.message || 'Failed to generate practice scenario',
+        error: errorMessage,
       });
     }
   }

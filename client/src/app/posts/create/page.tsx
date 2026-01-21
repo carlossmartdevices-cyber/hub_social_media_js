@@ -9,6 +9,7 @@ import {
   Sparkles, Send, Calendar, Clock, X, 
   RefreshCw, Wand2, Languages, Upload
 } from 'lucide-react';
+import ErrorService from '@/services/errorService';
 
 interface Platform {
   id: string;
@@ -129,8 +130,15 @@ export default function CreatePostPage() {
       setContentEs(response.data.spanish.content);
       setHashtags([...response.data.english.hashtags, ...response.data.spanish.hashtags.slice(0, 2)]);
     } catch (err) {
-      console.error('AI generation error:', err);
-      setError('Failed to generate content with AI');
+      ErrorService.report(err, {
+        component: 'CreatePostPage',
+        action: 'generateAIContent',
+        severity: 'medium'
+      });
+      setError(ErrorService.handleApiError(err, {
+        component: 'CreatePostPage',
+        action: 'generateAIContent'
+      }, 'Failed to generate content with AI'));
     } finally {
       setAiLoading(false);
     }
