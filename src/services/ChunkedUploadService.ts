@@ -4,6 +4,7 @@
  */
 
 import { promises as fs } from 'fs'
+import { createReadStream, createWriteStream } from 'fs'
 import path from 'path'
 import crypto from 'crypto'
 import { v4 as uuidv4 } from 'uuid'
@@ -15,6 +16,7 @@ import {
   UploadSession,
 } from '../types/upload.types'
 import { logger } from '../utils/logger'
+import { config } from '../config'
 
 interface RedisClient {
   get(key: string): Promise<string | null>
@@ -24,6 +26,7 @@ interface RedisClient {
   sadd(key: string, member: string): Promise<number>
   smembers(key: string): Promise<string[]>
   scard(key: string): Promise<number>
+  srem(key: string, member: string): Promise<number>
 }
 
 export class ChunkedUploadService {
@@ -161,8 +164,12 @@ export class ChunkedUploadService {
       )
     }
 
+    const ttlSeconds = this.sessionTtlHours * 60 * 60
+    const processingKey = `upload:${uploadId}:processing`
+
     // Mark chunk as processing
-    await this.redis.sadd(`upload:${uploadId}:processing`, chunkIndex.toString())
+    await this.redis.sadd(processingKey, chunkIndex.toString())
+    await this.redis.expire(processingKey, ttlSeconds)
 
     try {
       // Save chunk to disk
@@ -174,14 +181,12 @@ export class ChunkedUploadService {
       await fs.writeFile(chunkPath, chunkData)
 
       // Add to uploaded chunks set
-      await this.redis.sadd(
-        `upload:${uploadId}:chunks`,
-        chunkIndex.toString()
-      )
+      const chunksKey = `upload:${uploadId}:chunks`
+      await this.redis.sadd(chunksKey, chunkIndex.toString())
+      await this.redis.expire(chunksKey, ttlSeconds)
 
       // Update last activity time
       session.lastActivityAt = new Date()
-      const ttlSeconds = this.sessionTtlHours * 60 * 60
       await this.redis.set(
         `upload:${uploadId}:session`,
         JSON.stringify(session),
@@ -207,8 +212,13 @@ export class ChunkedUploadService {
       }
     } finally {
       // Remove from processing set
-      const processingKey = `upload:${uploadId}:processing`
-      await this.redis.del(processingKey)
+      await this.redis.srem(processingKey, chunkIndex.toString())
+      const remaining = await this.redis.scard(processingKey)
+      if (remaining === 0) {
+        await this.redis.del(processingKey)
+      } else {
+        await this.redis.expire(processingKey, ttlSeconds)
+      }
     }
   }
 
@@ -235,15 +245,16 @@ export class ChunkedUploadService {
 
     // Create output file path
     const timestamp = Date.now()
-    const outputDir = path.join('./uploads/videos')
+    const outputDir = path.resolve(config.video.uploadDir)
     await fs.mkdir(outputDir, { recursive: true })
+    const safeFileName = this.getSafeFileName(session.fileName)
     const outputPath = path.join(
       outputDir,
-      `${uploadId}_${timestamp}_${session.fileName}`
+      `${uploadId}_${timestamp}_${safeFileName}`
     )
 
-    // Assemble chunks in order
-    const outputStream = await fs.open(outputPath, 'w')
+    // Assemble chunks in order using streams to avoid large memory spikes
+    const outputStream = createWriteStream(outputPath, { flags: 'w' })
 
     try {
       for (let i = 0; i < session.totalChunks; i++) {
@@ -252,17 +263,52 @@ export class ChunkedUploadService {
           uploadId,
           `chunk-${i}`
         )
-        const chunkData = await fs.readFile(chunkPath)
-        await outputStream.write(chunkData)
+        await new Promise<void>((resolve, reject) => {
+          const chunkStream = createReadStream(chunkPath)
+          const onError = (err: Error) => {
+            chunkStream.destroy()
+            outputStream.removeListener('error', onError)
+            reject(err)
+          }
+
+          chunkStream.once('error', onError)
+          outputStream.once('error', onError)
+          chunkStream.once('end', () => {
+            outputStream.removeListener('error', onError)
+            resolve()
+          })
+          chunkStream.pipe(outputStream, { end: false })
+        })
+      }
+
+      await new Promise<void>((resolve, reject) => {
+        outputStream.on('error', reject)
+        outputStream.end(() => resolve())
+      })
+
+      const stats = await fs.stat(outputPath)
+      if (stats.size !== session.fileSize) {
+        throw new Error(
+          `Assembled file size mismatch. Expected ${session.fileSize}, got ${stats.size}`
+        )
       }
 
       logger.info(
         `Chunks assembled for upload ${uploadId} to ${outputPath}`
       )
 
+      await this.cleanupChunks(uploadId, session.totalChunks)
+
       return outputPath
+    } catch (error) {
+      try {
+        await fs.unlink(outputPath)
+      } catch (cleanupError) {
+        logger.warn(`Failed to clean up incomplete upload file: ${cleanupError}`)
+      }
+      throw error
     } finally {
-      await outputStream.close()
+      outputStream.destroy()
     }
   }
 
@@ -412,6 +458,28 @@ export class ChunkedUploadService {
     }
 
     await fs.rmdir(dirPath)
+  }
+
+  private getSafeFileName(fileName: string): string {
+    const baseName = path.basename(fileName)
+    return baseName.replace(/[^A-Za-z0-9._-]/g, '_')
+  }
+
+  private async cleanupChunks(uploadId: string, totalChunks: number): Promise<void> {
+    for (let i = 0; i < totalChunks; i++) {
+      const chunkPath = path.join(this.tempChunkDir, uploadId, `chunk-${i}`)
+      try {
+        await fs.unlink(chunkPath)
+      } catch (err) {
+        logger.warn(`Failed to delete chunk ${i}: ${err}`)
+      }
+    }
+
+    try {
+      await fs.rmdir(path.join(this.tempChunkDir, uploadId))
+    } catch (err) {
+      logger.warn(`Failed to delete temp directory: ${err}`)
+    }
   }
 }
 

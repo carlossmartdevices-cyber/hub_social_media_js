@@ -3,6 +3,7 @@ import { authMiddleware } from '../middlewares/auth';
 import { aiAnalyticsController } from '../controllers/AIAnalyticsController';
 import aiContentGenerationService from '../../services/AIContentGenerationService';
 import logger from '../../utils/logger';
+import { ApiError } from '../../types/error.types';
 
 const router = Router();
 
@@ -25,11 +26,12 @@ router.post('/generate-caption', async (req, res) => {
     const result = await aiContentGenerationService.generateCaption(prompt, options || {});
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /generate-caption:', error);
+    const err = error as ApiError;
     return res.status(500).json({
       error: 'Failed to generate caption',
-      details: error.message
+      details: err.message
     });
   }
 });
@@ -55,9 +57,10 @@ router.post('/generate-post-variants', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /generate-post-variants:', error);
-    return res.status(500).json({ error: 'Failed to generate post variants' });
+    const err = error as ApiError;
+    return res.status(500).json({ error: 'Failed to generate post variants', details: err.message });
   }
 });
 
@@ -80,7 +83,7 @@ router.post('/generate-video-metadata', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /generate-video-metadata:', error);
     return res.status(500).json({ error: 'Failed to generate video metadata' });
   }
@@ -106,7 +109,7 @@ router.post('/english-lesson', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /english-lesson:', error);
     return res.status(500).json({ error: 'Failed to generate English lesson' });
   }
@@ -133,7 +136,7 @@ router.post('/translate', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /translate:', error);
     return res.status(500).json({ error: 'Failed to translate content' });
   }
@@ -159,7 +162,7 @@ router.post('/weekly-ideas', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /weekly-ideas:', error);
     return res.status(500).json({ error: 'Failed to generate weekly ideas' });
   }
@@ -185,7 +188,7 @@ router.post('/chat', async (req, res) => {
     );
 
     return res.json(result);
-  } catch (error: any) {
+  } catch (error: unknown) {
     logger.error('Error in /chat:', error);
     return res.status(500).json({ error: 'Failed to process chat message' });
   }

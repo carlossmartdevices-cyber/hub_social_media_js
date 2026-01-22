@@ -101,14 +101,17 @@ export interface UploadProgress {
 
 export interface UploadTask {
   uploadId: string
+  userId?: string
   file: File
   metadata: Record<string, any>
   progress: UploadProgress
   status: 'pending' | 'uploading' | 'paused' | 'completed' | 'failed'
   chunks: ChunkInfo[]
   createdAt: Date
+  queuedAt?: Date
   startedAt?: Date
   completedAt?: Date
+  updatedAt?: Date
   error?: string
 }
 

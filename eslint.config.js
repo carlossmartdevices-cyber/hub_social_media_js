@@ -35,6 +35,6 @@ export default [
     },
   },
   {
-    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/'],
+    ignores: ['node_modules/', 'dist/', 'build/', 'coverage/', '.next/', 'client/.next/'],
   },
 ];

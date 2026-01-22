@@ -29,7 +29,7 @@ interface PlatformCredentials {
   clientId?: string;
   clientSecret?: string;
   redirectUri?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 /**

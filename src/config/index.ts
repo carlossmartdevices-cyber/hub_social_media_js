@@ -54,6 +54,8 @@ export const config = {
       clientId: process.env.TWITTER_CLIENT_ID || '',
       clientSecret: process.env.TWITTER_CLIENT_SECRET || '',
       redirectUri: process.env.TWITTER_REDIRECT_URI || 'http://localhost:33010/api/oauth/twitter/callback',
+      // OAuth 2.0 (auth login)
+      authRedirectUri: process.env.TWITTER_AUTH_REDIRECT_URI || '',
     },
     telegram: {
       botToken: process.env.TELEGRAM_BOT_TOKEN || '',
@@ -220,4 +222,3 @@ if (config.env === 'production') {
     process.exit(1);
   }
 }
-

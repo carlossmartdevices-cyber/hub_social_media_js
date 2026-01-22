@@ -1,446 +1,394 @@
-# Production Deployment Guide
+# 🚀 Deployment Guide for Hub Social Media JS
 
-This guide will help you deploy the Social Media Content Hub with AI-powered Grok integration to production.
+## Complete Deployment Instructions
 
-## Prerequisites
+This guide provides step-by-step instructions for deploying both the frontend (Next.js) and backend (Express.js) applications.
 
-- Docker and Docker Compose installed (or Kubernetes cluster)
-- xAI API key from https://x.ai
-- Social media API credentials (Twitter, Telegram, etc.)
+## 📋 Prerequisites
 
-## Port Configuration
+### System Requirements
+- Node.js v18+ (LTS recommended)
+- npm v9+ or yarn
+- PostgreSQL 14+
+- Redis 6+ (optional, for caching)
+- Git
 
-The application now runs on **port 8080** in production.
-
-## Deployment Options
-
-You can deploy using either:
-1. **Docker Compose** (recommended for simple deployments)
-2. **Kubernetes** (recommended for scalable, production deployments)
-
----
-
-## Option 1: Docker Compose Deployment
-
-### Step 1: Configure Environment Variables
-
-1. Edit the `.env` file in the project root
-2. Fill in all required API keys and secrets:
-
+### Environment Setup
 ```bash
-# CRITICAL: Set strong secrets (use: openssl rand -base64 32)
-JWT_SECRET=<your-strong-jwt-secret-min-32-chars>
-JWT_REFRESH_SECRET=<your-strong-refresh-secret-min-32-chars>
-ENCRYPTION_KEY=<your-strong-encryption-key-min-32-chars>
+# Install Node.js (if not installed)
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-# xAI Grok API (REQUIRED for AI features)
-XAI_API_KEY=<your-xai-api-key-from-x.ai>
+# Install PostgreSQL
+sudo apt-get install -y postgresql postgresql-contrib
 
-# Social Media APIs (as needed)
-TWITTER_CONSUMER_KEY=<your-twitter-key>
-TWITTER_CONSUMER_SECRET=<your-twitter-secret>
-TWITTER_ACCESS_TOKEN=<your-twitter-token>
-TWITTER_ACCESS_TOKEN_SECRET=<your-twitter-token-secret>
-
-TELEGRAM_BOT_TOKEN=<your-telegram-bot-token>
-
-# Database (change password!)
-DB_PASSWORD=<strong-database-password>
+# Install Redis (optional)
+sudo apt-get install -y redis-server
 ```
 
-### Step 2: Build and Deploy
+## 🔧 Backend Deployment
 
+### 1. Install Backend Dependencies
 ```bash
-# Pull the latest code
-git pull origin claude/add-ai-social-posts-016WCFQJti9NRStUZ2jhVC1c
-
-# Build the Docker images
-docker compose build
-
-# Start all services
-docker compose up -d
-
-# Check status
-docker compose ps
-
-# View logs
-docker compose logs -f app
+cd /root/hub_social_media_js
+npm install
 ```
 
-### Step 3: Verify Deployment
-
+### 2. Configure Environment
+Copy `.env.example` to `.env` and configure:
 ```bash
-# Check health endpoint
-curl http://localhost:8080/health
-
-# Test AI endpoint (requires authentication)
-curl -X POST http://localhost:8080/api/posts/ai/generate \
-  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"optionsCount": 1}'
+cp .env.example .env
+nano .env
 ```
 
-### Step 4: Access Monitoring
+**Critical environment variables to set:**
+```
+NODE_ENV=production
+PORT=8080
+API_URL=https://yourdomain.com
+CLIENT_URL=https://yourdomain.com
 
-- **Application**: http://localhost:8080
-- **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3001 (admin/admin)
+# Database
+DB_HOST=localhost
+DB_PORT=55433
+DB_NAME=content_hub
+DB_USER=postgres
+DB_PASSWORD=your_secure_password
 
-### Useful Commands
+# JWT Secrets (must be 32+ characters)
+JWT_SECRET=your_jwt_secret_here
+JWT_REFRESH_SECRET=your_refresh_secret_here
+ENCRYPTION_KEY=your_encryption_key_here
 
-```bash
-# Stop services
-docker compose down
-
-# View logs
-docker compose logs -f app
-
-# Restart a service
-docker compose restart app
-
-# Rebuild and restart
-docker compose up -d --build app
-
-# View database logs
-docker compose logs -f postgres
-
-# Access database
-docker compose exec postgres psql -U admin -d content_hub
-
-# Backup database
-docker compose exec postgres pg_dump -U admin content_hub > backup.sql
+# Twitter/X OAuth
+TWITTER_CLIENT_ID=your_twitter_client_id
+TWITTER_CLIENT_SECRET=your_twitter_client_secret
+TWITTER_REDIRECT_URI=https://yourdomain.com/api/auth/x/callback
 ```
 
----
-
-## Option 2: Kubernetes Deployment
-
-### Step 1: Create Kubernetes Secrets
-
-Create secrets for sensitive data:
-
+### 3. Run Database Migrations
 ```bash
-# Create namespace (if needed)
-kubectl create namespace content-hub
-
-# Create secrets
-kubectl create secret generic app-secrets \
-  --from-literal=db-user=admin \
-  --from-literal=db-password='YOUR_SECURE_DB_PASSWORD' \
-  --from-literal=jwt-secret='YOUR_STRONG_JWT_SECRET' \
-  --from-literal=jwt-refresh-secret='YOUR_STRONG_REFRESH_SECRET' \
-  --from-literal=encryption-key='YOUR_STRONG_ENCRYPTION_KEY' \
-  --from-literal=xai-api-key='YOUR_XAI_API_KEY' \
-  -n content-hub
+npm run migrate
 ```
 
-### Step 2: Build and Push Docker Image
-
+### 4. Start the Backend Server
 ```bash
-# Build image
-docker build -t your-registry/content-hub:latest .
+# Development mode
+npm run dev
 
-# Push to registry
-docker push your-registry/content-hub:latest
+# Production mode
+npm run build
+npm run start
 
-# Update k8s/deployment.yaml with your image name
-# Change line 20: image: your-registry/content-hub:latest
+# With PM2 (recommended for production)
+npm install -g pm2
+pm2 start src/index.ts --name "hub-backend" --interpreter none
+pm2 save
+pm2 startup
 ```
 
-### Step 3: Deploy to Kubernetes
+## 🎨 Frontend Deployment
 
+### 1. Install Frontend Dependencies
 ```bash
-# Apply deployment
-kubectl apply -f k8s/deployment.yaml -n content-hub
-
-# Check deployment status
-kubectl get pods -n content-hub
-kubectl get services -n content-hub
-
-# View logs
-kubectl logs -f deployment/content-hub -n content-hub
-
-# Check autoscaling
-kubectl get hpa -n content-hub
+cd /root/hub_social_media_js/client
+npm install
 ```
 
-### Step 4: Verify Deployment
-
+### 2. Configure Frontend Environment
+Edit `client/.env.local`:
 ```bash
-# Get service URL
-kubectl get service content-hub-service -n content-hub
-
-# Test health endpoint
-curl http://<EXTERNAL-IP>/health
-
-# Port forward for local testing
-kubectl port-forward service/content-hub-service 8080:80 -n content-hub
+nano client/.env.local
 ```
 
-### Kubernetes Features
-
-- **Auto-scaling**: 3-10 replicas based on CPU/Memory
-- **Health checks**: Liveness and readiness probes
-- **Load balancing**: Automatic load distribution
-- **Rolling updates**: Zero-downtime deployments
-
----
-
-## Security Checklist
-
-Before deploying to production, ensure:
-
-- [ ] All secrets in `.env` are changed from defaults
-- [ ] JWT_SECRET is at least 32 characters and random
-- [ ] ENCRYPTION_KEY is at least 32 characters and random
-- [ ] Database password is strong and unique
-- [ ] XAI_API_KEY is set with a valid key from x.ai
-- [ ] Social media API credentials are production keys
-- [ ] Grafana admin password is changed
-- [ ] Database backups are configured
-- [ ] SSL/TLS certificates are configured (if exposing publicly)
-
-## Generate Secure Secrets
-
-Use these commands to generate strong secrets:
-
-```bash
-# Generate JWT secret
-openssl rand -base64 32
-
-# Generate encryption key
-openssl rand -base64 32
-
-# Generate database password
-openssl rand -base64 24
+**Set the API URL:**
+```
+NEXT_PUBLIC_API_URL=https://yourdomain.com/api
 ```
 
----
-
-## Post-Deployment Tasks
-
-### 1. Database Migration
-
-If this is the first deployment, initialize the database:
-
+### 3. Build the Frontend
 ```bash
-# Docker Compose
-docker compose exec app npm run db:migrate
-
-# Kubernetes
-kubectl exec -it deployment/content-hub -n content-hub -- npm run db:migrate
+npm run build
 ```
 
-### 2. Create Admin User
-
+### 4. Start the Frontend Server
 ```bash
-# Access the application API and create your first user
-curl -X POST http://localhost:8080/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "admin@yourdomain.com",
-    "password": "YourSecurePassword123!",
-    "name": "Admin User"
-  }'
+# Development mode
+npm run dev
+
+# Production mode
+npm run start
+
+# With PM2
+pm2 start npm --name "hub-frontend" -- run start
+pm2 save
 ```
 
-### 3. Test AI Content Generation
+## 🌐 Production Deployment Options
 
+### Option 1: Single Server Deployment
 ```bash
-# Login to get JWT token
-TOKEN=$(curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "admin@yourdomain.com", "password": "YourSecurePassword123!"}' \
-  | jq -r '.token')
+# Backend on port 8080
+pm2 start src/index.ts --name "hub-backend" --interpreter none
 
-# Generate AI content
-curl -X POST http://localhost:8080/api/posts/ai/generate \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"optionsCount": 2, "platform": "twitter"}'
+# Frontend on port 3000
+cd client
+pm2 start npm --name "hub-frontend" -- run start
+
+# Nginx reverse proxy configuration
+nano /etc/nginx/sites-available/hub-social
 ```
 
----
-
-## Monitoring & Maintenance
-
-### View Application Logs
-
-```bash
-# Docker Compose
-docker compose logs -f app
-
-# Kubernetes
-kubectl logs -f deployment/content-hub -n content-hub
+**Nginx configuration:**
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+    
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+    
+    location /api/ {
+        proxy_pass http://localhost:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
 ```
 
-### Database Backups
+### Option 2: Docker Deployment (Recommended)
 
-Automated daily backups are configured in docker-compose.yml. Backups are stored in `./backups/` directory.
+Create a `docker-compose.yml` file:
+```yaml
+version: '3.8'
 
-Manual backup:
-```bash
-# Docker Compose
-docker compose exec postgres pg_dump -U admin content_hub > backup-$(date +%Y%m%d).sql
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - REDIS_HOST=redis
+    depends_on:
+      - postgres
+      - redis
+    restart: unless-stopped
 
-# Kubernetes
-kubectl exec -it deployment/postgres -n content-hub -- pg_dump -U admin content_hub > backup-$(date +%Y%m%d).sql
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8080/api
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:14
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=content_hub
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_secure_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
 ```
 
-### Scaling
+### Option 3: Separate Servers (Scalable)
 
+**Backend Server:**
 ```bash
-# Docker Compose (manual scaling)
-docker compose up -d --scale app=3
+# Install dependencies
+npm install
 
-# Kubernetes (automatic via HPA)
-kubectl get hpa -n content-hub
-kubectl describe hpa content-hub-hpa -n content-hub
+# Build and start
+npm run build
+pm2 start src/index.ts --name "hub-backend" --interpreter none
 ```
 
-### Update Deployment
+**Frontend Server:**
+```bash
+# Install dependencies
+npm install
 
+# Build and start
+npm run build
+pm2 start npm --name "hub-frontend" -- run start
+```
+
+## 🔒 Security Configuration
+
+### 1. SSL/TLS Setup
+```bash
+# Install Certbot
+sudo apt-get install -y certbot python3-certbot-nginx
+
+# Get SSL certificate
+sudo certbot --nginx -d yourdomain.com
+
+# Auto-renewal
+sudo certbot renew --dry-run
+```
+
+### 2. Firewall Configuration
+```bash
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 22/tcp
+sudo ufw enable
+```
+
+## 📊 Monitoring and Maintenance
+
+### 1. PM2 Monitoring
+```bash
+pm2 monit
+pm2 logs
+pm2 list
+```
+
+### 2. Log Rotation
+```bash
+# Install logrotate
+sudo apt-get install -y logrotate
+
+# Create logrotate config
+nano /etc/logrotate.d/hub-social
+```
+
+**Logrotate configuration:**
+```
+/root/hub_social_js/logs/*.log {
+    daily
+    missingok
+    rotate 14
+    compress
+    delaycompress
+    notifempty
+    create 640 root root
+    sharedscripts
+    postrotate
+        systemctl reload nginx
+    endscript
+}
+```
+
+## 🚀 Deployment Checklist
+
+- [ ] Install Node.js, PostgreSQL, Redis
+- [ ] Clone repository and install dependencies
+- [ ] Configure environment variables (.env files)
+- [ ] Run database migrations
+- [ ] Build frontend (`npm run build`)
+- [ ] Start backend and frontend services
+- [ ] Configure Nginx reverse proxy
+- [ ] Set up SSL certificates
+- [ ] Configure firewall
+- [ ] Set up monitoring and log rotation
+- [ ] Test all functionality
+- [ ] Set up backups
+
+## 🔄 Update and Maintenance
+
+### Updating the Application
 ```bash
 # Pull latest changes
-git pull origin claude/add-ai-social-posts-016WCFQJti9NRStUZ2jhVC1c
+cd /root/hub_social_media_js
+git pull origin master
 
-# Docker Compose
-docker compose down
-docker compose build
-docker compose up -d
+# Update dependencies
+npm install
+cd client
+npm install
 
-# Kubernetes
-docker build -t your-registry/content-hub:latest .
-docker push your-registry/content-hub:latest
-kubectl rollout restart deployment/content-hub -n content-hub
-kubectl rollout status deployment/content-hub -n content-hub
+# Rebuild and restart
+cd ..
+npm run build
+pm2 restart all
 ```
 
----
-
-## Troubleshooting
-
-### Container Won't Start
-
+### Backup Strategy
 ```bash
-# Check logs
-docker compose logs app
+# Database backup
+pg_dump -U postgres -d content_hub > backup_$(date +%Y%m%d).sql
 
-# Check environment variables
-docker compose exec app env | grep -E "XAI|PORT|DB"
-
-# Verify database connection
-docker compose exec app nc -zv postgres 5432
+# Full application backup
+tar -czvf hub_backup_$(date +%Y%m%d).tar.gz /root/hub_social_media_js
 ```
 
-### AI Generation Failing
+## 📞 Troubleshooting
 
-1. Verify XAI_API_KEY is set correctly
-2. Check if XAI_ENABLED=true
-3. Test API key:
-   ```bash
-   curl https://api.x.ai/v1/models \
-     -H "Authorization: Bearer YOUR_XAI_API_KEY"
-   ```
-4. Check application logs for errors
+### Common Issues
 
-### Database Connection Issues
-
+**1. Database connection failed:**
 ```bash
-# Check if Postgres is running
-docker compose ps postgres
+# Check PostgreSQL status
+sudo systemctl status postgresql
 
-# Check Postgres logs
-docker compose logs postgres
-
-# Connect to database manually
-docker compose exec postgres psql -U admin -d content_hub
+# Test connection
+psql -h localhost -p 55433 -U postgres -d content_hub
 ```
 
-### Port Already in Use
-
-If port 8080 is already in use, change it in `.env`:
+**2. Frontend not loading:**
 ```bash
-PORT=9090
+# Check Next.js logs
+pm2 logs hub-frontend
+
+# Check Nginx status
+sudo systemctl status nginx
+sudo nginx -t
 ```
 
-Then restart:
+**3. API endpoints not working:**
 ```bash
-docker compose down
-docker compose up -d
+# Check backend logs
+pm2 logs hub-backend
+
+# Test API directly
+curl http://localhost:8080/api/health
 ```
 
----
+**4. OAuth login failed:**
+```bash
+# Check Twitter OAuth configuration
+echo "TWITTER_CLIENT_ID: $TWITTER_CLIENT_ID"
 
-## Performance Optimization
-
-### Production Recommendations
-
-1. **Use a reverse proxy** (nginx/traefik) for SSL/TLS
-2. **Configure CDN** for static assets
-3. **Set up Redis persistence** for job queue reliability
-4. **Enable database connection pooling**
-5. **Configure log rotation** to prevent disk space issues
-6. **Set resource limits** in docker-compose or k8s
-7. **Monitor API rate limits** for Grok and social media APIs
-
-### Resource Limits
-
-Recommended for production:
-
-```yaml
-# Docker Compose
-deploy:
-  resources:
-    limits:
-      cpus: '1'
-      memory: 1G
-    reservations:
-      cpus: '0.5'
-      memory: 512M
+# Test OAuth endpoint
+curl http://localhost:8080/api/auth/x/login
 ```
 
----
+## 🎉 Deployment Complete!
 
-## Support & Documentation
+Your Hub Social Media application should now be running at:
+- **Frontend**: `https://yourdomain.com`
+- **Backend API**: `https://yourdomain.com/api/`
+- **Admin Dashboard**: `https://yourdomain.com/settings`
 
-- **AI Features**: See `docs/AI_CONTENT_GENERATION.md`
-- **API Documentation**: Available at `/api/docs` when running
-- **Health Check**: `http://localhost:8080/health`
-- **Metrics**: `http://localhost:8080/metrics` (Prometheus format)
-
----
-
-## Production Checklist
-
-- [ ] Environment variables configured
-- [ ] Secrets generated and set
-- [ ] xAI API key obtained and configured
-- [ ] Database deployed and initialized
-- [ ] Redis deployed and running
-- [ ] Application deployed and healthy
-- [ ] Health checks passing
-- [ ] Monitoring dashboards configured
-- [ ] Backup system tested
-- [ ] SSL/TLS certificates configured (if public)
-- [ ] Domain/DNS configured (if public)
-- [ ] Firewall rules configured
-- [ ] Load balancer configured (if needed)
-- [ ] Auto-scaling tested (if K8s)
-
----
-
-## Summary of Changes for This Deployment
-
-This deployment includes:
-
-✅ **AI Content Generation** with xAI Grok API
-✅ **Port 8080** as default
-✅ **Production-ready Docker configuration**
-✅ **Kubernetes deployment with auto-scaling**
-✅ **Comprehensive monitoring stack**
-✅ **Automated database backups**
-✅ **Health checks and probes**
-✅ **Security best practices**
-
-All configuration files have been updated to support the new AI features while maintaining production-grade reliability and security.
+Enjoy your fully deployed social media management platform! 🚀

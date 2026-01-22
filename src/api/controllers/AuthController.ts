@@ -2,13 +2,42 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
+import axios from 'axios';
+import { TwitterApi as TwitterClient } from 'twitter-api-v2';
 import database from '../../database/connection';
 import { config } from '../../config';
 import { logger } from '../../utils/logger';
 import { ValidationService } from '../../utils/validation';
 import { AuthRequest } from '../middlewares/auth';
+import EncryptionService from '../../utils/encryption';
 
 export class AuthController {
+  private isLocalUrl(url: string): boolean {
+    return url.includes('localhost') || url.includes('127.0.0.1');
+  }
+
+  private getXAuthRedirectUri(req: Request): string {
+    const configured = config.platforms.twitter.authRedirectUri?.trim();
+    if (configured) {
+      return configured;
+    }
+
+    const apiUrl = config.apiUrl?.trim();
+    const apiRedirect = apiUrl
+      ? `${apiUrl.replace(/\/$/, '')}/api/auth/x/callback`
+      : '';
+
+    const host = req.get('host');
+    const inferred = host ? `${req.protocol}://${host}/api/auth/x/callback` : '';
+
+    if (apiUrl && !this.isLocalUrl(apiUrl)) {
+      return apiRedirect;
+    }
+
+    return inferred || apiRedirect;
+  }
+
   async register(req: Request, res: Response): Promise<Response> {
     try {
       const { email, password, name } = req.body;
@@ -226,9 +255,16 @@ export class AuthController {
    * Initiate X (Twitter) OAuth login/registration flow
    * GET /api/auth/x/login
    */
-  async initiateXLogin(_req: Request, res: Response): Promise<void> {
+  async initiateXLogin(req: Request, res: Response): Promise<void> {
     try {
-      const crypto = require('crypto');
+      if (!config.platforms.twitter.clientId || !config.platforms.twitter.clientSecret) {
+        res.status(500).json({
+          error: 'X login is not configured. Please set TWITTER_CLIENT_ID and TWITTER_CLIENT_SECRET.',
+        });
+        return;
+      }
+
+      const redirectUri = this.getXAuthRedirectUri(req);
 
       // Generate PKCE code verifier and challenge
       const codeVerifier = crypto.randomBytes(32).toString('base64url');
@@ -244,6 +280,7 @@ export class AuthController {
       const stateData = JSON.stringify({
         state,
         codeVerifier,
+        redirectUri,
         purpose: 'auth', // To distinguish from account connection
       });
 
@@ -253,7 +290,7 @@ export class AuthController {
       const authUrl = new URL('https://twitter.com/i/oauth2/authorize');
       authUrl.searchParams.append('response_type', 'code');
       authUrl.searchParams.append('client_id', config.platforms.twitter.clientId);
-      authUrl.searchParams.append('redirect_uri', `${config.apiUrl}/api/auth/x/callback`);
+      authUrl.searchParams.append('redirect_uri', redirectUri);
       authUrl.searchParams.append('scope', 'tweet.read tweet.write users.read offline.access');
       authUrl.searchParams.append('state', encodedState);
       authUrl.searchParams.append('code_challenge', codeChallenge);
@@ -280,7 +317,6 @@ export class AuthController {
       }
 
       // Verify Telegram auth data
-      const crypto = require('crypto');
       const botToken = config.platforms.telegram.botToken;
 
       if (!botToken) {
@@ -421,7 +457,13 @@ export class AuthController {
    */
   async handleXCallback(req: Request, res: Response): Promise<void> {
     try {
-      const { code, state: encodedState } = req.query;
+      const { code, state: encodedState, error, error_description } = req.query;
+
+      if (error) {
+        const errorMessage = error_description || error;
+        res.redirect(`${config.clientUrl}/login?error=${encodeURIComponent(errorMessage as string)}`);
+        return;
+      }
 
       if (!code || !encodedState) {
         res.redirect(`${config.clientUrl}/login?error=missing_parameters`);
@@ -429,18 +471,35 @@ export class AuthController {
       }
 
       // Decode state
-      const stateData = JSON.parse(Buffer.from(encodedState as string, 'base64url').toString());
+      let stateData: { codeVerifier?: string; redirectUri?: string } = {};
+      try {
+        stateData = JSON.parse(Buffer.from(encodedState as string, 'base64url').toString());
+      } catch (decodeError) {
+        logger.error('Invalid OAuth state parameter', decodeError);
+        res.redirect(`${config.clientUrl}/login?error=invalid_state`);
+        return;
+      }
+
+      const redirectUri = stateData.redirectUri || this.getXAuthRedirectUri(req);
       const { codeVerifier } = stateData;
 
+      if (!codeVerifier) {
+        res.redirect(`${config.clientUrl}/login?error=missing_code_verifier`);
+        return;
+      }
+      if (!config.platforms.twitter.clientId || !config.platforms.twitter.clientSecret) {
+        res.redirect(`${config.clientUrl}/login?error=oauth_not_configured`);
+        return;
+      }
+
       // Exchange authorization code for tokens
-      const axios = require('axios');
       const tokenResponse = await axios.post(
         'https://api.twitter.com/2/oauth2/token',
         new URLSearchParams({
           code: code as string,
           grant_type: 'authorization_code',
           client_id: config.platforms.twitter.clientId,
-          redirect_uri: `${config.apiUrl}/api/auth/x/callback`,
+          redirect_uri: redirectUri,
           code_verifier: codeVerifier,
         }),
         {
@@ -458,7 +517,6 @@ export class AuthController {
       const tokens = tokenResponse.data;
 
       // Get user info from X/Twitter
-      const TwitterClient = require('twitter-api-v2').TwitterApi;
       const twitterClient = new TwitterClient(tokens.access_token);
       const { data: twitterUser } = await twitterClient.v2.me({
         'user.fields': ['id', 'name', 'username', 'profile_image_url'],
@@ -508,7 +566,6 @@ export class AuthController {
 
       // Auto-add X account to platform_credentials for immediate use
       try {
-        const EncryptionService = require('../../utils/encryption');
         const accountIdentifier = `@${twitterUser.username}`;
         const accountCredentials = {
           accessToken: tokens.access_token,

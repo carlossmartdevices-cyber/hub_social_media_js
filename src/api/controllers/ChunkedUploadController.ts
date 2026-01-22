@@ -83,7 +83,8 @@ export class ChunkedUploadController {
       }
 
       const { uploadId } = req.params
-      const { chunkIndex, checksum } = req.body
+      const chunkIndexParam = req.body.chunkIndex ?? req.query.chunkIndex
+      const checksumParam = req.body.checksum ?? req.query.checksum
       const chunkData = req.file?.buffer
 
       if (!chunkData) {
@@ -91,12 +92,20 @@ export class ChunkedUploadController {
         return
       }
 
-      if (chunkIndex === undefined || !checksum) {
+      if (chunkIndexParam === undefined || !checksumParam) {
         res.status(400).json({
           error: 'Missing required fields: chunkIndex, checksum',
         })
         return
       }
+
+      const chunkIndex = parseInt(String(chunkIndexParam), 10)
+      if (Number.isNaN(chunkIndex)) {
+        res.status(400).json({ error: 'Invalid chunkIndex (must be an integer)' })
+        return
+      }
+
+      const checksum = String(checksumParam)
 
       // Verify checksum is a valid hash (MD5: 32 chars or SHA-256: 64 chars)
       if (!/^[a-f0-9]{32}$/.test(checksum) && !/^[a-f0-9]{64}$/.test(checksum)) {
@@ -106,7 +115,7 @@ export class ChunkedUploadController {
 
       const response = await this.uploadService.saveChunk(
         uploadId,
-        parseInt(chunkIndex, 10),
+        chunkIndex,
         chunkData,
         checksum
       )

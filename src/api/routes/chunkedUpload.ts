@@ -27,6 +27,7 @@ interface RedisClient {
   sadd(key: string, member: string): Promise<number>
   smembers(key: string): Promise<string[]>
   scard(key: string): Promise<number>
+  srem(key: string, member: string): Promise<number>
 }
 
 async function initializeServices() {
@@ -69,7 +70,17 @@ async function initializeServices() {
       scard: async (key: string): Promise<number> => {
         const members = await cacheService.get<string[]>(key) || []
         return members.length
-      }
+      },
+      srem: async (key: string, member: string): Promise<number> => {
+        const current = await cacheService.get<string[]>(key) || []
+        const filtered = current.filter((item) => item !== member)
+        if (filtered.length === 0) {
+          await cacheService.del(key)
+        } else {
+          await cacheService.set(key, filtered, 3600)
+        }
+        return current.length - filtered.length
+      },
     }
 
     uploadService = new ChunkedUploadService(
@@ -93,11 +104,14 @@ initializeServices().catch(error => {
   logger.error('Error during chunked upload service initialization:', error)
 })
 
+const chunkSizeBytes = config.upload.chunkSizeMb * 1024 * 1024
+const chunkLimitBytes = Math.ceil(chunkSizeBytes * 1.1) // Allow small overhead above configured chunk size
+
 // Multer configuration for chunk uploads
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 6 * 1024 * 1024, // 6MB per chunk (slightly larger than 5MB default)
+    fileSize: chunkLimitBytes,
   },
   fileFilter: (_req, _file, cb) => {
     // Accept chunk uploads from any content type

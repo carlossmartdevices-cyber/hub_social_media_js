@@ -12,6 +12,8 @@ import { EncryptionService } from '../../utils/encryption';
 import { multiPlatformPublishService } from '../../services/MultiPlatformPublishService';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
+import { config } from '../../config';
 
 /** Video post database row type */
 interface VideoPostRow {
@@ -43,10 +45,17 @@ interface VideoMetadata {
   cta?: string;
 }
 
+const TEMP_UPLOAD_DIR = path.join(config.media.storagePath, 'temp');
+
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, './uploads/temp');
+    try {
+      fs.mkdirSync(TEMP_UPLOAD_DIR, { recursive: true });
+      cb(null, TEMP_UPLOAD_DIR);
+    } catch (err) {
+      cb(err as Error, TEMP_UPLOAD_DIR);
+    }
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
@@ -57,7 +66,7 @@ const storage = multer.diskStorage({
 export const videoUpload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 * 1024, // 5GB max
+    fileSize: config.media.maxVideoSize,
   },
   fileFilter: (_req, file, cb) => {
     const allowedTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo', 'video/mpeg', 'video/webm', 'video/x-matroska'];

@@ -3,8 +3,12 @@
  * Manages resumable uploads with queue, bandwidth throttling, and persistence
  */
 
-import crypto from 'crypto-js'
-import { UploadTask, UploadProgress, ChunkInfo } from '../../../src/types/upload.types'
+import {
+  UploadTask,
+  UploadProgress,
+  ChunkInfo,
+  UploadCompleteResponse,
+} from '../../../src/types/upload.types'
 import { getUploadStorage, UploadStorage } from './uploadStorage'
 
 interface UploadManagerConfig {
@@ -94,8 +98,9 @@ export class ResumableUploadManager {
       error: undefined,
     }
 
-    // Check queue limits
-    if (this.uploadQueue.size >= this.config.maxQueuedUploads) {
+    // Check total limits (queued + active)
+    const totalUploads = this.uploadQueue.size + this.activeUploads.size
+    if (totalUploads >= this.config.maxQueuedUploads) {
       throw new Error(
         `Upload queue is full. Maximum ${this.config.maxQueuedUploads} uploads allowed.`
       )
@@ -104,9 +109,12 @@ export class ResumableUploadManager {
     this.uploadQueue.set(uploadId, uploadTask)
     await this.storage.saveUpload(uploadTask)
     await this.storage.addToQueue(uploadTask)
+    this.callbacks.onStatusChange?.(uploadId, 'pending')
 
-    // Automatically start if space available
-    await this.processQueue()
+    // Automatically start if space available, but yield so callers can observe queue state.
+    setTimeout(() => {
+      void this.processQueue()
+    }, 0)
 
     return uploadId
   }
@@ -162,7 +170,7 @@ export class ResumableUploadManager {
     }
 
     // Initialize upload on server
-    const initResponse = await this.initializeServerUpload(uploadId, task)
+    await this.initializeServerUpload(task)
 
     // Upload chunks in parallel (max 4 concurrent)
     const maxParallelChunks = 4
@@ -218,8 +226,8 @@ export class ResumableUploadManager {
         // Extract chunk data
         const chunkData = file.slice(chunk.start, chunk.end)
 
-        // Calculate MD5 checksum
-        const checksum = await this.calculateMD5(chunkData)
+        // Calculate checksum (SHA-256)
+        const checksum = await this.calculateChecksum(chunkData)
 
         // Apply bandwidth limiting if configured
         const limiter = this.bandwidthLimiters.get(uploadId)
@@ -242,8 +250,11 @@ export class ResumableUploadManager {
         )
 
         if (!response.ok) {
-          const error = await response.json()
-          throw new Error(error.error || 'Chunk upload failed')
+          const errorMessage = await this.getErrorMessage(
+            response,
+            'Chunk upload failed'
+          )
+          throw new Error(errorMessage)
         }
 
         // Mark chunk as uploaded
@@ -281,7 +292,6 @@ export class ResumableUploadManager {
    * Initialize upload session on server
    */
   private async initializeServerUpload(
-    uploadId: string,
     task: UploadTask
   ): Promise<any> {
     const response = await fetch('/api/upload/init', {
@@ -296,8 +306,11 @@ export class ResumableUploadManager {
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to initialize upload')
+      const errorMessage = await this.getErrorMessage(
+        response,
+        'Failed to initialize upload'
+      )
+      throw new Error(errorMessage)
     }
 
     return await response.json()
@@ -316,11 +329,14 @@ export class ResumableUploadManager {
     })
 
     if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to complete upload')
+      const errorMessage = await this.getErrorMessage(
+        response,
+        'Failed to complete upload'
+      )
+      throw new Error(errorMessage)
     }
 
-    const result = await response.json()
+    const result = (await response.json()) as UploadCompleteResponse
 
     // Update task
     task.status = 'completed'
@@ -346,15 +362,22 @@ export class ResumableUploadManager {
    */
   async pauseUpload(uploadId: string): Promise<void> {
     const task = this.activeUploads.get(uploadId)
-    if (!task) {
+    const queuedTask = this.uploadQueue.get(uploadId)
+
+    if (!task && !queuedTask) {
       throw new Error(`Upload not found: ${uploadId}`)
     }
 
-    task.status = 'paused'
-    task.progress.isPaused = true
-    task.progress.isActive = false
+    const targetTask = task || queuedTask
+    if (!targetTask) {
+      throw new Error(`Upload not found: ${uploadId}`)
+    }
 
-    await this.storage.saveUpload(task)
+    targetTask.status = 'paused'
+    targetTask.progress.isPaused = true
+    targetTask.progress.isActive = false
+
+    await this.storage.saveUpload(targetTask)
     this.callbacks.onStatusChange?.(uploadId, 'paused')
   }
 
@@ -366,14 +389,24 @@ export class ResumableUploadManager {
 
     if (!task) {
       // Try to recover from storage
-      task = await this.storage.getUpload(uploadId)
-      if (!task) {
+      const storedTask = await this.storage.getUpload(uploadId)
+      if (!storedTask) {
         throw new Error(`Upload not found: ${uploadId}`)
       }
+      const chunks = await this.storage.getUploadChunks(uploadId)
+      task = { ...storedTask, chunks }
+      this.uploadQueue.set(uploadId, task)
     }
 
     if (task.status === 'paused' || task.status === 'pending') {
-      if (this.activeUploads.size < this.config.maxConcurrentUploads) {
+      if (this.activeUploads.has(uploadId)) {
+        task.status = 'uploading'
+        task.progress.isActive = true
+        task.progress.isPaused = false
+        await this.storage.saveUpload(task)
+        this.callbacks.onStatusChange?.(uploadId, 'uploading')
+        await this.uploadChunks(uploadId)
+      } else if (this.activeUploads.size < this.config.maxConcurrentUploads) {
         await this.startUpload(uploadId)
       } else {
         // Re-queue
@@ -404,11 +437,13 @@ export class ResumableUploadManager {
     this.uploadStartTimes.delete(uploadId)
     this.uploadedBytes.delete(uploadId)
 
-    // Delete from server
-    try {
-      await fetch(`/api/upload/cancel/${uploadId}`, { method: 'DELETE' })
-    } catch (error) {
-      console.warn(`Failed to cancel upload on server: ${error}`)
+    // Delete from server (skip in non-browser environments)
+    if (typeof window !== 'undefined') {
+      try {
+        await fetch(`/api/upload/cancel/${uploadId}`, { method: 'DELETE' })
+      } catch (error) {
+        console.warn(`Failed to cancel upload on server: ${error}`)
+      }
     }
 
     // Delete from storage
@@ -422,7 +457,7 @@ export class ResumableUploadManager {
    * Get upload progress
    */
   getUploadProgress(uploadId: string): UploadProgress | undefined {
-    const task = this.activeUploads.get(uploadId)
+    const task = this.activeUploads.get(uploadId) || this.uploadQueue.get(uploadId)
     return task?.progress
   }
 
@@ -469,7 +504,13 @@ export class ResumableUploadManager {
       this.uploadQueue.size > 0 &&
       this.activeUploads.size < this.config.maxConcurrentUploads
     ) {
-      const [uploadId] = this.uploadQueue.entries().next().value
+      const nextEntry = Array.from(this.uploadQueue.entries()).find(
+        ([, queuedTask]) => queuedTask.status !== 'paused'
+      )
+      if (!nextEntry) {
+        return
+      }
+      const [uploadId] = nextEntry
       try {
         await this.startUpload(uploadId)
       } catch (error) {
@@ -509,13 +550,30 @@ export class ResumableUploadManager {
     return toRecover.map((u) => u.uploadId)
   }
 
+  private async getErrorMessage(
+    response: Response,
+    fallback: string
+  ): Promise<string> {
+    try {
+      const data = (await response.json()) as { error?: string }
+      if (data && typeof data === 'object' && typeof data.error === 'string') {
+        return data.error
+      }
+    } catch {
+      // Ignore parse failures and fall back to default message.
+    }
+
+    return fallback
+  }
+
   /**
-   * Calculate MD5 hash of a chunk
+   * Calculate checksum hash of a chunk (SHA-256)
    */
-  private async calculateMD5(data: Blob): Promise<string> {
+  private async calculateChecksum(data: Blob): Promise<string> {
     const buffer = await data.arrayBuffer()
-    const wordArray = crypto.lib.WordArray.create(buffer)
-    return crypto.MD5(wordArray).toString()
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
   }
 
   /**
@@ -544,13 +602,11 @@ export class ResumableUploadManager {
  * Bandwidth Limiter - Token bucket algorithm
  */
 class BandwidthLimiter {
-  private maxSpeedMbps: number
   private tokens: number
   private lastRefillTime: number
   private readonly tokenRefillRate: number // tokens per millisecond
 
   constructor(maxSpeedMbps: number) {
-    this.maxSpeedMbps = maxSpeedMbps
     this.tokenRefillRate = (maxSpeedMbps * 1024 * 1024) / 1000 // bytes per millisecond
     this.tokens = this.tokenRefillRate * 100 // Start with 100ms of capacity
     this.lastRefillTime = Date.now()

@@ -1,268 +1,159 @@
 #!/bin/bash
 
-# Hub Social Media Deployment Script
-# Easy deployment and management of the Docker-based application
+# 🚀 Hub Social Media Deployment Script
+# This script builds and deploys both frontend and backend
 
-set -e
+echo "🚀 Starting Hub Social Media Deployment"
+echo "========================================"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Check if we're in the correct directory
+if [ ! -d "client" ] || [ ! -f "package.json" ]; then
+    echo "❌ Error: This script must be run from the project root directory"
+    exit 1
+fi
 
-# Configuration
-COMPOSE_FILE="docker-compose.yml"
-ENV_FILE=".env"
-
-# Functions
-print_success() {
-    echo -e "${GREEN}✓${NC} $1"
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
 }
 
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
+# Check for required tools
+if ! command_exists node; then
+    echo "❌ Error: Node.js is not installed. Please install Node.js first."
+    exit 1
+fi
 
-print_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
-}
+if ! command_exists npm; then
+    echo "❌ Error: npm is not installed. Please install npm first."
+    exit 1
+fi
 
-print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
+# Step 1: Install backend dependencies
+echo -e "\n📦 Step 1: Installing backend dependencies..."
+cd /root/hub_social_media_js
+if npm install; then
+    echo "✅ Backend dependencies installed successfully"
+else
+    echo "❌ Failed to install backend dependencies"
+    exit 1
+fi
 
-print_header() {
-    echo ""
-    echo -e "${BLUE}================================${NC}"
-    echo -e "${BLUE}$1${NC}"
-    echo -e "${BLUE}================================${NC}"
-    echo ""
-}
+# Step 2: Build backend
+echo -e "\n🔨 Step 2: Building backend..."
+if npm run build; then
+    echo "✅ Backend built successfully"
+else
+    echo "❌ Failed to build backend"
+    exit 1
+fi
 
-check_requirements() {
-    print_info "Checking requirements..."
+# Step 3: Install frontend dependencies
+echo -e "\n📦 Step 3: Installing frontend dependencies..."
+cd client
+if npm install; then
+    echo "✅ Frontend dependencies installed successfully"
+else
+    echo "❌ Failed to install frontend dependencies"
+    exit 1
+fi
 
-    if ! command -v docker &> /dev/null; then
-        print_error "Docker is not installed"
+# Step 4: Build frontend
+echo -e "\n🔨 Step 4: Building frontend..."
+if npm run build; then
+    echo "✅ Frontend built successfully"
+else
+    echo "❌ Failed to build frontend"
+    exit 1
+fi
+
+# Step 5: Check if PM2 is installed
+echo -e "\n🔍 Step 5: Checking PM2 installation..."
+if ! command_exists pm2; then
+    echo "ℹ️  PM2 not found. Installing PM2..."
+    npm install -g pm2
+    if [ $? -eq 0 ]; then
+        echo "✅ PM2 installed successfully"
+    else
+        echo "⚠️  PM2 installation failed. You can still run manually with 'npm run start'"
+    fi
+fi
+
+# Step 6: Start backend
+echo -e "\n🚀 Step 6: Starting backend..."
+cd /root/hub_social_media_js
+if command_exists pm2; then
+    # Check if backend is already running
+    if pm2 list | grep -q "hub-backend"; then
+        echo "ℹ️  Backend is already running. Restarting..."
+        pm2 restart hub-backend
+    else
+        pm2 start src/index.ts --name "hub-backend" --interpreter none
+    fi
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Backend started successfully with PM2"
+    else
+        echo "❌ Failed to start backend with PM2"
         exit 1
     fi
+else
+    echo "ℹ️  Starting backend with npm..."
+    npm run start &
+    echo "✅ Backend started (running in background)"
+fi
 
-    if ! command -v docker-compose &> /dev/null && ! docker compose version &> /dev/null; then
-        print_error "Docker Compose is not installed"
+# Step 7: Start frontend
+echo -e "\n🚀 Step 7: Starting frontend..."
+cd client
+if command_exists pm2; then
+    # Check if frontend is already running
+    if pm2 list | grep -q "hub-frontend"; then
+        echo "ℹ️  Frontend is already running. Restarting..."
+        pm2 restart hub-frontend
+    else
+        pm2 start npm --name "hub-frontend" -- run start
+    fi
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Frontend started successfully with PM2"
+    else
+        echo "❌ Failed to start frontend with PM2"
         exit 1
     fi
+else
+    echo "ℹ️  Starting frontend with npm..."
+    npm run start &
+    echo "✅ Frontend started (running in background)"
+fi
 
-    if [ ! -f "$ENV_FILE" ]; then
-        print_error ".env file not found"
-        exit 1
-    fi
+# Step 8: Save PM2 processes
+echo -e "\n💾 Step 8: Saving PM2 processes..."
+if command_exists pm2; then
+    pm2 save
+    pm2 startup
+    echo "✅ PM2 processes saved and startup configured"
+fi
 
-    print_success "All requirements met"
-}
+# Step 9: Show deployment summary
+echo -e "\n📊 Deployment Summary"
+echo "===================="
+echo "✅ Backend: Running on http://localhost:8080"
+echo "✅ Frontend: Running on http://localhost:3000"
+echo "✅ API Endpoint: http://localhost:8080/api/"
 
-start_services() {
-    print_header "Starting Services"
-    check_requirements
-
-    print_info "Starting Docker containers..."
-    docker-compose up -d
-
-    print_success "Services started successfully"
-    print_info "Waiting for services to be healthy..."
-    sleep 5
-
-    show_status
-}
-
-stop_services() {
-    print_header "Stopping Services"
-
-    print_info "Stopping Docker containers..."
-    docker-compose down
-
-    print_success "Services stopped successfully"
-}
-
-restart_services() {
-    print_header "Restarting Services"
-
-    stop_services
-    sleep 2
-    start_services
-}
-
-show_status() {
-    print_header "Service Status"
-    docker-compose ps
-}
-
-show_logs() {
-    local service=$1
-
-    if [ -z "$service" ]; then
-        print_header "All Service Logs"
-        docker-compose logs --tail=100 -f
-    else
-        print_header "Logs for $service"
-        docker-compose logs --tail=100 -f "$service"
-    fi
-}
-
-build_services() {
-    print_header "Building Services"
-    check_requirements
-
-    print_info "Building Docker images..."
-    docker-compose build --no-cache
-
-    print_success "Build completed successfully"
-}
-
-rebuild_and_start() {
-    print_header "Rebuild and Start"
-
-    stop_services
-    build_services
-    start_services
-}
-
-clean_all() {
-    print_header "Cleaning Up"
-
-    print_warning "This will remove all containers, volumes, and images"
-    read -p "Are you sure? (y/N) " -n 1 -r
-    echo
-
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
-        print_info "Stopping all containers..."
-        docker-compose down -v
-
-        print_info "Removing images..."
-        docker-compose down --rmi all
-
-        print_success "Cleanup completed"
-    else
-        print_info "Cleanup cancelled"
-    fi
-}
-
-health_check() {
-    print_header "Health Check"
-
-    print_info "Checking service health..."
-
-    # Check if containers are running
-    if ! docker-compose ps | grep -q "Up"; then
-        print_error "No services are running"
-        return 1
-    fi
-
-    # Check Redis
-    if docker-compose exec -T redis redis-cli ping &> /dev/null; then
-        print_success "Redis is healthy"
-    else
-        print_error "Redis is not responding"
-    fi
-
-    # Check PostgreSQL
-    if docker-compose exec -T postgres pg_isready -U postgres &> /dev/null; then
-        print_success "PostgreSQL is healthy"
-    else
-        print_error "PostgreSQL is not responding"
-    fi
-
-    # Check App
-    if docker-compose ps | grep "content-hub-app" | grep -q "Up"; then
-        print_success "Application is running"
-    else
-        print_error "Application is not running"
-    fi
-}
-
-backup_db() {
-    print_header "Database Backup"
-
-    BACKUP_DIR="./backups"
-    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-    BACKUP_FILE="$BACKUP_DIR/db_backup_$TIMESTAMP.sql"
-
-    mkdir -p "$BACKUP_DIR"
-
-    print_info "Creating database backup..."
-    docker-compose exec -T postgres pg_dump -U postgres hub_social_media > "$BACKUP_FILE"
-
-    print_success "Backup created: $BACKUP_FILE"
-}
-
-show_help() {
-    cat << EOF
-Hub Social Media Deployment Script
-
-Usage: ./deploy.sh [command]
-
-Commands:
-    start           Start all services
-    stop            Stop all services
-    restart         Restart all services
-    status          Show service status
-    logs [service]  Show logs (optionally for specific service)
-    build           Build Docker images
-    rebuild         Rebuild images and start services
-    clean           Remove all containers, volumes, and images
-    health          Run health check on all services
-    backup          Create database backup
-    help            Show this help message
-
-Examples:
-    ./deploy.sh start
-    ./deploy.sh logs app
-    ./deploy.sh restart
-    ./deploy.sh health
-
-EOF
-}
-
-# Main script logic
-case "${1:-}" in
-    start)
-        start_services
-        ;;
-    stop)
-        stop_services
-        ;;
-    restart)
-        restart_services
-        ;;
-    status)
-        show_status
-        ;;
-    logs)
-        show_logs "$2"
-        ;;
-    build)
-        build_services
-        ;;
-    rebuild)
-        rebuild_and_start
-        ;;
-    clean)
-        clean_all
-        ;;
-    health)
-        health_check
-        ;;
-    backup)
-        backup_db
-        ;;
-    help|--help|-h)
-        show_help
-        ;;
-    *)
-        print_error "Unknown command: ${1:-}"
-        echo ""
-        show_help
-        exit 1
-        ;;
-esac
+echo -e "\n🎉 Deployment Complete!"
+echo "======================"
+echo "Your Hub Social Media application is now running."
+echo ""
+echo "Access the application at:"
+echo "- Frontend: http://localhost:3000"
+echo "- Backend API: http://localhost:8080/api/"
+echo "- Health check: http://localhost:8080/api/"
+echo ""
+echo "To check running processes:"
+echo "- pm2 list (if using PM2)"
+echo "- pm2 logs (to view logs)"
+echo ""
+echo "To stop the application:"
+echo "- pm2 stop all (if using PM2)"
+echo "- pm2 delete all (to remove from PM2)"

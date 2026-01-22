@@ -3,6 +3,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { logger } from '../utils/logger';
 import database from '../database/connection';
+import { config } from '../config';
 
 interface VideoMetadata {
   duration: number; // seconds
@@ -44,9 +45,9 @@ interface ProcessedVideo {
  * VideoProcessingService - Handle video compression, optimization and upload
  */
 export class VideoProcessingService {
-  private readonly UPLOAD_DIR = process.env.VIDEO_UPLOAD_DIR || './uploads/videos';
-  private readonly THUMBNAIL_DIR = process.env.THUMBNAIL_DIR || './uploads/thumbnails';
-  private readonly MAX_VIDEO_SIZE = 5 * 1024 * 1024 * 1024; // 5GB max
+  private readonly UPLOAD_DIR = config.video.uploadDir;
+  private readonly THUMBNAIL_DIR = config.video.thumbnailDir;
+  private readonly MAX_VIDEO_SIZE = config.media.maxVideoSize;
 
   // Adult content video constraints (previews for pnptv.app)
   private readonly ADULT_CONTENT_CONSTRAINTS: AdultContentConstraints = {
