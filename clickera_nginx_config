@@ -1,0 +1,88 @@
+# Nginx Production Configuration for Hub Social Media
+# Domain: clickera.app
+
+server {
+    listen 80;
+    server_name clickera.app www.clickera.app;
+    
+    # Redirect HTTP to HTTPS
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name clickera.app www.clickera.app;
+    
+    # SSL Configuration
+    ssl_certificate /etc/letsencrypt/live/clickera.app/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/clickera.app/privkey.pem;
+    
+    # SSL Settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    
+    # Security Headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+    
+    # Gzip Compression
+    gzip on;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss application/atom+xml image/svg+xml;
+    
+    # Frontend - Next.js Application
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300;
+    }
+    
+    # Backend API
+    location /api/ {
+        proxy_pass http://localhost:8080/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+        proxy_read_timeout 300;
+    }
+    
+    # Static Assets - Long Cache
+    location ~* \.(jpg|jpeg|png|gif|ico|cur|gz|svg|svgz|mp4|ogg|ogv|webm|htc|woff2|woff|ttf|eot)$ {
+        expires 1y;
+        access_log off;
+        add_header Cache-Control "public";
+        proxy_pass http://localhost:3000;
+    }
+    
+    # Client-side Caching
+    location ~* \.(css|js|json)$ {
+        expires 1y;
+        access_log off;
+        add_header Cache-Control "public";
+        proxy_pass http://localhost:3000;
+    }
+    
+    # File Upload Size Limit
+    client_max_body_size 100M;
+    
+    # Logging
+    access_log /var/log/nginx/clickera.app.access.log;
+    error_log /var/log/nginx/clickera.app.error.log;
+}
