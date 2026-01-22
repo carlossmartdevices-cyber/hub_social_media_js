@@ -72,12 +72,12 @@ This project includes a simple deployment script (`deploy.sh`) that makes it eas
 
 The following ports are exposed:
 
-- **Application**: `3010` (or `PORT` from `.env`)
-- **PostgreSQL**: `5432` (or `DB_PORT` from `.env`)
+- **Application**: `8082` (maps to container `8080`, or `PORT` from `.env`)
+- **PostgreSQL**: `55433` (maps to container `5432`, or `DB_PORT` from `.env`)
 - **Redis**: `6380` (or `REDIS_PORT` from `.env`)
 - **Prometheus**: `9090`
-- **Grafana**: `3001`
-- **cAdvisor**: `8080`
+- **Grafana**: `3002`
+- **cAdvisor**: `8083`
 - **Node Exporter**: `9100`
 - **Redis Exporter**: `9121`
 - **PostgreSQL Exporter**: `9187`
@@ -86,9 +86,9 @@ The following ports are exposed:
 
 Access the monitoring dashboards:
 
-- **Grafana**: http://localhost:3001 (admin/admin)
+- **Grafana**: http://localhost:3002 (admin/admin)
 - **Prometheus**: http://localhost:9090
-- **cAdvisor**: http://localhost:8080
+- **cAdvisor**: http://localhost:8083
 
 ## Troubleshooting
 
@@ -113,6 +113,38 @@ View logs for a specific service:
 ```
 
 Available services: `app`, `postgres`, `redis`, `prometheus`, `grafana`, `cadvisor`, `node-exporter`, `redis-exporter`, `postgres-exporter`
+
+### Frontend Shows the Wrong Site (e.g., Videorama)
+
+If `https://clickera.app` displays another site (like Videorama), verify the frontend process and routing:
+
+1. Confirm the frontend server is serving Clickera:
+   ```bash
+   curl -s http://localhost:3000 | head -20
+   ```
+   Look for `Clickera` in the HTML `<title>` or metadata.
+
+2. Ensure the frontend process is pointing at the Clickera client directory:
+   ```bash
+   pm2 info hub-frontend-production
+   ```
+   The `cwd` should be `/root/hub_social_media_js/client`.
+
+3. Rebuild and restart the frontend:
+   ```bash
+   cd /root/hub_social_media_js/client
+   npm install
+   npm run build
+   pm2 restart hub-frontend-production
+   ```
+
+4. Verify Nginx is routing to the correct service:
+   ```bash
+   sudo nginx -T | grep -n "clickera.app" -n
+   ```
+   Ensure the `server_name` and `proxy_pass` targets align with `clickera-app.conf`.
+
+If the wrong content persists, check for a stale CDN cache or a second Nginx site mapping the same domain.
 
 ### Database Issues
 

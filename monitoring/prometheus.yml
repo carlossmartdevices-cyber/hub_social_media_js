@@ -43,7 +43,7 @@ scrape_configs:
   - job_name: 'content-hub-api'
     metrics_path: '/metrics'
     static_configs:
-      - targets: ['app:3000']
+      - targets: ['app:8080']
         labels:
           service: 'content-hub'
           component: 'api'
