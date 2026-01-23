@@ -132,7 +132,9 @@ export const config = {
       model: process.env.XAI_MODEL || 'grok-beta',
       temperature: parseFloat(process.env.XAI_TEMPERATURE || '0.7'),
       maxTokens: parseInt(process.env.XAI_MAX_TOKENS || '4000', 10),
-      enabled: process.env.XAI_ENABLED === 'true',
+      enabled: process.env.XAI_ENABLED
+        ? process.env.XAI_ENABLED === 'true'
+        : !!process.env.XAI_API_KEY,
     },
   },
 
