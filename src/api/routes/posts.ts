@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { body } from 'express-validator';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import PostController from '../controllers/PostController';
 import { authMiddleware } from '../middlewares/auth';
 import { validate } from '../middlewares/validation';
@@ -10,7 +11,13 @@ import { config } from '../../config';
 // Configure multer for media uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, path.join(config.media.storagePath, 'posts'));
+    const uploadDir = path.join(config.media.storagePath, 'posts');
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error as Error, uploadDir);
+    }
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;

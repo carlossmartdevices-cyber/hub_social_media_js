@@ -5,11 +5,18 @@ import database from '../../database/connection';
 import telegramBroadcastService from '../../services/TelegramBroadcastService';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 
 // Configure multer for video uploads
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    cb(null, './uploads/telegram');
+    const uploadDir = path.join('./uploads', 'telegram');
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      cb(null, uploadDir);
+    } catch (error) {
+      cb(error as Error, uploadDir);
+    }
   },
   filename: (_req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
