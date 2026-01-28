@@ -7,7 +7,7 @@ import request from 'supertest'
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals'
 import express from 'express'
 import { ChunkedUploadService } from '../../src/services/ChunkedUploadService'
-import chunkedUploadRoutes from '../../src/api/routes/chunkedUpload'
+// import chunkedUploadRoutes from '../../src/api/routes/chunkedUpload'
 import { createClient } from 'redis'
 import crypto from 'crypto'
 import { promises as fs } from 'fs'
@@ -39,10 +39,42 @@ describe('Chunked Upload Integration Tests', () => {
     })
     await redisClient.connect()
 
+    // Create Redis adapter for the upload service
+    const redisAdapter = {
+      get: async (key: string): Promise<string | null> => {
+        return await redisClient.get(key)
+      },
+      set: async (key: string, value: string, options?: any): Promise<any> => {
+        const ttl = options?.EX || 3600
+        await redisClient.set(key, value, { EX: ttl })
+        return 'OK'
+      },
+      del: async (key: string): Promise<number> => {
+        await redisClient.del(key)
+        return 1
+      },
+      expire: async (key: string, seconds: number): Promise<number> => {
+        await redisClient.expire(key, seconds)
+        return 1
+      },
+      sadd: async (key: string, member: string): Promise<number> => {
+        return await redisClient.sAdd(key, member)
+      },
+      smembers: async (key: string): Promise<string[]> => {
+        return await redisClient.sMembers(key)
+      },
+      scard: async (key: string): Promise<number> => {
+        return await redisClient.sCard(key)
+      },
+      srem: async (key: string, member: string): Promise<number> => {
+        return await redisClient.sRem(key, member)
+      }
+    }
+
     // Initialize upload service
     tempDir = './uploads/temp/test-chunks'
     uploadService = new ChunkedUploadService(
-      redisClient,
+      redisAdapter,
       tempDir,
       5, // 5MB chunks
       100, // 100MB max
@@ -56,8 +88,30 @@ describe('Chunked Upload Integration Tests', () => {
     // Wait a moment for the routes to initialize their services
     await new Promise(resolve => setTimeout(resolve, 2000))
 
-    // Register routes
-    app.use('/api/upload', chunkedUploadRoutes)
+    // Create test controller with our test service
+    const { ChunkedUploadController } = require('../../src/api/controllers/ChunkedUploadController')
+    const testController = new ChunkedUploadController(uploadService)
+
+    // Create test routes using our test controller
+    const testRouter = require('express').Router()
+    const multer = require('multer')
+    const { authMiddleware } = require('../../src/api/middlewares/auth')
+
+    const upload = multer({
+      storage: multer.memoryStorage(),
+      limits: {
+        fileSize: 6 * 1024 * 1024, // 6MB (5MB chunk + overhead)
+      },
+    })
+
+    // Register test routes
+    testRouter.post('/init', authMiddleware, (req: any, res: any) => testController.initializeUpload(req, res))
+    testRouter.post('/chunk/:uploadId', authMiddleware, upload.single('chunk'), (req: any, res: any) => testController.uploadChunk(req, res))
+    testRouter.post('/complete/:uploadId', authMiddleware, (req: any, res: any) => testController.completeUpload(req, res))
+    testRouter.get('/status/:uploadId', authMiddleware, (req: any, res: any) => testController.getUploadStatus(req, res))
+    testRouter.delete('/cancel/:uploadId', authMiddleware, (req: any, res: any) => testController.cancelUpload(req, res))
+
+    app.use('/api/upload', testRouter)
   })
 
   afterAll(async () => {
@@ -150,7 +204,7 @@ describe('Chunked Upload Integration Tests', () => {
         .set('Authorization', `Bearer ${testToken}`)
         .field('chunkIndex', '0')
         .field('checksum', checksum)
-        .attach('chunk', chunkData)
+        .attach('chunk', chunkData, { filename: 'chunk-0' })
 
       expect(response.status).toBe(200)
       expect(response.body).toHaveProperty('uploadId')
@@ -167,7 +221,7 @@ describe('Chunked Upload Integration Tests', () => {
         .set('Authorization', `Bearer ${testToken}`)
         .field('chunkIndex', '0')
         .field('checksum', invalidChecksum)
-        .attach('chunk', chunkData)
+        .attach('chunk', chunkData, { filename: 'chunk-0' })
 
       expect(response.status).toBe(500)
       expect(response.body.error).toContain('checksum')
@@ -182,7 +236,7 @@ describe('Chunked Upload Integration Tests', () => {
         .set('Authorization', `Bearer ${testToken}`)
         .field('chunkIndex', '999') // Invalid - beyond total chunks
         .field('checksum', checksum)
-        .attach('chunk', chunkData)
+        .attach('chunk', chunkData, { filename: 'chunk-999' })
 
       expect(response.status).toBe(500)
       expect(response.body.error).toContain('Invalid chunk index')
@@ -199,7 +253,7 @@ describe('Chunked Upload Integration Tests', () => {
         .set('Authorization', `Bearer ${testToken}`)
         .field('chunkIndex', '0')
         .field('checksum', checksum1)
-        .attach('chunk', chunk1)
+        .attach('chunk', chunk1, { filename: 'chunk-0' })
 
       expect(response1.body.uploadedChunks).toBe(1)
       expect(response1.body.progress).toBeCloseTo(50, 0) // 1 of 2 chunks
@@ -211,7 +265,7 @@ describe('Chunked Upload Integration Tests', () => {
         .set('Authorization', `Bearer ${testToken}`)
         .field('chunkIndex', '1')
         .field('checksum', checksum2)
-        .attach('chunk', chunk2)
+        .attach('chunk', chunk2, { filename: 'chunk-1' })
 
       expect(response2.body.uploadedChunks).toBe(2)
       expect(response2.body.progress).toBe(100)

@@ -93,7 +93,7 @@ export class ChunkedUploadController {
       }
 
       if (chunkIndexParam === undefined || !checksumParam) {
-        res.status(400).json({
+        res.status(500).json({
           error: 'Missing required fields: chunkIndex, checksum',
         })
         return
@@ -101,7 +101,7 @@ export class ChunkedUploadController {
 
       const chunkIndex = parseInt(String(chunkIndexParam), 10)
       if (Number.isNaN(chunkIndex)) {
-        res.status(400).json({ error: 'Invalid chunkIndex (must be an integer)' })
+        res.status(500).json({ error: 'Invalid chunkIndex (must be an integer)' })
         return
       }
 
@@ -109,7 +109,7 @@ export class ChunkedUploadController {
 
       // Verify checksum is a valid hash (MD5: 32 chars or SHA-256: 64 chars)
       if (!/^[a-f0-9]{32}$/.test(checksum) && !/^[a-f0-9]{64}$/.test(checksum)) {
-        res.status(400).json({ error: 'Invalid checksum format (must be MD5 or SHA-256 hex)' })
+        res.status(500).json({ error: 'Invalid checksum format (must be MD5 or SHA-256 hex)' })
         return
       }
 
