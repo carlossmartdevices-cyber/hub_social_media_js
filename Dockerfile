@@ -1,36 +1,61 @@
-# Simplified Docker build for Node.js application
-FROM node:18-alpine
+# Multi-stage Docker build for TypeScript Node.js application
+# Build stage - install all dependencies including dev dependencies
+FROM node:20 AS builder
 
+# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install all dependencies (including dev for build)
-RUN npm install
+# Install all dependencies (including dev dependencies for build)
+RUN npm ci
 
-# Copy source files
-COPY src ./src
-COPY tsconfig.json ./
+# Copy source code
+COPY . .
 
 # Build TypeScript
 RUN npm run build
 
-# Remove dev dependencies
-RUN npm install --only=production && npm cache clean --force
+# Production stage - using full Node.js image (all build tools pre-installed)
+FROM node:20 AS production
 
-# Create necessary directories
-RUN mkdir -p logs uploads
+# Set working directory
+WORKDIR /app
 
-# Set environment
-ENV NODE_ENV=production
+# Copy package files
+COPY package*.json ./
+
+# Install only production dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Copy built files from builder
+COPY --from=builder --chown=node:node /app/dist ./dist
+
+# Copy scripts directory for cron jobs
+COPY --from=builder --chown=node:node /app/scripts ./scripts
+
+# Copy public directory for landing pages
+COPY --from=builder /app/public ./public
+
+# Copy .env.example for dotenv-safe validation
+COPY --from=builder --chown=node:node /app/.env.example ./.env.example
+
+# Create logs and uploads directories with proper permissions
+RUN mkdir -p logs uploads \
+    && chown -R node:node /app \
+    && chmod -R 755 /app/public \
+    && find /app/public -type f -exec chmod 644 {} \;
+
+# Switch to non-root user for security
+USER node
 
 # Expose port
-EXPOSE 8080
+EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:8080/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+# Health check with improved timeout and retries
+HEALTHCHECK --interval=30s --timeout=5s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)}).on('error', () => {process.exit(1)})"
 
-# Start application
+# Start the application
 CMD ["node", "dist/index.js"]

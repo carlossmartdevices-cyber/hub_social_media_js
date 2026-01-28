@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clickera - Social Media Hub</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 800px;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        
+        .status {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            margin: 1rem 0;
+            font-size: 1.1rem;
+        }
+        
+        .status.ok {
+            background: rgba(76, 175, 80, 0.3);
+            border: 1px solid rgba(76, 175, 80, 0.5);
+        }
+        
+        .status.error {
+            background: rgba(244, 67, 54, 0.3);
+            border: 1px solid rgba(244, 67, 54, 0.5);
+        }
+        
+        .api-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        a:hover {
+            text-decoration: underline;
+        }
+        
+        .loading {
+            margin: 2rem 0;
+            font-size: 1.5rem;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Clickera Social Media Hub</h1>
+        <p>Manage all your social media accounts in one place</p>
+        
+        <div class="loading">
+            <div class="spinner"></div>
+            <p>Loading API status...</p>
+        </div>
+        
+        <div id="api-status" class="api-info" style="display: none;">
+            <h3>API Status</h3>
+            <div id="status-message"></div>
+            <div id="api-endpoints" style="margin-top: 1rem;"></div>
+        </div>
+        
+        <div class="api-info" style="margin-top: 2rem;">
+            <h3>Frontend Status</h3>
+            <div class="status error">
+                ⚠️ Frontend is currently undergoing maintenance
+            </div>
+            <p style="margin-top: 1rem;">
+                The React frontend is being rebuilt. Please check back shortly.
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        async function checkAPIStatus() {
+            try {
+                const response = await fetch('/api/');
+                const data = await response.json();
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('api-status').style.display = 'block';
+                
+                if (data.status === 'ok') {
+                    document.getElementById('status-message').innerHTML = 
+                        `<div class="status ok">✅ API is running: ${data.message}</div>`;
+                } else {
+                    document.getElementById('status-message').innerHTML = 
+                        `<div class="status error">❌ API error: ${data.message || 'Unknown error'}</div>`;
+                }
+                
+                // Test some API endpoints
+                const endpoints = ['/api/auth/health', '/api/platforms', '/api/posts'];
+                const results = [];
+                
+                for (const endpoint of endpoints) {
+                    try {
+                        const res = await fetch(endpoint, { method: 'OPTIONS' });
+                        results.push({
+                            endpoint,
+                            status: res.ok ? '✅' : '❌',
+                            method: 'OPTIONS'
+                        });
+                    } catch (error) {
+                        results.push({
+                            endpoint,
+                            status: '❌',
+                            method: 'OPTIONS'
+                        });
+                    }
+                }
+                
+                const endpointsHTML = results.map(r => 
+                    `<p><strong>${r.endpoint}</strong>: ${r.status} ${r.method}</p>`
+                ).join('');
+                
+                document.getElementById('api-endpoints').innerHTML = endpointsHTML;
+                
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('api-status').style.display = 'block';
+                document.getElementById('status-message').innerHTML = 
+                    `<div class="status error">❌ Failed to connect to API: ${error.message}</div>`;
+            }
+        }
+        
+        // Check API status when page loads
+        checkAPIStatus();
+    </script>
+</body>
+</html>
