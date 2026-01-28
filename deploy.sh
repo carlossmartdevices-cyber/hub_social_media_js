@@ -12,6 +12,8 @@ if [ ! -d "client" ] || [ ! -f "package.json" ]; then
     exit 1
 fi
 
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -30,7 +32,7 @@ fi
 
 # Step 1: Install backend dependencies
 echo -e "\n📦 Step 1: Installing backend dependencies..."
-cd /root/hub_social_media_js
+cd "$BASE_DIR"
 if npm install; then
     echo "✅ Backend dependencies installed successfully"
 else
@@ -49,7 +51,7 @@ fi
 
 # Step 3: Install frontend dependencies
 echo -e "\n📦 Step 3: Installing frontend dependencies..."
-cd client
+cd "$BASE_DIR/client"
 if npm install; then
     echo "✅ Frontend dependencies installed successfully"
 else
@@ -80,7 +82,7 @@ fi
 
 # Step 6: Start backend
 echo -e "\n🚀 Step 6: Starting backend..."
-cd /root/hub_social_media_js
+cd "$BASE_DIR"
 if command_exists pm2; then
     # Check if backend is already running
     if pm2 list | grep -q "hub-backend"; then
@@ -104,7 +106,7 @@ fi
 
 # Step 7: Start frontend
 echo -e "\n🚀 Step 7: Starting frontend..."
-cd client
+cd "$BASE_DIR/client"
 if command_exists pm2; then
     # Check if frontend is already running
     if pm2 list | grep -q "hub-frontend"; then
