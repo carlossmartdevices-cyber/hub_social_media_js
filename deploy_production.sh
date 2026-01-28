@@ -12,6 +12,9 @@ if [ ! -d "client" ] || [ ! -f "package.json" ]; then
     exit 1
 fi
 
+BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
+LOG_DIR="${HOME}/.pm2/logs"
+
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -35,7 +38,7 @@ fi
 
 # Step 1: Configure frontend for production
 echo -e "\n📋 Step 1: Configuring frontend for production..."
-cd client
+cd "$BASE_DIR/client"
 
 # Backup existing .env.local
 if [ -f ".env.local" ]; then
@@ -67,7 +70,7 @@ fi
 
 # Step 4: Configure backend for production
 echo -e "\n📋 Step 4: Configuring backend for production..."
-cd /root/hub_social_media_js
+cd "$BASE_DIR"
 
 # Check if .env exists and has production settings
 if [ -f ".env" ]; then
@@ -108,13 +111,13 @@ fi
 echo -e "\n🔧 Step 7: Setting up PM2 for production..."
 
 # Create production ecosystem file
-cat > ecosystem.config.js << 'EOF'
+cat > ecosystem.config.js << EOF
 module.exports = {
   apps: [
     {
       name: 'hub-backend-production',
       script: 'dist/index.js',
-      cwd: '/root/hub_social_media_js',
+      cwd: '${BASE_DIR}',
       interpreter: 'none',
       instances: 1,
       autorestart: true,
@@ -124,14 +127,14 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 8080
       },
-      error_file: '/root/.pm2/logs/hub-backend-error.log',
-      out_file: '/root/.pm2/logs/hub-backend-out.log'
+      error_file: '${LOG_DIR}/hub-backend-error.log',
+      out_file: '${LOG_DIR}/hub-backend-out.log'
     },
     {
       name: 'hub-frontend-production',
       script: 'npm',
       args: 'run start',
-      cwd: '/root/hub_social_media_js/client',
+      cwd: '${BASE_DIR}/client',
       instances: 1,
       autorestart: true,
       watch: false,
@@ -140,8 +143,8 @@ module.exports = {
         NODE_ENV: 'production',
         PORT: 3000
       },
-      error_file: '/root/.pm2/logs/hub-frontend-error.log',
-      out_file: '/root/.pm2/logs/hub-frontend-out.log'
+      error_file: '${LOG_DIR}/hub-frontend-error.log',
+      out_file: '${LOG_DIR}/hub-frontend-out.log'
     }
   ]
 };
