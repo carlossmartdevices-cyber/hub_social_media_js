@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "visibility": "hidden",
+  "notes": "Promotional plans are excluded from public membership listings and bot plan menus.",
+  "plans": [
+    {
+      "id": "pnp-hot-monthly-pass",
+      "name": "PNP Hot Monthly Pass",
+      "priceUsd": 15,
+      "currency": "USD",
+      "durationDays": 30,
+      "primeAccess": true,
+      "fullPrimeAccess": true,
+      "activation": {
+        "grantPrimeMembership": true,
+        "addToPrimeChannels": true
+      },
+      "expiration": {
+        "revokePrimeMembership": true,
+        "removeFromPrimeChannels": true
+      },
+      "payment": {
+        "provider": "payco",
+        "link": "https://payco.link/ddd1e09c-4499-4542-828a-327eb7f22687"
+      },
+      "public": false,
+      "listInBot": false
+    }
+  ]
+}
