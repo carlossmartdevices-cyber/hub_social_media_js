@@ -89,7 +89,7 @@ if command_exists pm2; then
         echo "ℹ️  Backend is already running. Restarting..."
         pm2 restart hub-backend
     else
-        pm2 start src/index.ts --name "hub-backend" --interpreter none
+        pm2 start npm --name "hub-backend" -- run start
     fi
     
     if [ $? -eq 0 ]; then
