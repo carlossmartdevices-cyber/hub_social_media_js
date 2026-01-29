@@ -18,16 +18,32 @@ export function createApp(): Application {
   app.use(helmet());
 
   // 🟡 HIGH: Restrictive CORS configuration
+  const baseOrigins = [
+    config.clientUrl,
+    config.apiUrl,
+    'https://pnptv.app',
+    'https://clickera.app',
+  ];
+
   const allowedOrigins = config.env === 'production'
-    ? [config.apiUrl, 'https://pnptv.app', 'https://clickera.app']
-    : ['http://localhost:3010', 'https://pnptv.app', 'https://clickera.app'];
+    ? baseOrigins
+    : [
+        ...baseOrigins,
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:3010',
+      ];
+
+  const allowedOriginSet = new Set(
+    allowedOrigins.filter((origin): origin is string => Boolean(origin))
+  );
 
   app.use(cors({
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman)
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOriginSet.has(origin)) {
         callback(null, true);
       } else {
         logger.warn(`CORS blocked request from origin: ${origin}`);
