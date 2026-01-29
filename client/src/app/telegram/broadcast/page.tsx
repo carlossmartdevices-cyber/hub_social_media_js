@@ -10,9 +10,19 @@ import ErrorService from '@/services/errorService';
 
 interface Channel {
   id: string;
-  name: string;
-  username: string;
-  memberCount: number;
+  title: string;
+  username?: string | null;
+  chatId: string;
+  type: 'channel' | 'group' | 'supergroup';
+}
+
+interface ApiChannel {
+  id: string;
+  title: string;
+  username?: string | null;
+  chat_id?: string;
+  chatId?: string;
+  type: 'channel' | 'group' | 'supergroup';
 }
 
 export default function TelegramBroadcastPage() {
@@ -37,7 +47,16 @@ export default function TelegramBroadcastPage() {
   const fetchChannels = async () => {
     try {
       const response = await api.get('/telegram/channels');
-      setChannels(response.data);
+      const fetchedChannels: ApiChannel[] = response.data.channels ?? [];
+      setChannels(
+        fetchedChannels.map((channel) => ({
+          id: channel.id,
+          title: channel.title,
+          username: channel.username,
+          chatId: channel.chat_id ?? channel.chatId ?? '',
+          type: channel.type,
+        }))
+      );
     } catch (error) {
       ErrorService.report(error, {
         component: 'TelegramBroadcastPage',
@@ -71,10 +90,19 @@ export default function TelegramBroadcastPage() {
     try {
       setSending(true);
       setResult(null);
-      await api.post('/telegram/broadcast', {
-        channelIds: selectedChannels,
+      const selectedChannelData = channels.filter((channel) =>
+        selectedChannels.includes(channel.id)
+      );
+
+      await api.post('/telegram/broadcast-text', {
         message: message.trim(),
-        mediaUrl: mediaUrl.trim() || undefined,
+        channels: selectedChannelData.map((channel) => ({
+          id: channel.id,
+          title: channel.title,
+          chatId: channel.chatId,
+          type: channel.type,
+          username: channel.username ?? undefined,
+        })),
       });
       setResult({ success: true, message: 'Broadcast sent successfully!' });
       setMessage('');
@@ -148,15 +176,21 @@ export default function TelegramBroadcastPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-gray-900 dark:text-white truncate">
-                        {channel.name}
+                        {channel.title}
                       </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        @{channel.username}
-                      </p>
+                      {channel.username ? (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          @{channel.username}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          {channel.chatId}
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
                       <Users className="w-4 h-4" />
-                      {channel.memberCount.toLocaleString()}
+                      {channel.type}
                     </div>
                   </label>
                 ))}
