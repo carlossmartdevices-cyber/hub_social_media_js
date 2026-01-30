@@ -14,10 +14,48 @@ fi
 
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 LOG_DIR="${HOME}/.pm2/logs"
+ECOSYSTEM_FILE="${BASE_DIR}/ecosystem.config.js"
 
 # Function to check if a command exists
 command_exists() {
     command -v "$1" >/dev/null 2>&1
+}
+
+require_env_value() {
+    local key="$1"
+    local value
+    value=$(grep -E "^[[:space:]]*${key}=" .env | tail -n1 | cut -d= -f2- | tr -d '"')
+
+    if [ -z "$value" ]; then
+        echo "❌ Missing required env var: ${key}"
+        return 1
+    fi
+
+    if [[ "$value" == *CHANGE_THIS* || "$value" == *YOUR_* ]]; then
+        echo "❌ ${key} has a placeholder value. Update it before deployment."
+        return 1
+    fi
+
+    return 0
+}
+
+install_dependencies() {
+    local label="$1"
+    if [ -f "package-lock.json" ]; then
+        if npm ci; then
+            echo "✅ ${label} dependencies installed with npm ci"
+        else
+            echo "❌ Failed to install ${label} dependencies with npm ci"
+            exit 1
+        fi
+    else
+        if npm install; then
+            echo "✅ ${label} dependencies installed"
+        else
+            echo "❌ Failed to install ${label} dependencies"
+            exit 1
+        fi
+    fi
 }
 
 # Check for required tools
@@ -52,12 +90,7 @@ echo "✅ Frontend configured for production API"
 
 # Step 2: Install frontend dependencies
 echo -e "\n📦 Step 2: Installing frontend dependencies..."
-if npm install; then
-    echo "✅ Frontend dependencies installed"
-else
-    echo "❌ Failed to install frontend dependencies"
-    exit 1
-fi
+install_dependencies "Frontend"
 
 # Step 3: Build frontend for production
 echo -e "\n🔨 Step 3: Building frontend for production..."
@@ -84,6 +117,18 @@ if [ -f ".env" ]; then
         echo "API_URL=https://clickera.app"
         echo "CLIENT_URL=https://clickera.app"
     fi
+
+    missing_env=0
+    for key in NODE_ENV API_URL CLIENT_URL DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD JWT_SECRET JWT_REFRESH_SECRET ENCRYPTION_KEY; do
+        if ! require_env_value "$key"; then
+            missing_env=1
+        fi
+    done
+
+    if [ "$missing_env" -ne 0 ]; then
+        echo "❌ Production env validation failed. Update .env before continuing."
+        exit 1
+    fi
 else
     echo "❌ Error: .env file not found. Please create it from .env.example"
     exit 1
@@ -91,12 +136,7 @@ fi
 
 # Step 5: Install backend dependencies
 echo -e "\n📦 Step 5: Installing backend dependencies..."
-if npm install; then
-    echo "✅ Backend dependencies installed"
-else
-    echo "❌ Failed to install backend dependencies"
-    exit 1
-fi
+install_dependencies "Backend"
 
 # Step 6: Build backend for production
 echo -e "\n🔨 Step 6: Building backend for production..."
@@ -107,68 +147,44 @@ else
     exit 1
 fi
 
-# Step 7: Set up PM2 ecosystem for production
-echo -e "\n🔧 Step 7: Setting up PM2 for production..."
+# Step 7: (Optional) Run database migrations
+echo -e "\n🗄️  Step 7: Database migrations..."
+if [ "${RUN_DB_MIGRATIONS:-false}" = "true" ]; then
+    if npm run db:migrate; then
+        echo "✅ Database migrations completed"
+    else
+        echo "❌ Database migrations failed"
+        exit 1
+    fi
+else
+    echo "ℹ️  Skipping migrations. Set RUN_DB_MIGRATIONS=true to enable."
+fi
 
-# Create production ecosystem file
-cat > ecosystem.config.js << EOF
-module.exports = {
-  apps: [
-    {
-      name: 'hub-backend-production',
-      script: 'dist/index.js',
-      cwd: '${BASE_DIR}',
-      interpreter: 'none',
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '1G',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 8080
-      },
-      error_file: '${LOG_DIR}/hub-backend-error.log',
-      out_file: '${LOG_DIR}/hub-backend-out.log'
-    },
-    {
-      name: 'hub-frontend-production',
-      script: 'npm',
-      args: 'run start',
-      cwd: '${BASE_DIR}/client',
-      instances: 1,
-      autorestart: true,
-      watch: false,
-      max_memory_restart: '1G',
-      env: {
-        NODE_ENV: 'production',
-        PORT: 3000
-      },
-      error_file: '${LOG_DIR}/hub-frontend-error.log',
-      out_file: '${LOG_DIR}/hub-frontend-out.log'
-    }
-  ]
-};
-EOF
+# Step 8: Set up PM2 ecosystem for production
+echo -e "\n🔧 Step 8: Setting up PM2 for production..."
+if [ ! -f "$ECOSYSTEM_FILE" ]; then
+    echo "❌ Error: ${ECOSYSTEM_FILE} not found. Restore it before continuing."
+    exit 1
+fi
+echo "✅ PM2 ecosystem ready: ${ECOSYSTEM_FILE}"
 
-echo "✅ PM2 ecosystem configured for production"
-
-# Step 8: Stop any existing processes
-echo -e "\n🛑 Step 8: Stopping existing processes..."
+# Step 9: Stop any existing processes
+echo -e "\n🛑 Step 9: Stopping existing processes..."
 pm2 delete hub-backend-production 2>/dev/null
 pm2 delete hub-frontend-production 2>/dev/null
 pm2 delete hub-backend 2>/dev/null
 pm2 delete hub-frontend 2>/dev/null
 echo "✅ Existing processes stopped"
 
-# Step 9: Start production processes
-echo -e "\n🚀 Step 9: Starting production processes..."
-pm2 start ecosystem.config.js
+# Step 10: Start production processes
+echo -e "\n🚀 Step 10: Starting production processes..."
+pm2 start "$ECOSYSTEM_FILE"
 
 # Wait for processes to start
 sleep 5
 
-# Step 10: Verify processes are running
-echo -e "\n🔍 Step 10: Verifying production processes..."
+# Step 11: Verify processes are running
+echo -e "\n🔍 Step 11: Verifying production processes..."
 if pm2 list | grep -q "hub-backend-production"; then
     echo "✅ Backend production process running"
 else
@@ -183,14 +199,14 @@ else
     exit 1
 fi
 
-# Step 11: Save PM2 processes
-echo -e "\n💾 Step 11: Saving PM2 processes..."
+# Step 12: Save PM2 processes
+echo -e "\n💾 Step 12: Saving PM2 processes..."
 pm2 save
 pm2 startup
 echo "✅ PM2 processes saved and startup configured"
 
-# Step 12: Test production endpoints
-echo -e "\n🧪 Step 12: Testing production endpoints..."
+# Step 13: Test production endpoints
+echo -e "\n🧪 Step 13: Testing production endpoints..."
 
 # Test backend API
 if curl -s "http://localhost:8080/api/" | grep -q '"status":"ok"'; then
@@ -206,7 +222,7 @@ else
     echo "❌ Twitter login endpoint is not working"
 fi
 
-# Step 13: Provide deployment summary
+# Step 14: Provide deployment summary
 echo -e "\n📊 Production Deployment Summary"
 echo "================================"
 echo "✅ Frontend: Configured for https://clickera.app"
