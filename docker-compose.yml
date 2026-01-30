@@ -76,6 +76,19 @@ services:
       - default
       - monitoring
 
+  client:
+    build:
+      context: .
+      dockerfile: client.Dockerfile
+    container_name: content-hub-client
+    ports:
+      - "3005:3000"
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - default
+
   # 🟢 MEDIUM: Automated database backups
   postgres-backup:
     image: prodrigestivill/postgres-backup-local
