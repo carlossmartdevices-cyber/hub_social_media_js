@@ -3,7 +3,7 @@
  * API endpoints for resumable chunk-based file uploads
  */
 
-import { Router, Response } from 'express'
+import { Router, Response, NextFunction } from 'express'
 import multer from 'multer'
 import { AuthRequest, authMiddleware } from '../middlewares/auth'
 import { ChunkedUploadController } from '../controllers/ChunkedUploadController'
@@ -120,7 +120,7 @@ const upload = multer({
 })
 
 // Middleware to ensure services are initialized
-const ensureServicesInitialized = (_req: AuthRequest, res: Response, next: any) => {
+const ensureServicesInitialized = (_req: AuthRequest, res: Response, next: NextFunction) => {
   if (!uploadService || !controller) {
     res.status(503).json({
       error: 'Upload service is not ready. Please try again in a moment.'
