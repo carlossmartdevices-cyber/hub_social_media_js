@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { database } from '../../database';
+import database from '../../database/connection';
 import logger from '../../utils/logger';
 import aiContentGenerationService from '../../services/AIContentGenerationService';
 
