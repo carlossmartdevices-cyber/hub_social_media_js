@@ -219,7 +219,7 @@ Respond ONLY with valid JSON in this exact format:
 
 **RULES:**
 - Bilingual: Spanish + English (mix or separate)
-- MAX 450 characters total per post
+- MAX 140 characters total per post (Twitter limit)
 - Always drive traffic to: https://t.me/pnplatinotv_bot`;
 
       const defaultSystemPrompt = 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.';
@@ -264,7 +264,7 @@ ${targetAudience ? `Target Audience: ${targetAudience}` : ''}
    - USE THESE: #PNPLatinoTV #CultoSantino #MethDaddy #PnP #ChimbaDura #OfrendaOscura #clouds #slam
 
 **RULES:**
-- MAX 450 characters per post
+- MAX 140 characters per post (Twitter limit)
 - English and Spanish posts = DIFFERENT angles, SAME structure
 - Voice: First person as Meth Daddy/Santino
 - NEVER "follar", ALWAYS "culear"
@@ -652,7 +652,7 @@ Output language: ${language === 'es' ? 'Spanish' : 'English'}
 4. **#️⃣ HASHTAGS** (Line 5)
    - USE: #PNPLatinoTV #CultoSantino #MethDaddy #PnP #ChimbaDura #OfrendaOscura #clouds #slam
 
-**RULES:** MAX 450 characters. Voice: First person as Meth Daddy/Santino.`;
+**RULES:** MAX 140 characters (Twitter limit). Voice: First person as Meth Daddy/Santino.`;
 
       const systemPrompt = tone === 'pnp_prime'
         ? pnpPrimePrompt
