@@ -328,6 +328,7 @@ export class ContentLibraryController {
     try {
       const userId = req.user?.id;
       const { id } = req.params;
+      const { language } = req.body; // Optional: 'en' or 'es' to regenerate only one
 
       if (!userId) {
         res.status(401).json({ error: 'Unauthorized' });
@@ -347,7 +348,49 @@ export class ContentLibraryController {
 
       const existing = rows[0];
 
-      // Regenerate with PNP Prime
+      // If specific language requested, use generateCaption for single language
+      if (language === 'en' || language === 'es') {
+        const result = await aiContentGenerationService.generateCaption(
+          existing.ai_prompt,
+          {
+            platform: 'twitter',
+            tone: 'pnp_prime',
+            includeHashtags: true,
+            includeEmojis: true,
+            language
+          }
+        );
+
+        const updateField = language === 'en' ? 'content_en' : 'content_es';
+        const hashtagField = language === 'en' ? 'hashtags_en' : 'hashtags_es';
+
+        const updateQuery = `
+          UPDATE content_library
+          SET
+            ${updateField} = $3,
+            ${hashtagField} = $4,
+            updated_at = NOW()
+          WHERE id = $1 AND user_id = $2
+          RETURNING *
+        `;
+
+        const { rows: updatedRows } = await database.query(updateQuery, [
+          id,
+          userId,
+          result.caption,
+          result.hashtags
+        ]);
+
+        res.json({
+          success: true,
+          content: updatedRows[0],
+          language,
+          generated: result
+        });
+        return;
+      }
+
+      // Regenerate both with PNP Prime
       const result = await aiContentGenerationService.generatePostVariants(
         existing.title || existing.ai_prompt,
         existing.ai_prompt,

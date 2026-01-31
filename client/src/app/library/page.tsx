@@ -92,12 +92,15 @@ export default function LibraryPage() {
     }
   };
 
-  const regenerateContent = async (id: string) => {
+  const regenerateContent = async (id: string, language?: 'en' | 'es') => {
     try {
-      const response = await api.post(`/library/${id}/regenerate`);
+      const response = await api.post(`/library/${id}/regenerate`, { language });
       setContent(content.map(c => c.id === id ? response.data.content : c));
       if (selectedItem?.id === id) {
         setSelectedItem(response.data.content);
+      }
+      if (language) {
+        setActiveLanguage(language);
       }
     } catch (error) {
       console.error('Error regenerating:', error);
@@ -259,26 +262,17 @@ export default function LibraryPage() {
                   <h3 className="font-semibold text-gray-900 dark:text-white">
                     {selectedItem.title}
                   </h3>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => regenerateContent(selectedItem.id)}
-                      className="p-2 text-gray-500 hover:text-purple-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Regenerate"
-                    >
-                      <RefreshCw className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => deleteContent(selectedItem.id)}
-                      className="p-2 text-gray-500 hover:text-red-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => deleteContent(selectedItem.id)}
+                    className="p-2 text-gray-500 hover:text-red-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
                 </div>
 
-                {/* Language Tabs */}
-                <div className="flex gap-2 mb-4">
+                {/* Language Tabs with Regenerate */}
+                <div className="flex flex-wrap items-center gap-2 mb-4">
                   <button
                     onClick={() => setActiveLanguage('es')}
                     className={`px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -298,6 +292,33 @@ export default function LibraryPage() {
                     }`}
                   >
                     🇺🇸 English
+                  </button>
+
+                  <span className="text-gray-300 dark:text-gray-600">|</span>
+
+                  <button
+                    onClick={() => regenerateContent(selectedItem.id, 'es')}
+                    className="flex items-center gap-1 px-3 py-2 text-sm bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
+                    title="Regenerar solo español"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    🇪🇸
+                  </button>
+                  <button
+                    onClick={() => regenerateContent(selectedItem.id, 'en')}
+                    className="flex items-center gap-1 px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                    title="Regenerate English only"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    🇺🇸
+                  </button>
+                  <button
+                    onClick={() => regenerateContent(selectedItem.id)}
+                    className="flex items-center gap-1 px-3 py-2 text-sm bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                    title="Regenerate both languages"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Both
                   </button>
                 </div>
 

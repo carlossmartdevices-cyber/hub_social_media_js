@@ -145,6 +145,50 @@ export default function CreatePostPage() {
     }
   };
 
+  const generateSingleLanguage = async (language: 'en' | 'es') => {
+    if (!aiPrompt.trim()) {
+      setError('Please describe what you want to post');
+      return;
+    }
+
+    setAiLoading(true);
+    setError('');
+
+    try {
+      const response = await api.post('/ai/generate-caption', {
+        prompt: aiPrompt,
+        options: {
+          platform: selectedPlatforms[0] || 'twitter',
+          tone,
+          includeHashtags: true,
+          includeEmojis: true,
+          language
+        }
+      });
+
+      if (language === 'en') {
+        setContent(response.data.caption);
+        setActiveTab('en');
+      } else {
+        setContentEs(response.data.caption);
+        setActiveTab('es');
+      }
+
+      if (response.data.hashtags) {
+        setHashtags(prev => [...new Set([...prev, ...response.data.hashtags])]);
+      }
+    } catch (err) {
+      ErrorService.report(err, {
+        component: 'CreatePostPage',
+        action: `generateAI_${language}`,
+        severity: 'medium'
+      });
+      setError(`Failed to generate ${language === 'en' ? 'English' : 'Spanish'} content`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const regenerateContent = async () => {
     setAiLoading(true);
     try {
@@ -288,6 +332,32 @@ export default function CreatePostPage() {
                 </select>
 
                 <button
+                  onClick={() => generateSingleLanguage('en')}
+                  disabled={aiLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {aiLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  🇺🇸 English
+                </button>
+
+                <button
+                  onClick={() => generateSingleLanguage('es')}
+                  disabled={aiLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+                >
+                  {aiLoading ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-4 h-4" />
+                  )}
+                  🇪🇸 Español
+                </button>
+
+                <button
                   onClick={generateWithAI}
                   disabled={aiLoading}
                   className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
@@ -297,7 +367,7 @@ export default function CreatePostPage() {
                   ) : (
                     <Sparkles className="w-4 h-4" />
                   )}
-                  Generate EN + ES
+                  Both
                 </button>
 
                 <button
@@ -312,7 +382,7 @@ export default function CreatePostPage() {
                 <button
                   onClick={translateContent}
                   disabled={aiLoading || !currentContent}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
                   <Languages className="w-4 h-4" />
                   Translate
