@@ -123,7 +123,8 @@ export default function CreatePostPage() {
         title: aiPrompt,
         description: aiPrompt,
         goal: `Create a ${tone} post for social media`,
-        targetAudience: 'general audience'
+        targetAudience: 'general audience',
+        tone: tone
       });
 
       setContent(response.data.english.content);

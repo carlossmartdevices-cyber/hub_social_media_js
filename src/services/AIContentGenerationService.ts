@@ -175,7 +175,8 @@ Respond ONLY with valid JSON in this exact format:
     videoTitle: string,
     videoDescription: string,
     userGoal: string,
-    targetAudience?: string
+    targetAudience?: string,
+    tone?: string
   ): Promise<PostGenerationResult> {
     if (!this.enabled || !this.apiKey) {
       logger.warn('XAI is not enabled or API key is missing');
@@ -183,7 +184,58 @@ Respond ONLY with valid JSON in this exact format:
     }
 
     try {
-      const prompt = `You are Grok, X's AI expert in viral content creation and engagement optimization. Create TWO high-performing post variations (English and Spanish) for X/Twitter.
+      // PNP Prime system prompt for premium provocative Latino content
+      const pnpPrimeSystemPrompt = `You are an expert Community Manager specialized in premium provocative Latino content for PNP LATINO TV. Your goal: attract new subscribers and drive traffic to the official Telegram bot: https://t.me/pnplatinotv_bot.
+
+Tone & style: Bold, high-energy, modern Latino vibe. Provocative and slightly explicit—always teasing, never crossing the line. Use real PNP slang: clouds, tina, slam, hnh, chemsex, with raw sexual energy, authenticity, and total freedom. Transmit confidence, raw desire, exclusivity, and strong visual power.
+
+Output format: Short, punchy tweets (max 140 characters). Include at least one emoji that matches the vibe (🔥💥👀🎥💎👹🚨). Always close with a smooth but firm CTA like "Join the bot 👉 https://t.me/pnplatinotv_bot" or "Discover the new vibe at PNP LATINO TV".
+
+Add powerful hashtags: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #SuscríbeteYa #GayPNP #PNPGay #Chemsex #Tina #Slam #HNH #Clouds #GayLeather #LeatherFetish #GayLeatherMen #LeatherGay #Bluf #GayFetish #GaySmoker #GaySmoking #MenWhoSmoke #GayBearSmoker #SatanicGay #HailSatan #OccultGay #Satanism #Baphomet #Lucifer #DarkSideGay #GayUSA #GayEurope #GayChina #GayLatino #GayLATAM #VibraOscura #ContenidoExclusivo
+
+Main objective: Build desire to belong, spark curiosity, get clicks to the bot, and strengthen the brand identity.`;
+
+      const defaultSystemPrompt = 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.';
+
+      const systemPrompt = tone === 'pnp_prime' ? pnpPrimeSystemPrompt : defaultSystemPrompt;
+
+      // PNP Prime specific prompt
+      const pnpPrimePrompt = `Create TWO high-performing post variations for X/Twitter - one in English and one in Spanish.
+
+**CONTENT CONTEXT:**
+Topic: ${videoTitle}
+Description: ${videoDescription}
+Goal: ${userGoal}
+${targetAudience ? `Target Audience: ${targetAudience}` : ''}
+
+**PNP PRIME REQUIREMENTS:**
+- Short, punchy content (max 140 characters per post)
+- Include emojis that match the vibe (🔥💥👀🎥💎👹🚨)
+- Always include CTA with Telegram bot link: https://t.me/pnplatinotv_bot
+- Use PNP slang naturally: clouds, tina, slam, hnh, chemsex
+- Bold, provocative, high-energy Latino vibe
+- English and Spanish posts should have DIFFERENT angles
+
+**HASHTAG REQUIREMENTS:**
+Include 5-8 powerful hashtags from: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #GayLeather #LeatherFetish #GayFetish #GaySmoker #VibraOscura
+
+Respond with JSON:
+{
+  "english": {
+    "language": "en",
+    "content": "Provocative hook + CTA + bot link (max 140 chars)",
+    "hashtags": ["PNPLatinoTV", "gaypnp", "chemsex", "clouds", "ContenidoExclusivo"],
+    "cta": "Join now 👉 https://t.me/pnplatinotv_bot"
+  },
+  "spanish": {
+    "language": "es",
+    "content": "Hook provocativo diferente + CTA + link del bot (max 140 chars)",
+    "hashtags": ["PNPLatinoTV", "pnpgay", "VibraLatina", "ContenidoExclusivo", "tina"],
+    "cta": "Únete ya 👉 https://t.me/pnplatinotv_bot"
+  }
+}`;
+
+      const defaultPrompt = `You are Grok, X's AI expert in viral content creation and engagement optimization. Create TWO high-performing post variations (English and Spanish) for X/Twitter.
 
 **VIDEO CONTEXT:**
 Title: ${videoTitle}
@@ -243,6 +295,10 @@ Respond with JSON:
   }
 }`;
 
+      const prompt = tone === 'pnp_prime' ? pnpPrimePrompt : defaultPrompt;
+
+      logger.info('Generating post variants', { tone, isPnpPrime: tone === 'pnp_prime' });
+
       const response = await axios.post(
         `${this.baseUrl}/chat/completions`,
         {
@@ -250,7 +306,7 @@ Respond with JSON:
           messages: [
             {
               role: 'system',
-              content: 'You are Grok, the official AI of X (Twitter). You are an expert in creating viral X posts, understanding the X algorithm, and maximizing engagement. You know what makes content go viral on X: authenticity, controversy, humor, value, and emotional resonance. You create bilingual content that performs exceptionally well.',
+              content: systemPrompt,
             },
             {
               role: 'user',

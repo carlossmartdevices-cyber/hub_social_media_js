@@ -39,11 +39,11 @@ router.post('/generate-caption', async (req, res) => {
 /**
  * Generate post variants in English and Spanish
  * POST /api/ai/generate-post-variants
- * Body: { title: string, description: string, goal: string, targetAudience?: string }
+ * Body: { title: string, description: string, goal: string, targetAudience?: string, tone?: string }
  */
 router.post('/generate-post-variants', async (req, res) => {
   try {
-    const { title, description, goal, targetAudience } = req.body;
+    const { title, description, goal, targetAudience, tone } = req.body;
 
     if (!title || !description || !goal) {
       return res.status(400).json({ error: 'Title, description, and goal are required' });
@@ -53,7 +53,8 @@ router.post('/generate-post-variants', async (req, res) => {
       title,
       description,
       goal,
-      targetAudience
+      targetAudience,
+      tone
     );
 
     return res.json(result);
