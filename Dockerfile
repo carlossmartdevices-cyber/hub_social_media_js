@@ -20,6 +20,9 @@ RUN npm run build
 # Production stage - using full Node.js image (all build tools pre-installed)
 FROM node:20 AS production
 
+# Install FFmpeg for video processing
+RUN apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+
 # Set working directory
 WORKDIR /app
 

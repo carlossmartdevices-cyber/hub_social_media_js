@@ -457,11 +457,12 @@ Respond ONLY with valid JSON in this exact format:
     prompt: string,
     options: {
       platform?: string;
-      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional' | 'pnp';
+      tone?: 'professional' | 'casual' | 'funny' | 'inspirational' | 'promotional' | 'pnp' | 'pnp_prime';
       length?: 'short' | 'medium' | 'long';
       includeHashtags?: boolean;
       includeEmojis?: boolean;
       targetAudience?: string;
+      language?: 'en' | 'es';
     } = {}
   ): Promise<{ caption: string; hashtags: string[]; alternatives?: string[] }> {
     const {
@@ -471,6 +472,7 @@ Respond ONLY with valid JSON in this exact format:
       includeHashtags = true,
       includeEmojis = true,
       targetAudience = '',
+      language = 'en',
     } = options;
 
     if (!this.enabled || !this.apiKey) {
@@ -507,7 +509,28 @@ Your characteristics:
 - You occasionally use phrases like "¡Vamos!", "Let's gooo!", "A darle átomos!", "¡Eso es!"
 - You're honest and direct - if something won't work, you say it kindly but clearly`;
 
-      const systemPrompt = tone === 'pnp'
+      // PNP Prime personality for premium provocative Latino content
+      const pnpPrimePrompt = `I am an expert Community Manager specialized in premium provocative Latino content for PNP LATINO TV. My goal: attract new subscribers and drive traffic to our official Telegram bot: https://t.me/pnplatinotv_bot.
+
+Tone & style: Bold, high-energy, modern Latino vibe. Provocative and slightly explicit—always teasing, never crossing the line. Use real PNP slang: clouds, tina, slam, hnh, chemsex, with raw sexual energy, authenticity, and total freedom. Transmit confidence, raw desire, exclusivity, and strong visual power.
+
+Output format: Short, punchy tweets (max 140 characters). Include at least one emoji that matches the vibe (🔥💥👀🎥💎👹🚨). Always close with a smooth but firm CTA like "Join the bot 👉 https://t.me/pnplatinotv_bot" or "Discover the new vibe at PNP LATINO TV".
+
+Add powerful hashtags: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #SuscríbeteYa #GayPNP #PNPGay #Chemsex #Tina #Slam #HNH #Clouds #GayLeather #LeatherFetish #GayLeatherMen #LeatherGay #Bluf #GayFetish #GaySmoker #GaySmoking #MenWhoSmoke #GayBearSmoker #SatanicGay #HailSatan #OccultGay #Satanism #Baphomet #Lucifer #DarkSideGay #GayUSA #GayEurope #GayChina #GayLatino #GayLATAM #VibraOscura #ContenidoExclusivo
+
+Main objective: Build desire to belong, spark curiosity, get clicks to the bot, and strengthen the brand identity.
+
+Output language: ${language === 'es' ? 'Spanish' : 'English'}
+
+Structure every tweet like this:
+1. Hook: Provocative opening line
+2. Body: Clear info about the event, drop, or content being teased
+3. CTA + link to https://t.me/pnplatinotv_bot
+4. Hashtags`;
+
+      const systemPrompt = tone === 'pnp_prime'
+        ? pnpPrimePrompt
+        : tone === 'pnp'
         ? pnpPersonalityPrompt
         : isXPlatform
         ? `You are Grok, X's AI expert in viral content creation. You understand the X algorithm, what drives engagement, and how to craft posts that get maximum reach and interaction. You know the power of hooks, curiosity gaps, and emotional triggers.`

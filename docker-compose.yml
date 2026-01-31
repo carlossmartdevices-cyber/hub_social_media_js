@@ -54,6 +54,16 @@ services:
       JWT_SECRET: ${JWT_SECRET:-change-this-secret}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-this-refresh-secret}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-this-encryption-key}
+      # Twitter/X OAuth Configuration
+      TWITTER_CLIENT_ID: ${TWITTER_CLIENT_ID}
+      TWITTER_CLIENT_SECRET: ${TWITTER_CLIENT_SECRET}
+      TWITTER_REDIRECT_URI: ${TWITTER_REDIRECT_URI:-https://clickera.app/api/oauth/twitter/callback}
+      TWITTER_AUTH_REDIRECT_URI: ${TWITTER_AUTH_REDIRECT_URI:-https://clickera.app/api/auth/x/callback}
+      TWITTER_API_KEY: ${TWITTER_API_KEY}
+      TWITTER_API_SECRET: ${TWITTER_API_SECRET}
+      TWITTER_BEARER_TOKEN: ${TWITTER_BEARER_TOKEN}
+      TWITTER_ACCESS_TOKEN: ${TWITTER_ACCESS_TOKEN}
+      TWITTER_ACCESS_TOKEN_SECRET: ${TWITTER_ACCESS_TOKEN_SECRET}
       # xAI Grok API Configuration
       XAI_API_KEY: ${XAI_API_KEY}
       XAI_BASE_URL: ${XAI_BASE_URL:-https://api.x.ai/v1}
@@ -61,6 +71,9 @@ services:
       XAI_TEMPERATURE: ${XAI_TEMPERATURE:-0.7}
       XAI_MAX_TOKENS: ${XAI_MAX_TOKENS:-4000}
       XAI_ENABLED: ${XAI_ENABLED:-true}
+      # URLs
+      API_URL: ${API_URL:-https://clickera.app}
+      CLIENT_URL: ${CLIENT_URL:-https://clickera.app}
     ports:
       - "8082:8080"
     depends_on:

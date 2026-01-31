@@ -255,7 +255,7 @@ export class AuthController {
    * Initiate X (Twitter) OAuth login/registration flow
    * GET /api/auth/x/login
    */
-  async initiateXLogin(req: Request, res: Response): Promise<void> {
+  initiateXLogin = async (req: Request, res: Response): Promise<void> => {
     try {
       if (!config.platforms.twitter.clientId || !config.platforms.twitter.clientSecret) {
         res.status(500).json({
@@ -455,7 +455,7 @@ export class AuthController {
    * Handle X (Twitter) OAuth callback and create/login user
    * GET /api/auth/x/callback?code=...&state=...
    */
-  async handleXCallback(req: Request, res: Response): Promise<void> {
+  handleXCallback = async (req: Request, res: Response): Promise<void> => {
     try {
       const { code, state: encodedState, error, error_description } = req.query;
 
