@@ -689,11 +689,35 @@ JSON format:
     }
 
     try {
+      // For beginner and intermediate: instructions in Spanish, exercises in English
+      // For advanced: everything in English
+      const useSpanishInstructions = level === 'beginner' || level === 'intermediate';
+
+      const languageInstructions = useSpanishInstructions
+        ? `IMPORTANT LANGUAGE RULES:
+- ALL instructions, explanations, tips, and descriptions MUST be in SPANISH
+- The "introduction", "keyPoints", "explanation" fields, "contentCreatorTips", and "commonMistakes.explanation" MUST be in SPANISH
+- Quiz "question" and "explanation" MUST be in SPANISH
+- ONLY the English examples, exercise questions/answers, and quiz options should be in ENGLISH
+- This helps Spanish-speaking beginners/intermediates understand while practicing English
+
+Example format:
+- introduction: "En esta lección aprenderás frases clave para tus redes sociales..."
+- keyPoints: ["Aprenderás a usar verbos de acción", "Dominarás frases para engagement"]
+- examples.explanation: "Usa esta frase cuando quieras motivar a tu audiencia"
+- practiceExercises.question: "Complete the sentence: I ___ my followers" (exercise in English)
+- contentCreatorTips: "Usa emojis para hacer tu contenido más atractivo 🔥"
+- quiz.question: "¿Cuál es la forma correcta de decir 'me gusta'?"
+- quiz.options: ["I like", "I likes", "Me like", "I liking"] (options in English)`
+        : `LANGUAGE: Everything should be in English as this is an advanced lesson.`;
+
       const prompt = `You are an expert English teacher specializing in teaching Spanish-speaking content creators. Create a comprehensive English lesson.
 
 Topic: ${topic}
 Level: ${level}
 Focus Area: ${focusArea}
+
+${languageInstructions}
 
 Create a lesson specifically designed for CONTENT CREATORS who need English for:
 - Social media posts
@@ -703,46 +727,60 @@ Create a lesson specifically designed for CONTENT CREATORS who need English for:
 - Marketing copy
 
 Requirements:
-1. Introduction explaining why this topic matters for content creators
-2. 5 key points to learn
-3. 5 practical examples with Spanish translations and explanations
-4. 3 practice exercises
-5. 3 tips specific to content creation
-6. 3 common mistakes Spanish speakers make
-7. 5 quiz questions with 4 options each
+1. Introduction explaining why this topic matters for content creators ${useSpanishInstructions ? '(EN ESPAÑOL)' : ''}
+2. 5 key points to learn ${useSpanishInstructions ? '(EN ESPAÑOL)' : ''}
+3. 5 practical examples with Spanish translations and explanations ${useSpanishInstructions ? '(explicaciones EN ESPAÑOL)' : ''}
+4. 3 practice exercises (exercises in ENGLISH, hints in ${useSpanishInstructions ? 'SPANISH' : 'English'})
+5. 3 tips specific to content creation ${useSpanishInstructions ? '(EN ESPAÑOL)' : ''}
+6. 3 common mistakes Spanish speakers make ${useSpanishInstructions ? '(explicaciones EN ESPAÑOL)' : ''}
+7. 5 quiz questions ${useSpanishInstructions ? '(preguntas y explicaciones EN ESPAÑOL, opciones en INGLÉS)' : ''}
 
 Make the content:
 - Practical and immediately usable
 - Focused on social media and content creation contexts
 - Culturally sensitive to Spanish speakers
 - Fun and engaging
+${useSpanishInstructions ? '- Friendly and encouraging in Spanish to help learners feel comfortable' : ''}
 
 Respond ONLY with valid JSON in this exact format:
 {
   "lesson": {
-    "title": "Engaging lesson title",
-    "introduction": "Why this matters for content creators...",
-    "keyPoints": ["Point 1", "Point 2", "Point 3", "Point 4", "Point 5"],
+    "title": "${useSpanishInstructions ? 'Título atractivo en español' : 'Engaging lesson title'}",
+    "introduction": "${useSpanishInstructions ? 'Por qué esto importa para creadores de contenido... (EN ESPAÑOL)' : 'Why this matters for content creators...'}",
+    "keyPoints": ["${useSpanishInstructions ? 'Punto 1 en español' : 'Point 1'}", "${useSpanishInstructions ? 'Punto 2 en español' : 'Point 2'}", "..."],
     "examples": [
-      {"english": "English phrase", "spanish": "Spanish translation", "explanation": "When to use it"}
+      {"english": "English phrase", "spanish": "Traducción al español", "explanation": "${useSpanishInstructions ? 'Cuándo usar esta frase (en español)' : 'When to use it'}"}
     ],
     "practiceExercises": [
-      {"question": "Fill in: ___", "answer": "correct answer", "hint": "optional hint"}
+      {"question": "Fill in: ___ (ENGLISH)", "answer": "correct answer", "hint": "${useSpanishInstructions ? 'pista en español' : 'optional hint'}"}
     ],
-    "contentCreatorTips": ["Tip 1", "Tip 2", "Tip 3"],
+    "contentCreatorTips": ["${useSpanishInstructions ? 'Consejo 1 en español' : 'Tip 1'}", "..."],
     "commonMistakes": [
-      {"wrong": "incorrect", "correct": "correct", "explanation": "why"}
+      {"wrong": "incorrect (English)", "correct": "correct (English)", "explanation": "${useSpanishInstructions ? 'explicación en español' : 'why'}"}
     ]
   },
   "quiz": [
-    {"question": "Question?", "options": ["A", "B", "C", "D"], "correctIndex": 0, "explanation": "Why A is correct"}
+    {"question": "${useSpanishInstructions ? '¿Pregunta en español?' : 'Question?'}", "options": ["A (English)", "B", "C", "D"], "correctIndex": 0, "explanation": "${useSpanishInstructions ? 'Por qué A es correcta (en español)' : 'Why A is correct'}"}
   ]
 }`;
 
-      const pnpTeacherPersonality = `You are PNP (Powered by Neural Pixels), a fun and energetic English teacher for Spanish-speaking content creators!
+      const pnpTeacherPersonality = useSpanishInstructions
+        ? `Eres PNP (Powered by Neural Pixels), un profesor de inglés súper divertido y energético para creadores de contenido hispanohablantes.
+
+Tu estilo:
+- Entusiasta y motivador - ¡celebra cada paso del aprendizaje! 🎉
+- Hablas en ESPAÑOL para explicar, pero los ejercicios son en INGLÉS
+- Usas ejemplos reales de redes sociales y trending phrases
+- Llamas a los estudiantes "crack", "máquina", "campeón/a" para motivarlos
+- Haces que las lecciones se sientan como charlar con un amigo bilingüe
+- Usas emojis para hacer el contenido más atractivo 📚✨🚀
+- Eres honesto sobre los errores comunes que cometemos los hispanohablantes
+- Siempre terminas con ánimo: "¡Tú puedes!", "You got this!", "¡A darle!"
+- RECUERDA: Instrucciones en ESPAÑOL, ejercicios en INGLÉS`
+        : `You are PNP (Powered by Neural Pixels), a fun and energetic English teacher for Spanish-speaking content creators!
 Your style:
 - Enthusiastic and encouraging - celebrate every step of learning! 🎉
-- Use Spanglish naturally, making students feel comfortable
+- Everything in English for advanced learners
 - Include trending phrases, memes, and real social media examples
 - Call students "crack", "máquina", "campeón/a" to motivate them
 - Make lessons feel like chatting with a cool bilingual friend
