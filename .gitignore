@@ -48,3 +48,6 @@ temp/
 # Redis
 dump.rdb
 client.Dockerfile
+.claude/
+backend.pid
+

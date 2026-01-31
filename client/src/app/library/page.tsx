@@ -92,6 +92,7 @@ export default function LibraryPage() {
     }
   };
 
+<<<<<<< HEAD
   const regenerateContent = async (id: string, language?: 'en' | 'es') => {
     try {
       const response = await api.post(`/library/${id}/regenerate`, { language });
@@ -320,7 +321,6 @@ export default function LibraryPage() {
                     <RefreshCw className="w-4 h-4" />
                     Both
                   </button>
-                </div>
 
                 {/* Content Display */}
                 <div className="relative">

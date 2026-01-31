@@ -17,6 +17,7 @@ export class S3StorageService {
   constructor() {
     this.region = process.env.AWS_REGION || 'us-east-2';
     this.bucketName = process.env.AWS_S3_BUCKET || 'pnptv-previews';
+<<<<<<< HEAD
     this.cloudFrontDomain = process.env.CLOUDFRONT_DOMAIN || 'previews.pnptv.app';
     this.kmsKeyId = process.env.AWS_KMS_KEY_ARN;
     this.useKmsEncryption = !!this.kmsKeyId;
@@ -74,15 +75,8 @@ export class S3StorageService {
       if (this.useKmsEncryption && this.kmsKeyId) {
         uploadParams.ServerSideEncryption = 'aws:kms';
         uploadParams.SSEKMSKeyId = this.kmsKeyId;
-        logger.info('Using KMS encryption for video upload', { s3Key });
-      }
-
-      const command = new PutObjectCommand(uploadParams);
-
-      await this.s3Client.send(command);
-
-      // Construct public URL
-      const publicUrl = `https://${this.cloudFrontDomain}/${s3Key}`;
+        // Construct public URL
+      const publicUrl = this.getPublicUrl(s3Key);
 
       logger.info('Video uploaded successfully to S3', {
         localFilePath,
@@ -140,7 +134,7 @@ export class S3StorageService {
       await this.s3Client.send(command);
 
       // Construct public URL
-      const publicUrl = `https://${this.cloudFrontDomain}/${s3Key}`;
+      const publicUrl = this.getPublicUrl(s3Key);
 
       logger.info('Thumbnail uploaded successfully to S3', {
         localFilePath,
@@ -221,7 +215,10 @@ export class S3StorageService {
    * Get public URL for a file
    */
   public getPublicUrl(s3Key: string): string {
-    return `https://${this.cloudFrontDomain}/${s3Key}`;
+    if (this.cloudFrontDomain) {
+      return `https://${this.cloudFrontDomain}/${s3Key}`;
+    }
+    return `https://${this.bucketName}.s3.${this.region}.amazonaws.com/${s3Key}`;
   }
 
   /**

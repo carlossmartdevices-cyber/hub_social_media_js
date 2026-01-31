@@ -13,6 +13,14 @@ import { config } from '../../config';
 
 const hubManager = new HubManager();
 
+function safeJsonParse<T>(str: string, fallback: T): T {
+  try {
+    return JSON.parse(str) as T;
+  } catch (e) {
+    return fallback;
+  }
+}
+
 export class PostController {
   /**
    * Helper method to process uploaded media files
@@ -62,14 +70,14 @@ export class PostController {
 
       try {
         platforms = typeof req.body.platforms === 'string'
-          ? JSON.parse(req.body.platforms)
+          ? safeJsonParse(req.body.platforms, [])
           : req.body.platforms;
         content = typeof req.body.content === 'string'
-          ? JSON.parse(req.body.content)
+          ? safeJsonParse(req.body.content, {})
           : req.body.content;
         scheduledAt = req.body.scheduledAt;
         recurrence = req.body.recurrence ?
-          (typeof req.body.recurrence === 'string' ? JSON.parse(req.body.recurrence) : req.body.recurrence)
+          (typeof req.body.recurrence === 'string' ? safeJsonParse(req.body.recurrence, undefined) : req.body.recurrence)
           : undefined;
       } catch (parseError) {
         return res.status(400).json({ error: 'Invalid JSON in request body' });
@@ -151,10 +159,10 @@ export class PostController {
 
       try {
         platforms = typeof req.body.platforms === 'string'
-          ? JSON.parse(req.body.platforms)
+          ? safeJsonParse(req.body.platforms, [])
           : req.body.platforms;
         content = typeof req.body.content === 'string'
-          ? JSON.parse(req.body.content)
+          ? safeJsonParse(req.body.content, {})
           : req.body.content;
       } catch (parseError) {
         return res.status(400).json({ error: 'Invalid JSON in request body' });
