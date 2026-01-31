@@ -12,6 +12,7 @@ import automatedActionsRoutes from './automatedActions';
 import webhookRoutes from './webhook';
 import chunkedUploadRoutes from './chunkedUpload';
 import mediaRoutes from './media';
+import libraryRoutes from './library';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/automated-actions', automatedActionsRoutes);
 router.use('/webhook', webhookRoutes);
 router.use('/upload', chunkedUploadRoutes);
 router.use('/media', mediaRoutes);
+router.use('/library', libraryRoutes);
 
 export default router;
