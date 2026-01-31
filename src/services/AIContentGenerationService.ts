@@ -189,9 +189,11 @@ Respond ONLY with valid JSON in this exact format:
 
 Tone & style: Bold, high-energy, modern Latino vibe. Provocative and slightly explicit—always teasing, never crossing the line. Use real PNP slang: clouds, tina, slam, hnh, chemsex, with raw sexual energy, authenticity, and total freedom. Transmit confidence, raw desire, exclusivity, and strong visual power.
 
-Output format: Short, punchy tweets (max 140 characters). Include at least one emoji that matches the vibe (🔥💥👀🎥💎👹🚨). Always close with a smooth but firm CTA like "Join the bot 👉 https://t.me/pnplatinotv_bot" or "Discover the new vibe at PNP LATINO TV".
-
-Add powerful hashtags: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #SuscríbeteYa #GayPNP #PNPGay #Chemsex #Tina #Slam #HNH #Clouds #GayLeather #LeatherFetish #GayLeatherMen #LeatherGay #Bluf #GayFetish #GaySmoker #GaySmoking #MenWhoSmoke #GayBearSmoker #SatanicGay #HailSatan #OccultGay #Satanism #Baphomet #Lucifer #DarkSideGay #GayUSA #GayEurope #GayChina #GayLatino #GayLATAM #VibraOscura #ContenidoExclusivo
+**MANDATORY OUTPUT STRUCTURE (ALWAYS FOLLOW THIS EXACT FORMAT):**
+1. 🔥 OPENING HOOK (with emoji) - Captures the main idea the user wants, provocative and attention-grabbing
+2. 📝 POST BODY - Development of the content with hook closure and product/content info
+3. 👉 CTA + LINK - Clear call-to-action with the Telegram bot link: https://t.me/pnplatinotv_bot
+4. #️⃣ HASHTAGS - Powerful hashtags at the end
 
 Main objective: Build desire to belong, spark curiosity, get clicks to the bot, and strengthen the brand identity.`;
 
@@ -208,28 +210,45 @@ Description: ${videoDescription}
 Goal: ${userGoal}
 ${targetAudience ? `Target Audience: ${targetAudience}` : ''}
 
-**PNP PRIME REQUIREMENTS:**
-- Short, punchy content (max 140 characters per post)
-- Include emojis that match the vibe (🔥💥👀🎥💎👹🚨)
-- Always include CTA with Telegram bot link: https://t.me/pnplatinotv_bot
-- Use PNP slang naturally: clouds, tina, slam, hnh, chemsex
-- Bold, provocative, high-energy Latino vibe
-- English and Spanish posts should have DIFFERENT angles
+**MANDATORY POST STRUCTURE (ALWAYS USE THIS EXACT FORMAT):**
 
-**HASHTAG REQUIREMENTS:**
-Include 5-8 powerful hashtags from: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #GayLeather #LeatherFetish #GayFetish #GaySmoker #VibraOscura
+Each post MUST have these 4 parts IN THIS ORDER:
+
+1. **OPENING HOOK** (Line 1)
+   - Start with a powerful emoji (🔥💥👀🎥💎👹🚨⚡🖤)
+   - Capture the MAIN IDEA the user wants
+   - Provocative, attention-grabbing first line
+   - Example: "🔥 Nueva sesión intensa que te dejará sin aliento..."
+
+2. **POST BODY** (Lines 2-3)
+   - Develop the content with more details
+   - Close the hook with product/content info
+   - Use PNP slang naturally: clouds, tina, slam, hnh, chemsex
+   - Bold, provocative, high-energy Latino vibe
+   - Example: "Contenido exclusivo que solo encontrarás aquí. La vibra más oscura y real."
+
+3. **CTA + LINK** (Line 4)
+   - Clear call-to-action
+   - ALWAYS include: https://t.me/pnplatinotv_bot
+   - Example: "Únete ahora 👉 https://t.me/pnplatinotv_bot"
+
+4. **HASHTAGS** (Line 5)
+   - 5-8 powerful hashtags
+   - From: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #GayLeather #LeatherFetish #GayFetish #GaySmoker #VibraOscura
+
+**CRITICAL:** English and Spanish posts should have DIFFERENT angles but SAME structure.
 
 Respond with JSON:
 {
   "english": {
     "language": "en",
-    "content": "Provocative hook + CTA + bot link (max 140 chars)",
+    "content": "🔥 [OPENING HOOK with main idea]\\n\\n[POST BODY - development and product info]\\n\\n👉 Join now: https://t.me/pnplatinotv_bot\\n\\n#PNPLatinoTV #gaypnp #chemsex #clouds #ContenidoExclusivo",
     "hashtags": ["PNPLatinoTV", "gaypnp", "chemsex", "clouds", "ContenidoExclusivo"],
     "cta": "Join now 👉 https://t.me/pnplatinotv_bot"
   },
   "spanish": {
     "language": "es",
-    "content": "Hook provocativo diferente + CTA + link del bot (max 140 chars)",
+    "content": "🔥 [HOOK DE APERTURA con idea principal]\\n\\n[CUERPO DEL POST - desarrollo e info del producto]\\n\\n👉 Únete ya: https://t.me/pnplatinotv_bot\\n\\n#PNPLatinoTV #pnpgay #VibraLatina #ContenidoExclusivo #tina",
     "hashtags": ["PNPLatinoTV", "pnpgay", "VibraLatina", "ContenidoExclusivo", "tina"],
     "cta": "Únete ya 👉 https://t.me/pnplatinotv_bot"
   }
@@ -570,19 +589,28 @@ Your characteristics:
 
 Tone & style: Bold, high-energy, modern Latino vibe. Provocative and slightly explicit—always teasing, never crossing the line. Use real PNP slang: clouds, tina, slam, hnh, chemsex, with raw sexual energy, authenticity, and total freedom. Transmit confidence, raw desire, exclusivity, and strong visual power.
 
-Output format: Short, punchy tweets (max 140 characters). Include at least one emoji that matches the vibe (🔥💥👀🎥💎👹🚨). Always close with a smooth but firm CTA like "Join the bot 👉 https://t.me/pnplatinotv_bot" or "Discover the new vibe at PNP LATINO TV".
-
-Add powerful hashtags: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #SuscríbeteYa #GayPNP #PNPGay #Chemsex #Tina #Slam #HNH #Clouds #GayLeather #LeatherFetish #GayLeatherMen #LeatherGay #Bluf #GayFetish #GaySmoker #GaySmoking #MenWhoSmoke #GayBearSmoker #SatanicGay #HailSatan #OccultGay #Satanism #Baphomet #Lucifer #DarkSideGay #GayUSA #GayEurope #GayChina #GayLatino #GayLATAM #VibraOscura #ContenidoExclusivo
-
-Main objective: Build desire to belong, spark curiosity, get clicks to the bot, and strengthen the brand identity.
-
 Output language: ${language === 'es' ? 'Spanish' : 'English'}
 
-Structure every tweet like this:
-1. Hook: Provocative opening line
-2. Body: Clear info about the event, drop, or content being teased
-3. CTA + link to https://t.me/pnplatinotv_bot
-4. Hashtags`;
+**MANDATORY OUTPUT STRUCTURE (ALWAYS USE THIS EXACT FORMAT):**
+
+1. **🔥 OPENING HOOK** (Line 1)
+   - Start with a powerful emoji (🔥💥👀🎥💎👹🚨⚡🖤)
+   - Capture the MAIN IDEA from the user's prompt
+   - Provocative, attention-grabbing opening line
+
+2. **📝 POST BODY** (Lines 2-3)
+   - Develop the content with more details
+   - Close the hook with product/content info
+   - Use PNP slang naturally: clouds, tina, slam, hnh, chemsex
+
+3. **👉 CTA + LINK** (Line 4)
+   - Clear call-to-action
+   - ALWAYS include: https://t.me/pnplatinotv_bot
+
+4. **#️⃣ HASHTAGS** (Line 5)
+   - 5-8 powerful hashtags from: #PNPLatinoTV #gaypnp #pnpgay #chemsex #tina #slam #hnh #clouds #VibraLatina #ContenidoExclusivo #GayLeather #LeatherFetish #GayFetish #GaySmoker #VibraOscura
+
+Main objective: Build desire to belong, spark curiosity, get clicks to the bot, and strengthen the brand identity.`;
 
       const systemPrompt = tone === 'pnp_prime'
         ? pnpPrimePrompt
