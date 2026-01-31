@@ -100,8 +100,24 @@ export class VideoPostController {
 
       const { title, description, quality = 'medium' } = req.body;
 
-      // Create post record
+      // Create post record first (to satisfy foreign key constraint)
       const postId = uuidv4();
+
+      await database.query(
+        `INSERT INTO posts
+         (id, user_id, media_type, media_url, processing_status, content, status, created_at, updated_at)
+         VALUES ($1, $2, 'video', $3, 'processing', $4, 'draft', NOW(), NOW())`,
+        [
+          postId,
+          userId,
+          file.path, // Temporary path, will be updated after processing
+          JSON.stringify({
+            text: title,
+            title,
+            description,
+          }),
+        ]
+      );
 
       // Process video
       logger.info('Processing uploaded video', {
@@ -120,24 +136,22 @@ export class VideoPostController {
         }
       );
 
-      // Store in database
+      // Update post with processed video data
       await database.query(
-        `INSERT INTO posts
-         (id, user_id, media_type, media_url, thumbnail_url, video_duration, video_size,
-          processing_status, content, status, created_at, updated_at)
-         VALUES ($1, $2, 'video', $3, $4, $5, $6, 'ready', $7, 'draft', NOW(), NOW())`,
+        `UPDATE posts SET
+          media_url = $1,
+          thumbnail_url = $2,
+          video_duration = $3,
+          video_size = $4,
+          processing_status = 'ready',
+          updated_at = NOW()
+         WHERE id = $5`,
         [
-          postId,
-          userId,
           processedVideo.url,
           processedVideo.thumbnailUrl,
           Math.round(processedVideo.metadata.duration),
           processedVideo.metadata.size,
-          JSON.stringify({
-            text: title,
-            title,
-            description,
-          }),
+          postId,
         ]
       );
 
