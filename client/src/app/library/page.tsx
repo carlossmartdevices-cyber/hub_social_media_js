@@ -242,7 +242,7 @@ export default function LibraryPage() {
                   <div className="flex items-center gap-2 mt-2 text-xs text-gray-500">
                     <Clock className="w-3 h-3" />
                     {new Date(item.created_at).toLocaleDateString()}
-                    {item.post_count > 0 && (
+                    {(item.post_count ?? 0) > 0 && (
                       <span className="text-green-600">• {item.post_count} posted</span>
                     )}
                   </div>
