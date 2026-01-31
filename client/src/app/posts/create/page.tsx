@@ -49,7 +49,7 @@ export default function CreatePostPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [showAiPanel, setShowAiPanel] = useState(false);
-  const [tone, setTone] = useState<'professional' | 'casual' | 'funny' | 'inspirational'>('professional');
+  const [tone, setTone] = useState<'professional' | 'casual' | 'funny' | 'inspirational' | 'pnp_prime'>('professional');
   
   // UI state
   const [loading, setLoading] = useState(false);
@@ -283,6 +283,7 @@ export default function CreatePostPage() {
                   <option value="casual">Casual</option>
                   <option value="funny">Funny</option>
                   <option value="inspirational">Inspirational</option>
+                  <option value="pnp_prime">🔥 PNP Prime</option>
                 </select>
 
                 <button
